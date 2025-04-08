@@ -1,0 +1,29 @@
+<!-- Bộ chọn ngày -->
+<div class="date-selector">
+    <div *ngFor="let dateObj of dates" 
+         [class.selected]="isDateSelected(dateObj.date)"
+         (click)="selectDate(dateObj.date)"
+         class="date-item">
+        {{ dateObj.formatted }}
+    </div>
+</div>
+
+<div class="movie-section">
+    <h2>Phim đang chiếu</h2>
+
+    <!-- Nội dung phần phim đang chiếu -->
+    <div class="movies-grid">
+        <div class="movie-card" *ngFor="let movie of movies">
+            <img [src]="movie.posterUrl" [alt]="movie.title + ' Poster'">
+            <div class="movie-info">
+                <div class="movie-title">{{ movie.title }}</div>
+                <div class="movie-details">{{ movie.duration }} phút | {{ movie.genre }}</div>
+                <div class="showtimes">
+                    <div class="showtime" *ngFor="let time of movie.showtimes">
+                        {{ time }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

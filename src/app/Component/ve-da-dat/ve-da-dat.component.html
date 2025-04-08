@@ -1,0 +1,385 @@
+<div class="header">
+    <div class="page-title">Vé đã đặt</div>
+</div>
+
+<div class="search-filter-section">
+    <div class="search-row">
+        <div class="search-input">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Tìm kiếm theo mã vé, tên khách hàng, số điện thoại...">
+        </div>
+    </div>
+    <div class="filter-row">
+        <div class="filter-group">
+            <label>Ngày:</label>
+            <input type="date" value="2025-04-06">
+        </div>
+        <div class="filter-group">
+            <label>Phim:</label>
+            <select>
+                <option value="">Tất cả phim</option>
+                <option>Avengers: Endgame</option>
+                <option>Dune: Part Two</option>
+                <option>Joker</option>
+                <option>Parasite</option>
+                <option>The Dark Knight</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Trạng thái:</label>
+            <select>
+                <option value="">Tất cả trạng thái</option>
+                <option>Chờ xác nhận</option>
+                <option>Đã xác nhận</option>
+                <option>Đã hoàn thành</option>
+                <option>Đã hủy</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Nguồn:</label>
+            <select>
+                <option value="">Tất cả nguồn</option>
+                <option>Đặt online</option>
+                <option>Đặt tại quầy</option>
+            </select>
+        </div>
+        <div class="filter-buttons">
+            <button class="filter-button search-button">Tìm kiếm</button>
+            <button class="filter-button reset-button">Đặt lại</button>
+        </div>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active">
+        Tất cả
+        <span class="tab-badge">45</span>
+    </div>
+    <div class="tab">
+        Chờ xác nhận
+        <span class="tab-badge">12</span>
+    </div>
+    <div class="tab">
+        Đã xác nhận
+        <span class="tab-badge">18</span>
+    </div>
+    <div class="tab">
+        Đã hoàn thành
+        <span class="tab-badge">10</span>
+    </div>
+    <div class="tab">
+        Đã hủy
+        <span class="tab-badge">5</span>
+    </div>
+</div>
+
+<div class="tickets-container">
+    <div class="tickets-header">
+        <div class="tickets-title">Danh sách vé đã đặt</div>
+        <div class="tickets-actions">
+            <button class="tickets-action export-action">
+                <i class="fas fa-download"></i> Xuất Excel
+            </button>
+            <button class="tickets-action refresh-action">
+                <i class="fas fa-sync-alt"></i> Làm mới
+            </button>
+        </div>
+    </div>
+    
+    <table class="tickets-table">
+        <thead>
+            <tr>
+                <th>Mã vé</th>
+                <th>Khách hàng</th>
+                <th>Phim</th>
+                <th>Suất chiếu</th>
+                <th>Ghế</th>
+                <th>Tổng tiền</th>
+                <th>Nguồn</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="ticket-id">TK-25040601</td>
+                <td>
+                    <div class="ticket-customer">
+                        <div class="customer-avatar">NT</div>
+                        <div>
+                            <div>Nguyễn Thành</div>
+                            <div style="font-size: 12px; color: #777;">0912345678</div>
+                        </div>
+                    </div>
+                </td>
+                <td>Avengers: Endgame</td>
+                <td>06/04/2025 17:00</td>
+                <td>H5, H6</td>
+                <td>180.000đ</td>
+                <td>Đặt online</td>
+                <td><span class="ticket-status status-pending">Chờ xác nhận</span></td>
+                <td>
+                    <div class="ticket-actions">
+                        <button class="ticket-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
+                        <button class="ticket-action" title="Xác nhận"><i class="fas fa-check"></i></button>
+                        <button class="ticket-action" title="Hủy"><i class="fas fa-times"></i></button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="ticket-id">TK-25040602</td>
+                <td>
+                    <div class="ticket-customer">
+                        <div class="customer-avatar">LH</div>
+                        <div>
+                            <div>Lê Hoa</div>
+                            <div style="font-size: 12px; color: #777;">0987654321</div>
+                        </div>
+                    </div>
+                </td>
+                <td>Dune: Part Two</td>
+                <td>06/04/2025 19:30</td>
+                <td>D12, D13</td>
+                <td>160.000đ</td>
+                <td>Đặt tại quầy</td>
+                <td><span class="ticket-status status-confirmed">Đã xác nhận</span></td>
+                <td>
+                    <div class="ticket-actions">
+                        <button class="ticket-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
+                        <button class="ticket-action" title="In vé"><i class="fas fa-print"></i></button>
+                        <button class="ticket-action" title="Hoàn thành"><i class="fas fa-check-double"></i></button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="ticket-id">TK-25040603</td>
+                <td>
+                    <div class="ticket-customer">
+                        <div class="customer-avatar">TM</div>
+                        <div>
+                            <div>Trần Minh</div>
+                            <div style="font-size: 12px; color: #777;">0909123456</div>
+                        </div>
+                    </div>
+                </td>
+                <td>Joker</td>
+                <td>06/04/2025 20:45</td>
+                <td>F8, F9, F10</td>
+                <td>270.000đ</td>
+                <td>Đặt online</td>
+                <td><span class="ticket-status status-completed">Đã hoàn thành</span></td>
+                <td>
+                    <div class="ticket-actions">
+                        <button class="ticket-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
+                        <button class="ticket-action" title="In lại vé"><i class="fas fa-print"></i></button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="ticket-id">TK-25040604</td>
+                <td>
+                    <div class="ticket-customer">
+                        <div class="customer-avatar">PH</div>
+                        <div>
+                            <div>Phạm Hùng</div>
+                            <div style="font-size: 12px; color: #777;">0978123456</div>
+                        </div>
+                    </div>
+                </td>
+                <td>Parasite</td>
+                <td>06/04/2025 16:30</td>
+                <td>C4, C5</td>
+                <td>180.000đ</td>
+                <td>Đặt online</td>
+                <td><span class="ticket-status status-cancelled">Đã hủy</span></td>
+                <td>
+                    <div class="ticket-actions">
+                        <button class="ticket-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="ticket-id">TK-25040605</td>
+                <td>
+                    <div class="ticket-customer">
+                        <div class="customer-avatar">VL</div>
+                        <div>
+                            <div>Vũ Linh</div>
+                            <div style="font-size: 12px; color: #777;">0932123456</div>
+                        </div>
+                    </div>
+                </td>
+                <td>The Dark Knight</td>
+                <td>06/04/2025 13:30</td>
+                <td>G15, G16, G17</td>
+                <td>270.000đ</td>
+                <td>Đặt tại quầy</td>
+                <td><span class="ticket-status status-confirmed">Đã xác nhận</span></td>
+                <td>
+                    <div class="ticket-actions">
+                        <button class="ticket-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
+                        <button class="ticket-action" title="In vé"><i class="fas fa-print"></i></button>
+                        <button class="ticket-action" title="Hoàn thành"><i class="fas fa-check-double"></i></button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td class="ticket-id">TK-25040606</td>
+                <td>
+                    <div class="ticket-customer">
+                        <div class="customer-avatar">HT</div>
+                        <div>
+                            <div>Hoàng Tuấn</div>
+                            <div style="font-size: 12px; color: #777;">0945678912</div>
+                        </div>
+                    </div>
+                </td>
+                <td>Avengers: Endgame</td>
+                <td>06/04/2025 21:15</td>
+                <td>E7, E8</td>
+                <td>180.000đ</td>
+                <td>Đặt online</td>
+                <td><span class="ticket-status status-pending">Chờ xác nhận</span></td>
+                <td>
+                    <div class="ticket-actions">
+                        <button class="ticket-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
+                        <button class="ticket-action" title="Xác nhận"><i class="fas fa-check"></i></button>
+                        <button class="ticket-action" title="Hủy"><i class="fas fa-times"></i></button>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="pagination">
+        <div class="pagination-info">Hiển thị 1-6 của 45 kết quả</div>
+        <div class="pagination-controls">
+            <button class="pagination-button"><i class="fas fa-chevron-left"></i></button>
+            <button class="pagination-button active">1</button>
+            <button class="pagination-button">2</button>
+            <button class="pagination-button">3</button>
+            <button class="pagination-button">4</button>
+            <button class="pagination-button">5</button>
+            <button class="pagination-button"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal chi tiết vé -->
+<!-- <div class="ticket-details-modal" style="display: none;">
+<div class="modal-content">
+<div class="modal-header">
+    <div class="modal-title">Chi tiết vé #TK-25040602</div>
+    <button class="modal-close">&times;</button>
+</div>
+<div class="modal-body">
+    <div class="qr-code">
+        <img src="https://via.placeholder.com/120x120?text=QR+CODE" alt="QR Code">
+    </div>
+    
+    <div class="ticket-info">
+        <div>
+            <div class="ticket-info-group">
+                <div class="ticket-info-label">Mã vé</div>
+                <div class="ticket-info-value">TK-25040602</div>
+            </div>
+            <div class="ticket-info-group">
+                <div class="ticket-info-label">Khách hàng</div>
+                <div class="ticket-info-value">Lê Hoa (0987654321)</div>
+            </div>
+            <div class="ticket-info-group">
+                <div class="ticket-info-label">Email</div>
+                <div class="ticket-info-value">lehoa@example.com</div>
+            </div>
+            <div class="ticket-info-group">
+                <div class="ticket-info-label">Trạng thái</div>
+                <div class="ticket-info-value">
+                    <span class="ticket-status status-confirmed">Đã xác nhận</span>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="ticket-info-group">
+                <div class="ticket-info-label">Phim</div>
+                <div class="ticket-info-value">Dune: Part Two</div>
+            </div>
+            <div class="ticket-info-group">
+                <div class="ticket-info-label">Rạp chiếu</div>
+                <div class="ticket-info-value">Cinema Center - Phòng 3</div>
+            </div>
+            <div class="ticket-info-group">
+                <div class="ticket-info-label">Suất chiếu</div>
+                <div class="ticket-info-value">06/04/2025 19:30 - 22:00</div>
+            </div>
+            <div class="ticket-info-group">
+                <div class="ticket-info-label">Ngày đặt</div>
+                <div class="ticket-info-value">05/04/2025 14:23</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ticket-seats">
+        <div class="seats-title">Ghế đã đặt</div>
+        <div class="seats-grid">
+            <div class="seat">D12</div>
+            <div class="seat">D13</div>
+        </div>
+    </div>
+    
+    <div class="ticket-summary">
+        <div class="summary-title">Thông tin thanh toán</div>
+        <div class="summary-item">
+            <div>Vé người lớn (2 x 80.000đ)</div>
+            <div>160.000đ</div>
+        </div>
+        <div class="summary-item">
+            <div>Combo bắp nước nhỏ</div>
+            <div>50.000đ</div>
+        </div>
+        <div class="summary-item">
+            <div>Phí đặt vé</div>
+            <div>10.000đ</div>
+        </div>
+        <div class="summary-item">
+            <div>Giảm giá (Thành viên)</div>
+            <div>-20.000đ</div>
+        </div>
+        <div class="summary-total">
+            <div>Tổng cộng</div>
+            <div>200.000đ</div>
+        </div>
+    </div>
+    
+    <div class="ticket-payment">
+        <div class="payment-title">Phương thức thanh toán</div>
+        <div class="payment-method">
+            <i class="fas fa-credit-card"></i>
+            <div>Thẻ tín dụng/ghi nợ (VISA ****1234)</div>
+            <span class="payment-status payment-paid">Đã thanh toán</span>
+        </div>
+    </div>
+    
+    <div class="ticket-history">
+        <div class="history-title">Lịch sử thao tác</div>
+        <div class="history-item">
+            <div class="history-time">14:23</div>
+            <div class="history-action">Đặt vé thành công</div>
+            <div class="history-user">bởi Khách hàng</div>
+        </div>
+        <div class="history-item">
+            <div class="history-time">14:30</div>
+            <div class="history-action">Xác nhận vé</div>
+            <div class="history-user">bởi Nguyễn Văn A (Quầy 03)</div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button class="modal-button print-button">
+        <i class="fas fa-print"></i> In vé
+    </button>
+    <button class="modal-button cancel-button">
+        Đóng
+    </button>
+</div>
+ -->

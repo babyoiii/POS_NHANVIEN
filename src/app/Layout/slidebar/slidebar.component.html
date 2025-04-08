@@ -1,0 +1,21 @@
+<div class="sidebar">
+    <div class="logo">
+        <img src="../../../assets/Image/cinexLogo.png" alt="Logo Rạp">
+    </div>
+    <div class="user-info">
+        <div>
+            <div>Nhân viên: <h4>Lê Xoài Mận Ổi</h4>
+            </div>
+            <div style="font-size: 12px; color: #777;">AEON Hà Đông</div>
+        </div>
+    </div>
+    <ul class="menu">
+        <li class="active" [routerLink]="'ticket'"><i class="fas fa-film"></i> Bán vé</li>
+        <li [routerLink]="'doan'"><i class="fas fa-coffee"></i> Bắp nước</li>
+        <li [routerLink]="'vedadat'"><i class="fas fa-ticket-alt"></i> Vé đã đặt</li>
+        <li [routerLink]="'thongke'"><i class="fas fa-chart-line"></i> Báo cáo</li>
+        <li [routerLink]="'caidat'"><i class="fas fa-cog"></i> Cài đặt</li>
+        <li (click)="openQRCodeInNewTab()"><i class="fas fa-cog"></i> QRCode</li>
+        <li><i class="fas fa-sign-out-alt"></i> Đăng xuất</li>
+    </ul>
+</div>

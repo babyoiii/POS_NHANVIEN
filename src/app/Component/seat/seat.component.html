@@ -1,0 +1,370 @@
+<main class="relative bg-black text-white [&amp;:has(dialog[open],[data-body-scroll=disabled])]:overflow-hidden"
+  monica-id="ofpnmcalabcbjgholdjcjblkibolbppb" monica-version="7.8.0">
+  <div class="flex h-[100dvh] flex-col">
+    <!--$-->
+    <!--$-->
+    <!--$-->
+    <header class="flex flex-col border-b border-gray-700 bg-checkout-black">
+      <div class="border-b border-gray-700 bg-checkout-black">
+        <div
+          class="mx-auto w-full max-w-[1248px] px-4 xl:px-0 relative flex items-center justify-center py-4 text-400 label">
+
+
+
+          <button type="button"
+            class="inline-flex text-center items-center justify-center w-max font-bold transition duration-200 disabled:opacity-40 rounded-full text-white hocus:text-blue-500 p-2 text-sm md:text-base absolute left-0 z-10"
+            aria-label="Browser Back" (click)="goBack()">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 45 45" width="1em" height="100%"
+              class="m-2 h-5 w-5">
+              <title>Back</title>
+              <path
+                d="M14.974 22.5 34.321 3.153A2.09 2.09 0 0 0 31.46.291l-20.892 20.75a2.09 2.09 0 0 0 0 2.861L31.373 44.71a2.09 2.09 0 0 0 2.862-2.862z">
+              </path>
+            </svg>
+          </button>
+
+
+
+
+          <div class="relative flex w-full items-center justify-center">
+            <h1>Select Seats</h1>
+            <div class="absolute right-0 mr-8 text-300 font-semibold md:mr-12">
+              <div class="countdown-container">
+                <div class="countdown-timer">
+                  <span class="countdown-label">Time Remaining: </span>
+                  <span class="countdown-value">{{ countdown }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+          <a class="inline-flex text-center items-center justify-center w-max font-bold transition duration-200 disabled:opacity-40 rounded-full text-white hocus:text-blue-500 p-2 text-sm md:text-base absolute right-0"
+            href="/"><svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" stroke="currentColor"
+              viewBox="0 0 45 45" width="1em" height="100%" class="m-2 h-5 w-5">
+              <title>Close</title>
+              <path stroke-width="4.0358"
+                d="M40.341 4.769a1.112 1.112 0 0 1-.022 1.587L24.071 22.604 40.32 38.85a1.112 1.112 0 0 1-1.566 1.566L22.506 24.169 6.236 40.417a1.112 1.112 0 0 1-1.565-1.566l16.27-16.247L4.67 6.356a1.125 1.125 0 0 1-.303-.767A1.13 1.13 0 0 1 5.49 4.465c.285 0 .56.11.768.304l16.248 16.269 16.268-16.27a1.117 1.117 0 0 1 1.566 0Z">
+              </path>
+            </svg></a>
+        </div>
+      </div>
+      <div class="mx-auto w-full max-w-[1248px] px-4 xl:px-0 flex items-center gap-4 py-2 md:py-4">
+        <h2 class="sr-only">Showtime Information</h2>
+        
+        
+        
+        <img alt="Movie Poster" 
+        width="90"
+        height="90" 
+        class="aspect-square w-[90px] hidden md:inline-block rounded object-cover"
+        style="color:transparent"
+        [src]="movieInfo?.thumbnail">
+
+
+
+
+        <div class="flex flex-col md:gap-2">
+          <h3 class="text-800 headline">Captain America: Brave New World</h3>
+          <ul
+            class="flex flex-wrap gap-y-2 leading-none relative z-50 mt-2 text-50 font-semibold uppercase md:text-100">
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              AMC Village 7</li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              Tuesday, February 18, 2025</li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              12:30 pm</li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              <span class="flex items-center gap-[0.5ch]" aria-label="Runtime: 1 HR 58 MIN" role="group">1
+                HR 58 MIN
+                <!-- --> <button class="h-[1em] w-[1em] text-blue-500 transition-colors hover:text-white"
+                  aria-label="More Info" type="button" aria-haspopup="dialog" aria-expanded="false"
+                  aria-controls="radix-:Rqbj5ufknpuiv4ja:" data-state="closed"><svg xmlns="http://www.w3.org/2000/svg"
+                    fill="currentColor" viewBox="0 0 45 45" width="1em" height="100%" class="h-[1em] w-[1em]">
+                    <path
+                      d="M22.5 45C10.125 45 0 34.875 0 22.5S10.125 0 22.5 0 45 10.125 45 22.5 34.875 45 22.5 45zm0-41.625c-10.35 0-18.9 8.55-18.9 18.9 0 10.35 8.55 18.9 18.9 18.9 10.35 0 18.9-8.55 18.9-18.9 0-10.35-8.55-18.9-18.9-18.9z">
+                    </path>
+                    <path
+                      d="M15.75 17.55c0-3.6 3.15-6.075 6.75-6.075 3.15 0 6.75 2.25 6.75 5.625 0 2.25-1.125 3.825-2.925 4.95-.675.45-1.35.9-1.8 1.575-.675.675-.9 1.575-.9 2.7H20.7c-.225-.45-.225-.9-.225-1.35 0-4.5 5.4-4.725 5.4-7.875 0-1.575-1.575-2.7-3.15-2.7-2.025 0-3.375 1.575-3.375 3.375v.675l-3.375-.225c-.225.225-.225-.225-.225-.675zm6.3 15.75c1.125 0 2.025-.9 2.025-2.025s-.9-2.025-2.025-2.025-2.025.9-2.025 2.025c-.225.9.9 2.025 2.025 2.025z">
+                    </path>
+                  </svg></button></span>
+            </li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              <span class="inline-flex items-center gap-1 uppercase" aria-label="MPAA Rating: PG13"
+                role="group">PG13</span>
+            </li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              AMC Signature Recliners</li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              Reserved Seating</li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              RealD 3D</li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              Laser at AMC</li>
+            <li
+              class="-translate-x-[0.5ch] pl-[0.5ch] [&amp;:not(:last-child)]:border-r-2 [&amp;:not(:last-child)]:border-r-gray-300 [&amp;:not(:last-child)]:pr-[0.5ch]">
+              Closed Caption</li>
+          </ul>
+        </div>
+
+
+
+
+
+
+
+
+      </div>
+    </header>
+    <main id="main" class="relative flex-1 overflow-auto flex h-full flex-col">
+      <div role="banner" class="relative caption text-200 bg-[#3B0249]">
+        <div class="mx-auto w-full max-w-[1248px] px-4 xl:px-0 relative flex items-center justify-center gap-4 py-2">
+          <p>If you're a member, sign in now to take advantage of AMC Stubs benefits.</p>
+          
+          <button
+            class="inline-flex text-center items-center justify-center w-max font-bold transition duration-200 disabled:opacity-40 rounded-full ring-inset ring-2 ring-white hocus:ring-blue-500 hocus:text-blue-500 text-white outline-offset-[-5px] px-6 min-w-[10ch] text-sm h-11"
+            type="button">Sign In</button>
+        </div>
+      </div> -->
+
+
+
+
+
+
+
+
+      <div class="relative flex-1 overflow-hidden">
+        <div #seatMapContainer
+          class="seat-selection-container flex items-center justify-center h-full w-full overflow-auto">
+          <div class="seat-map-content max-w-4xl w-full mx-auto transform scale-100 md:scale-100 transition-all">
+            <div class="overflow-hidden transition-opacity">
+              <h2 class="sr-only">Seat Map</h2>
+
+
+              <div class="p-4">
+                <div class="screen-container relative mb-12">
+                  <p class="p-12 text-center text-5xl uppercase font-thin text-gray-300 tracking-wider">Screen</p>
+                  <div class="screen">
+                    <div class="w-full"><svg focusable="false" xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 670 386.5" preserveAspectRatio="none" class="w-full h-24">
+                        <radialGradient id="gradient" cx="336.83" cy="284.39" r="473.49"
+                          gradientTransform="translate(0 -398)" gradientUnits="userSpaceOnUse">
+                          <stop offset="0" stop-color="#fff" stop-opacity=".97"></stop>
+                          <stop offset=".04" stop-color="#fff" stop-opacity=".91"></stop>
+                          <stop offset=".25" stop-color="#fff" stop-opacity=".59"></stop>
+                          <stop offset=".44" stop-color="#fff" stop-opacity=".34"></stop>
+                          <stop offset=".6" stop-color="#fff" stop-opacity=".15"></stop>
+                          <stop offset=".79" stop-color="#fff" stop-opacity="0"></stop>
+                        </radialGradient>
+                        <path class="fill-[url(#gradient)]"
+                          d="M0 386.5s73.5-49.2 335-49.2 335 49.2 335 49.2V45.8S584.5 4.2 333.3 4.2C102.6 4.3 0 45.8 0 45.8v340.7z">
+                        </path>
+                        <path class="fill-white"
+                          d="M0 48.5S97.8 7 335 7c238.6 0 335 41.5 335 41.5v-5.4S578.3 1.5 335 1.5 0 43.2 0 43.2v5.3z">
+                        </path>
+                      </svg></div>
+                  </div>
+                </div>
+
+
+
+
+
+                <div *ngFor="let row of seats | groupBy: 'RowNumber'; let i = index" class="relative z-10 grid gap-4"
+                  style="grid-template-columns: repeat(13, 60px);">
+                  <span class="font-bold">{{ getRowLabel(i + 1) }}</span>
+                  <ng-container *ngFor="let seat of row">
+
+
+
+
+                    <!-- Nếu có pairSeatId, thì hiển thị ghế đôi -->
+                    <ng-container *ngIf="seat && seat.PairId; else singleSeat" class="grid grid-cols-2 gap-0">
+                      <ng-container class="flex mx-1 my-4"><svg (click)="toggleSeatStatus(seat)"
+                          [ngClass]="getSeatFillClass(seat)" class=" translate-x-1" viewBox="0 0 50 50" version="1.1"
+                          xmlns="http://www.w3.org/2000/svg" xml:space="preserve">
+                          <g transform="matrix(0.0653851,0,0,0.0653851,-0.13077,1.65751)">
+                            <path
+                              d="M701.8,204.6L657.3,204.6C645.2,204.6 622.6,220 614.3,227.7C615.5,223.4 615.9,208.3 615.9,203.7L615.9,190.7C615.9,174.9 608.4,160.9 596.7,151.9C601.2,144.3 604.3,133.5 604.3,118.2L604.3,87.3C604.3,44.8 575.3,19.5 526.7,19.5L241.9,19.5C193.3,19.5 164.3,44.9 164.3,87.3L164.3,118C164.3,133.4 167.4,144.1 171.9,151.7C160.3,160.7 152.7,174.7 152.7,190.5L152.7,203.5C152.7,208.1 147.3,223.3 148.5,227.5C139.6,216.2 124.2,204.4 112.1,204.4L67,204.4C41.3,204.4 20.5,225.3 20.5,250.9L20.5,563.1C20.5,588.8 41.4,609.6 67,609.6L123.7,609.6C121.2,616.8 119.7,624.1 119.7,631.4C119.7,674.6 153.6,694.3 185.2,694.3L583.8,694.3C615.3,694.3 649.3,674.6 649.3,631.4C649.3,624.1 647.7,616.8 645.3,609.6L702,609.6C727.7,609.6 748.5,588.7 748.5,563.1L748.5,251.1C748.3,225.4 727.4,204.6 701.8,204.6Z">
+                            </path>
+                          </g>
+                          <g transform="matrix(0.0653851,0,0,0.0653851,-0.13077,1.65751)" class="fill-white">
+                            <path
+                              d="M717.8,196.8L658.7,196.8C645.9,196.8 634.4,201.8 625.7,209.9C627,205.4 627.7,200.7 627.7,195.8L627.7,182.2C627.7,165.6 619.8,150.8 607.6,141.4C612.3,133.4 615.6,122.1 615.6,106L615.6,73.7C615.6,29.1 585.1,2.4 534.1,2.4L234.7,2.4C183.7,2.4 153.2,29 153.2,73.7L153.2,106C153.2,122.1 156.5,133.5 161.2,141.4C149,150.8 141.1,165.6 141.1,182.2L141.1,195.8C141.1,200.7 141.8,205.4 143.1,209.8C134.4,201.8 122.9,196.7 110.1,196.7L50.9,196.7C24,196.8 2,218.8 2,245.7L2,573.7C2,600.7 23.9,622.6 50.9,622.6L110.4,622.6C107.8,630.2 106.1,637.9 106.1,645.5C106.1,690.9 141.8,711.6 174.9,711.6L593.7,711.6C626.8,711.6 662.5,690.9 662.5,645.5C662.5,637.9 660.8,630.2 658.3,622.6L717.8,622.6C744.8,622.6 766.7,600.7 766.7,573.7L766.7,245.7C766.7,218.8 744.8,196.8 717.8,196.8ZM180.6,73.7C180.6,44.6 198.8,29.8 234.7,29.8L534,29.8C569.9,29.8 588.1,44.6 588.1,73.7L588.1,106C588.1,113.6 587.1,126.2 580.9,130.9C579.3,130.7 577.7,130.7 576,130.7L192.7,130.7C191,130.7 189.4,130.8 187.8,130.9C181.6,126.3 180.6,113.6 180.6,106L180.6,73.7ZM168.4,182.2C168.4,168.8 179.3,157.9 192.7,157.9L576.1,157.9C589.5,157.9 600.4,168.8 600.4,182.2L600.4,195.8C600.4,209.2 589.5,220.1 576.1,220.1C575.6,220.1 575.2,220.2 574.7,220.2C573.7,220.1 572.7,220.1 571.8,220.1C564.2,220.1 558.1,226.2 558.1,233.8C558.1,241.4 564.2,247.5 571.8,247.5C581.7,247.5 609.9,254.9 609.9,287.7L609.9,549C596.2,538 576.2,529.2 544.5,529.2L224.4,529.2C192.7,529.2 172.7,538 159,549L159,287.7C159,254.9 187.2,247.5 197,247.5C204.6,247.5 210.7,241.4 210.7,233.8C210.7,226.2 204.6,220.1 197,220.1C196,220.1 195,220.2 194.1,220.2C193.6,220.2 193.2,220.1 192.7,220.1C179.3,220.1 168.4,209.2 168.4,195.8L168.4,182.2ZM131.6,573.7C131.6,585.6 121.9,595.2 110.1,595.2L50.9,595.2C39,595.2 29.4,585.5 29.4,573.7L29.4,245.7C29.4,233.8 39.1,224.2 50.9,224.2L110,224.2C121.9,224.2 131.5,233.9 131.5,245.7L131.5,573.7L131.6,573.7ZM593.8,684.3L175,684.3C168.1,684.3 133.6,682.4 133.6,645.5C133.6,630.8 144.7,612.1 156.7,594.1L158,592.2C169.6,574.7 181.6,556.6 224.4,556.6L544.5,556.6C587.3,556.6 599.3,574.7 610.9,592.2L612.2,594.1C624.2,612.1 635.3,630.8 635.3,645.5C635.2,682.4 600.7,684.3 593.8,684.3ZM739.4,573.7C739.4,585.6 729.7,595.2 717.9,595.2L658.8,595.2C646.9,595.2 637.3,585.5 637.3,573.7L637.3,245.7C637.3,233.8 647,224.2 658.8,224.2L717.9,224.2C729.8,224.2 739.4,233.9 739.4,245.7L739.4,573.7Z">
+                            </path>
+                          </g>
+                          <g transform="matrix(1,0,0,1,25,25)"><text text-anchor="middle" dominant-baseline="middle"
+                              class="fill-white" font-size="10">{{ seat.SeatName}}</text></g>
+                        </svg>
+                      </ng-container>
+                      <ng-container class="flex mx-1 my-4"><svg (click)="toggleSeatStatus(seat)"
+                          [ngClass]="getSeatFillClass(seat)" class="getSeatFillClass(seat) -translate-x-4"
+                          viewBox="0 0 50 50" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve">
+                          <g transform="matrix(0.0653851,0,0,0.0653851,-0.13077,1.65751)">
+                            <path
+                              d="M701.8,204.6L657.3,204.6C645.2,204.6 622.6,220 614.3,227.7C615.5,223.4 615.9,208.3 615.9,203.7L615.9,190.7C615.9,174.9 608.4,160.9 596.7,151.9C601.2,144.3 604.3,133.5 604.3,118.2L604.3,87.3C604.3,44.8 575.3,19.5 526.7,19.5L241.9,19.5C193.3,19.5 164.3,44.9 164.3,87.3L164.3,118C164.3,133.4 167.4,144.1 171.9,151.7C160.3,160.7 152.7,174.7 152.7,190.5L152.7,203.5C152.7,208.1 147.3,223.3 148.5,227.5C139.6,216.2 124.2,204.4 112.1,204.4L67,204.4C41.3,204.4 20.5,225.3 20.5,250.9L20.5,563.1C20.5,588.8 41.4,609.6 67,609.6L123.7,609.6C121.2,616.8 119.7,624.1 119.7,631.4C119.7,674.6 153.6,694.3 185.2,694.3L583.8,694.3C615.3,694.3 649.3,674.6 649.3,631.4C649.3,624.1 647.7,616.8 645.3,609.6L702,609.6C727.7,609.6 748.5,588.7 748.5,563.1L748.5,251.1C748.3,225.4 727.4,204.6 701.8,204.6Z">
+                            </path>
+                          </g>
+                          <g transform="matrix(0.0653851,0,0,0.0653851,-0.13077,1.65751)" class="fill-white">
+                            <path
+                              d="M717.8,196.8L658.7,196.8C645.9,196.8 634.4,201.8 625.7,209.9C627,205.4 627.7,200.7 627.7,195.8L627.7,182.2C627.7,165.6 619.8,150.8 607.6,141.4C612.3,133.4 615.6,122.1 615.6,106L615.6,73.7C615.6,29.1 585.1,2.4 534.1,2.4L234.7,2.4C183.7,2.4 153.2,29 153.2,73.7L153.2,106C153.2,122.1 156.5,133.5 161.2,141.4C149,150.8 141.1,165.6 141.1,182.2L141.1,195.8C141.1,200.7 141.8,205.4 143.1,209.8C134.4,201.8 122.9,196.7 110.1,196.7L50.9,196.7C24,196.8 2,218.8 2,245.7L2,573.7C2,600.7 23.9,622.6 50.9,622.6L110.4,622.6C107.8,630.2 106.1,637.9 106.1,645.5C106.1,690.9 141.8,711.6 174.9,711.6L593.7,711.6C626.8,711.6 662.5,690.9 662.5,645.5C662.5,637.9 660.8,630.2 658.3,622.6L717.8,622.6C744.8,622.6 766.7,600.7 766.7,573.7L766.7,245.7C766.7,218.8 744.8,196.8 717.8,196.8ZM180.6,73.7C180.6,44.6 198.8,29.8 234.7,29.8L534,29.8C569.9,29.8 588.1,44.6 588.1,73.7L588.1,106C588.1,113.6 587.1,126.2 580.9,130.9C579.3,130.7 577.7,130.7 576,130.7L192.7,130.7C191,130.7 189.4,130.8 187.8,130.9C181.6,126.3 180.6,113.6 180.6,106L180.6,73.7ZM168.4,182.2C168.4,168.8 179.3,157.9 192.7,157.9L576.1,157.9C589.5,157.9 600.4,168.8 600.4,182.2L600.4,195.8C600.4,209.2 589.5,220.1 576.1,220.1C575.6,220.1 575.2,220.2 574.7,220.2C573.7,220.1 572.7,220.1 571.8,220.1C564.2,220.1 558.1,226.2 558.1,233.8C558.1,241.4 564.2,247.5 571.8,247.5C581.7,247.5 609.9,254.9 609.9,287.7L609.9,549C596.2,538 576.2,529.2 544.5,529.2L224.4,529.2C192.7,529.2 172.7,538 159,549L159,287.7C159,254.9 187.2,247.5 197,247.5C204.6,247.5 210.7,241.4 210.7,233.8C210.7,226.2 204.6,220.1 197,220.1C196,220.1 195,220.2 194.1,220.2C193.6,220.2 193.2,220.1 192.7,220.1C179.3,220.1 168.4,209.2 168.4,195.8L168.4,182.2ZM131.6,573.7C131.6,585.6 121.9,595.2 110.1,595.2L50.9,595.2C39,595.2 29.4,585.5 29.4,573.7L29.4,245.7C29.4,233.8 39.1,224.2 50.9,224.2L110,224.2C121.9,224.2 131.5,233.9 131.5,245.7L131.5,573.7L131.6,573.7ZM593.8,684.3L175,684.3C168.1,684.3 133.6,682.4 133.6,645.5C133.6,630.8 144.7,612.1 156.7,594.1L158,592.2C169.6,574.7 181.6,556.6 224.4,556.6L544.5,556.6C587.3,556.6 599.3,574.7 610.9,592.2L612.2,594.1C624.2,612.1 635.3,630.8 635.3,645.5C635.2,682.4 600.7,684.3 593.8,684.3ZM739.4,573.7C739.4,585.6 729.7,595.2 717.9,595.2L658.8,595.2C646.9,595.2 637.3,585.5 637.3,573.7L637.3,245.7C637.3,233.8 647,224.2 658.8,224.2L717.9,224.2C729.8,224.2 739.4,233.9 739.4,245.7L739.4,573.7Z">
+                            </path>
+                          </g>
+                          <g transform="matrix(1,0,0,1,25,25)"><text text-anchor="middle" dominant-baseline="middle"
+                              class="fill-white" font-size="10">{{getSeatNameByPairId(seat.PairId)}}</text></g>
+                        </svg>
+                      </ng-container>
+                    </ng-container>
+
+
+
+
+                    <!-- Nếu không có pairSeatId, hiển thị ghế đơn -->
+                    <!-- Ghế đơn -->
+                    <ng-template #singleSeat>
+                      <div class="seat-item mx-1 my-1">
+                        <button *ngIf="seat.SeatId" (click)="toggleSeatStatus(seat)" class="seat-button">
+                          <svg [ngClass]="getSeatFillClass(seat)" class="w-12 h-12" viewBox="0 0 50 50" version="1.1"
+                            xmlns="http://www.w3.org/2000/svg" xml:space="preserve">
+                            <g transform="matrix(0.0704424,0,0,0.0704424,-2.06396,-5.61074)">
+                              <path
+                                d="M689.6,213.7L659,213.7C633,213.7 617.7,234.4 617.7,259.5L617.7,263.6C596.6,244.6 549.7,235.3 518.7,235.3L249.5,235.3C218.5,235.3 170.6,244.6 149.5,263.6L149.5,259.5C149.5,234.5 135.3,213.7 109.3,213.7L78.7,213.7C52.7,213.7 41.3,234.1 41.3,259.1L41.3,548.2C41.3,573.2 62.5,593.6 88.5,593.6L119.1,593.6C127.7,593.6 135.7,591.2 142.7,587.3C140.9,592.3 139.9,597.7 139.9,603.3C139.9,648 165.3,655.2 226.1,655.2L542.1,655.2C602.9,655.2 628.3,648 628.3,603.3C628.3,597.6 627.3,592.3 625.5,587.3C632.5,591.2 640.5,593.6 649.1,593.6L679.7,593.6C705.8,593.6 726.9,573.2 726.9,548.2L726.9,259.1C726.9,234.1 715.6,213.7 689.6,213.7Z">
+                              </path>
+                            </g>
+                            <g transform="matrix(0.0704424,0,0,0.0704424,-2.06396,-5.61074)" class="fill-white">
+                              <path
+                                d="M690.1,196.8L658.4,196.8C631.4,196.8 609.5,218.7 609.5,245.7L609.5,250.2C587.6,229.7 555.4,220.1 523.4,220.1L244.8,220.1C212.8,220.1 180.6,229.7 158.7,250.2L158.7,245.7C158.7,218.7 136.8,196.8 109.8,196.8L78.2,196.8C51.2,196.8 29.3,218.7 29.3,245.7L29.3,557C29.3,584 51.2,605.9 78.2,605.9L109.9,605.9C118.8,605.9 127.1,603.3 134.3,599.1C132.5,604.5 131.4,610.3 131.4,616.4C131.4,664.5 157.7,672.3 220.6,672.3L547.8,672.3C610.7,672.3 637,664.5 637,616.4C637,610.3 635.9,604.6 634.1,599.1C641.3,603.3 649.6,605.9 658.5,605.9L690.2,605.9C717.2,605.9 739.1,584 739.1,557L739.1,245.7C739,218.8 717.1,196.8 690.1,196.8ZM244.8,247.5L523.4,247.5C537.8,247.5 609.5,250.8 609.5,316.6L609.5,557C609.5,561.7 610.4,566.1 611.6,570.4C592.7,557 564.3,549.3 528.9,549.3L239.2,549.3C203.9,549.3 175.4,557 156.5,570.4C157.7,566.1 158.6,561.6 158.6,557L158.6,316.5C158.7,250.8 230.4,247.5 244.8,247.5ZM131.3,557C131.3,568.9 121.6,578.5 109.8,578.5L78.2,578.5C66.3,578.5 56.7,568.8 56.7,557L56.7,245.7C56.7,233.8 66.4,224.2 78.2,224.2L109.9,224.2C121.8,224.2 131.4,233.9 131.4,245.7L131.4,557L131.3,557ZM547.7,644.9L220.5,644.9C158.7,644.9 158.7,638.3 158.7,616.4C158.7,589 199.1,576.7 239.2,576.7L529,576.7C569.1,576.7 609.5,589 609.5,616.4C609.6,638.3 609.6,644.9 547.7,644.9ZM711.6,557C711.6,568.9 701.9,578.5 690.1,578.5L658.4,578.5C646.5,578.5 636.9,568.8 636.9,557L636.9,245.7C636.9,233.8 646.6,224.2 658.4,224.2L690.1,224.2C702,224.2 711.6,233.9 711.6,245.7L711.6,557Z">
+                              </path>
+                            </g>
+                            <g transform="matrix(1,0,0,1,25,25)"><text text-anchor="middle" dominant-baseline="middle"
+                                class="fill-white" font-size="10">{{seat.SeatName}}</text></g>
+                          </svg>
+                        </button>
+                      </div>
+                    </ng-template>
+
+                  </ng-container>
+
+                </div>
+              </div>
+
+
+
+            </div>
+          </div>
+        </div><button type="button"
+          class="text-center w-max font-bold transition duration-200 disabled:opacity-40 rounded-full text-white hocus:text-blue-500 p-2 text-sm md:text-base absolute right-4 top-4 flex items-center justify-center">
+          <div class="rounded-full bg-gray-400 p-4"><svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+              viewBox="0 0 45 45" width="1em" height="100%" class="h-6 w-6 text-white">
+              <title>Zoom Out</title>
+              <path
+                d="m5.063 42.019 13.584-13.585a1.492 1.492 0 0 0-2.11-2.109L2.982 39.937V26.325a1.49 1.49 0 1 0-2.981 0v17.184a1.266 1.266 0 0 0 .422.422 1.266 1.266 0 0 0 0 .619A1.462 1.462 0 0 0 1.49 45h17.184a1.49 1.49 0 1 0 0-2.981zM45 1.49a1.266 1.266 0 0 0-.422-.45 1.294 1.294 0 0 0 0-.62 1.294 1.294 0 0 0-.619 0A1.294 1.294 0 0 0 43.51 0H26.325a1.49 1.49 0 1 0 0 2.981h13.613L26.325 16.566a1.492 1.492 0 0 0 2.11 2.109L42.018 5.062v13.613a1.49 1.49 0 1 0 2.981 0z">
+              </path>
+            </svg></div>
+        </button>
+      </div>
+
+
+
+
+      <div
+        class="seat-info-panel bottom-0 right-8 flex flex-col gap-2 border-t border-gray-700 bg-checkout-black p-2 md:absolute md:rounded-t-lg md:border md:border-b-0"
+        [ngClass]="{'collapsed': isPanelCollapsed}">
+        <header class="flex justify-around" (click)="toggleInfoPanel()">
+          <h3 class="font-semibold text-gray-200">Thông tin ghế</h3><button type="button"
+            class="text-center justify-center w-max font-bold transition duration-200 disabled:opacity-40 rounded-full text-blue-500 hocus:text-white text-sm md:text-base flex items-center">
+            {{ isPanelCollapsed ? 'Hiển thị' : 'Ẩn' }}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 45 45" width="1em" height="100%"
+              class="ml-1">
+              <path
+                d="M22.464 29.594 3.067 10.48c-.856-.57-2.283-.285-2.853.856-.285.57-.285 1.141 0 1.997l20.824 20.824c.856.856 1.997.856 2.853 0L44.715 13.62c.57-.856.285-2.282-.856-2.852-.57-.286-1.426-.286-1.997 0z">
+              </path>
+            </svg></button>
+        </header>
+
+
+        <div class="flex items-center justify-center gap-4 divide-x divide-gray-700">
+          <ul class="p-2 pr-20">
+            <li>
+              <div class="flex items-center">
+                <div class="h-4 w-4 rounded bg-black border border-white"></div><span class="ml-2 text-xs">Ghế
+                  trống</span>
+              </div>
+            </li>
+            <li class="pt-2">
+              <div class="flex items-center">
+                <div class="h-4 w-4 rounded bg-red-500 border border-white"></div><span class="ml-2 text-xs">Ghế đã
+                  chọn</span>
+              </div>
+            </li>
+          </ul>
+          <ul class="p-2">
+            <li class="flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="1em" height="100%"
+                class="mr-2 h-5 w-5">
+                <path fill="transparent"
+                  d="M45.756 15.035h-2.91c-.79 0-2.268 1.007-2.81 1.51.078-.28.104-1.268.104-1.569v-.85a3.19 3.19 0 0 0-1.255-2.536c.294-.497.496-1.204.496-2.204v-2.02c0-2.78-1.896-4.433-5.073-4.433H15.686c-3.178 0-5.074 1.66-5.074 4.433v2.007c0 1.007.203 1.707.497 2.203a3.209 3.209 0 0 0-1.255 2.537v.85c0 .301-.354 1.295-.275 1.57-.582-.74-1.589-1.51-2.38-1.51H4.25a3.043 3.043 0 0 0-3.04 3.04v20.413c0 1.68 1.366 3.04 3.04 3.04h3.707c-.163.471-.261.948-.261 1.426 0 2.824 2.216 4.112 4.283 4.112H38.04c2.06 0 4.283-1.288 4.283-4.112 0-.478-.105-.955-.262-1.426h3.708c1.68 0 3.04-1.366 3.04-3.04v-20.4a3.063 3.063 0 0 0-3.054-3.04Z">
+                </path>
+                <path fill="currentColor"
+                  d="M46.803 14.525h-3.865c-.837 0-1.588.327-2.157.857.085-.294.13-.602.13-.922v-.89a3.364 3.364 0 0 0-1.314-2.667c.308-.523.523-1.262.523-2.315V6.476c0-2.916-1.994-4.662-5.329-4.662H15.215c-3.335 0-5.329 1.74-5.329 4.662v2.112c0 1.053.216 1.798.523 2.315a3.364 3.364 0 0 0-1.314 2.668v.889c0 .32.046.628.13.915a3.18 3.18 0 0 0-2.157-.856h-3.87A3.216 3.216 0 0 0 0 17.723v21.446a3.198 3.198 0 0 0 3.197 3.197h3.89c-.17.497-.28 1-.28 1.498 0 2.968 2.334 4.322 4.498 4.322h27.383c2.165 0 4.499-1.354 4.499-4.322 0-.497-.111-1-.275-1.498h3.89A3.198 3.198 0 0 0 50 39.17V17.723a3.202 3.202 0 0 0-3.197-3.198ZM11.678 6.476c0-1.902 1.19-2.87 3.537-2.87h19.57c2.347 0 3.537.968 3.537 2.87v2.112c0 .497-.065 1.321-.47 1.628-.105-.013-.21-.013-.321-.013H12.469a5.04 5.04 0 0 0-.32.013c-.406-.3-.471-1.13-.471-1.628V6.476Zm-.798 7.095a1.59 1.59 0 0 1 1.589-1.59h25.069a1.59 1.59 0 0 1 1.588 1.59v.889a1.59 1.59 0 0 1-1.588 1.589c-.033 0-.06.006-.092.006-.065-.006-.13-.006-.19-.006a.893.893 0 0 0-.895.896c0 .496.399.895.895.895.648 0 2.492.484 2.492 2.629v17.085c-.896-.72-2.204-1.295-4.277-1.295h-20.93c-2.072 0-3.38.576-4.276 1.295V20.469c0-2.145 1.844-2.629 2.485-2.629a.893.893 0 0 0 .896-.895.893.893 0 0 0-.896-.896c-.065 0-.13.006-.19.006-.032 0-.058-.006-.091-.006a1.59 1.59 0 0 1-1.589-1.59v-.888ZM8.474 39.169c0 .778-.634 1.406-1.406 1.406h-3.87a1.408 1.408 0 0 1-1.406-1.406V17.723c0-.778.634-1.406 1.405-1.406h3.865c.778 0 1.405.634 1.405 1.406v21.446h.007Zm30.22 7.232H11.313c-.452 0-2.707-.125-2.707-2.537 0-.962.725-2.184 1.51-3.361l.085-.124c.759-1.145 1.543-2.328 4.342-2.328h20.93c2.798 0 3.583 1.183 4.341 2.328l.085.124c.785 1.177 1.51 2.4 1.51 3.36-.006 2.413-2.262 2.538-2.713 2.538Zm9.521-7.232c0 .778-.634 1.406-1.406 1.406h-3.864a1.408 1.408 0 0 1-1.406-1.406V17.723c0-.778.634-1.406 1.406-1.406h3.864c.778 0 1.406.634 1.406 1.406v21.446Z">
+                </path>
+              </svg><span class="text-xs">Ghế đôi</span></li>
+            <li class="pt-2">
+              <div class="flex items-center">
+                <div class="h-4 w-4 rounded bg-gray-200 border border-white"></div><span class="ml-2 text-xs">Ghế đã có
+                  người</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+
+
+
+
+    </main>
+
+
+    <footer class="border-t border-gray-700 bg-checkout-black">
+      <div class="mx-auto w-full max-w-[1248px] px-4 xl:px-0">
+        <div class="flex items-center justify-end gap-4">
+          <div class="flex flex-col items-end">
+            <p class="text-200 uppercase text-gray-200">{{ selectedSeats.length }} Ghế Đã Chọn</p>
+            <p class="text-200 text-gray-200">Tổng Tiền: {{ formatPrice(totalAmount) }}</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-4 py-4 justify-end">
+            <a class="inline-flex text-center items-center justify-center w-max font-bold transition duration-200 disabled:opacity-40 rounded-full text-black bg-white px-6 min-w-[10ch] hocus:bg-blue-500 text-sm md:text-base h-12"
+              (click)="onContinue()">Tiếp Tục</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+
+
+
+
+
+    <!--/$-->
+    <!--/$-->
+    <!--/$-->
+  </div>
+  <div role="region" aria-label="Notifications (F8)" tabindex="-1" style="pointer-events:none">
+    <ol tabindex="-1" class="fixed bottom-0 right-0 grid w-full max-w-full gap-4 p-4 md:w-96"></ol>
+  </div>
+  <dialog
+    class="flex items-center justify-center empty:hidden w-[100vw] h-[100dvh] bg-transparent max-w-[100vw] max-h-[100dvh]">
+  </dialog>
+
+</main>

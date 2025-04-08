@@ -1,0 +1,368 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(-45deg, #1d1d49, #3f0b4d, #5f0c2f, #e94560);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    overflow: hidden;
+    perspective: 1000px;
+}
+
+@keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.login-container {
+    position: relative;
+    width: 400px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    transform-style: preserve-3d;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.login-container:hover {
+    transform: scale(1.05);
+    box-shadow: 0 35px 60px rgba(0, 0, 0, 0.2);
+}
+
+.login-container h2 {
+    color: #fff;
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: 700;
+    font-size: 2.2em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateZ(30px);
+}
+
+.input-group {
+    position: relative;
+    width: 100%;
+    margin-bottom: 30px;
+    transform: translateZ(20px);
+}
+
+.input-group input {
+    width: 100%;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.input-group input:focus {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.input-group label {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 16px;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.input-group input:focus+label,
+.input-group input:not(:placeholder-shown)+label {
+    top: 0;
+    left: 10px;
+    font-size: 12px;
+    padding: 0 5px;
+    border-radius: 5px;
+}
+
+.glassmorphism-btn {
+    width: 100%;
+    padding: 15px;
+    background: rgba(219, 6, 52, 0.6);
+    border: 1px solid rgba(45, 37, 87, 0.2);
+    color: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(0) translateZ(30px);
+}
+
+.glassmorphism-btn:hover {
+    background: rgba(170, 31, 54, 0.8);
+    transform: translateY(-5px) translateZ(50px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Thay thế animation floatElement hiện tại */
+@keyframes floatElement {
+    0% {
+        transform: translate(-50px, -50px) rotate(0deg);
+    }
+    25% {
+        transform: translate(50px, -25px) rotate(90deg);
+    }
+    50% {
+        transform: translate(25px, 50px) rotate(180deg);
+    }
+    75% {
+        transform: translate(-25px, 25px) rotate(270deg);
+    }
+    100% {
+        transform: translate(-50px, -50px) rotate(360deg);
+    }
+}
+
+/* Cũng cần sửa lại phần CSS của floating-icons để đảm bảo nó bao phủ toàn bộ màn hình */
+.floating-icons {
+    position: fixed; /* Thay vì absolute */
+    top: 0;
+    left: 0;
+    width: 100vw; /* Sử dụng viewport width */
+    height: 100vh; /* Sử dụng viewport height */
+    pointer-events: none;
+    z-index: 0; /* Đặt z-index thấp để không che phủ các phần tử khác */
+}
+
+.floating-icon {
+    position: absolute;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.4);
+    animation: floatElement 15s infinite linear;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.slogan {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 1.2em;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 1s ease, transform 1s ease;
+}
+
+.login-container:hover~.slogan {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-10px);
+}
+
+@keyframes fadeInScale {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeOutScale {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+}
+
+.fade-in {
+    animation: fadeInScale 0.5s forwards;
+}
+
+.fade-out {
+    animation: fadeOutScale 0.5s forwards;
+}
+
+.forgot-password {
+    text-align: right;
+    margin-bottom: 20px;
+}
+
+.forgot-password a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+    color: #FFD166;
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+    transform: translateZ(40px);
+}
+
+.logo-container img {
+    max-width: 150px;
+    height: auto;
+    transition: transform 0.3s ease;
+}
+
+.logo-container img:hover {
+    transform: scale(1.1);
+}
+
+.location-text {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    margin-top: 5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.location-text:hover {
+    color: #FFD166;
+}
+
+.cinema-selection {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(70, 67, 67, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 20px;
+    display: none;
+    flex-direction: column;
+    z-index: 10;
+    animation: fadeInScale 0.3s forwards;
+}
+
+.cinema-selection.active {
+    display: flex;
+}
+
+.selection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.selection-header h3 {
+    color: #fff;
+    font-size: 1.5em;
+}
+
+.close-btn {
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    color: #e94560;
+    transform: scale(1.2);
+}
+
+.selection-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.selection-content::-webkit-scrollbar {
+    width: 5px;
+}
+
+.selection-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+}
+
+.province-list, .cinema-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.province-item, .cinema-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 10px;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.province-item:hover, .cinema-item:hover {
+    background: rgba(219, 6, 52, 0.6);
+    transform: translateY(-3px);
+}
+
+.back-btn {
+    color: #fff;
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: rgba(65, 64, 64, 0.5);
+}
+
+.back-btn i {
+    font-size: 12px;
+}
+
+.selection-title {
+    color: #fff;
+    margin-bottom: 15px;
+    font-size: 18px;
+}

@@ -1,0 +1,63 @@
+<div class="abc">
+<div class="floating-icons">
+  <!-- Floating icons will be added by TypeScript -->
+</div>
+<div class="login-container">
+  <div class="logo-container">
+    <img src="../../../assets/Image/cinexLogo.png" alt="CineX Logo">
+    <div class="location-text" (click)="showCinemaSelector()">
+      {{ selectedCinema ? selectedCinema.name : 'Chọn Rạp CineX' }}
+    </div>
+  </div>
+
+  <h2 *ngIf="loginVisible">Chào mừng đến CineX</h2>
+
+  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" *ngIf="loginVisible">
+    <div class="input-group">
+      <input type="email" formControlName="email" required placeholder=" ">
+      <label>Tài Khoản</label>
+    </div>
+    <div class="input-group">
+      <input type="password" formControlName="password" required placeholder=" ">
+      <label>Mật khẩu</label>
+    </div>
+    <div class="forgot-password">
+      <a href="#" target="_blank">Quên mật khẩu?</a>
+    </div>
+    <button type="submit" class="glassmorphism-btn" [disabled]="!loginForm.valid">Đăng Nhập</button>
+  </form>
+
+  <!-- Phần chọn rạp -->
+  <div class="cinema-selection" [class.active]="showCinemaSelection">
+    <div class="selection-header">
+      <h3>{{ showProvinceSelection ? 'Chọn Tỉnh/Thành phố' : 'Chọn Rạp - ' + (selectedProvince?.name || '') }}</h3>
+      <span class="close-btn" (click)="closeCinemaSelection()">&times;</span>
+    </div>
+    <div class="selection-content">
+      <!-- Phần chọn tỉnh thành -->
+      <div *ngIf="showProvinceSelection">
+        <div class="province-list">
+          <div class="province-item" *ngFor="let province of provinces" (click)="showCinemas(province)">
+            {{ province.name }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Phần chọn rạp -->
+      <div *ngIf="showCinemaListSelection">
+        <button class="back-btn" (click)="backToProvinces()">
+          Quay lại
+        </button>
+        <h4 class="selection-title">Các rạp tại {{ selectedProvince?.name }}</h4>
+        <div class="cinema-list">
+          <div class="cinema-item" *ngFor="let cinema of cinemas" (click)="selectCinema(cinema)">
+            {{ cinema.name }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slogan">CineX-Cinema</div>
+</div>

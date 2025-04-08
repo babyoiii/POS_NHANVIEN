@@ -1,0 +1,208 @@
+<div class="settings-container">
+    <div class="settings-sidebar">
+        <ul class="settings-menu">
+            <li class="settings-menu-item active">
+                <i class="fas fa-theater-masks"></i> Cài đặt rạp
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-users"></i> Quản lý nhân viên
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-ticket-alt"></i> Cài đặt vé
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-credit-card"></i> Thanh toán
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-print"></i> Máy in & thiết bị
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-palette"></i> Giao diện
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-bell"></i> Thông báo
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-plug"></i> Tích hợp
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-database"></i> Sao lưu & Phục hồi
+            </li>
+            <li class="settings-menu-item">
+                <i class="fas fa-key"></i> Giấy phép
+            </li>
+        </ul>
+    </div>
+    
+    <div class="settings-content">
+        <div class="settings-section">
+            <h2 class="settings-section-title">Thông tin rạp chiếu phim</h2>
+            <div class="settings-form">
+                <div class="form-group">
+                    <label class="form-label">Tên rạp</label>
+                    <input type="text" class="form-input" value="Cinema Star Saigon">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mã chi nhánh</label>
+                    <input type="text" class="form-input" value="SGN-001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Số điện thoại</label>
+                    <input type="text" class="form-input" value="(028) 3823 5678">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" value="contact@cinemastar.com">
+                </div>
+                <div class="form-group grid-full">
+                    <label class="form-label">Địa chỉ</label>
+                    <textarea class="form-textarea">123 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Múi giờ</label>
+                    <select class="form-select">
+                        <option selected>Asia/Ho_Chi_Minh (GMT+7)</option>
+                        <option>Asia/Bangkok (GMT+7)</option>
+                        <option>Asia/Singapore (GMT+8)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Định dạng ngày</label>
+                    <select class="form-select">
+                        <option selected>DD/MM/YYYY</option>
+                        <option>MM/DD/YYYY</option>
+                        <option>YYYY-MM-DD</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h2 class="settings-section-title">Cài đặt thuế & Giá</h2>
+            <div class="settings-card">
+                <h3 class="settings-card-title">Thuế suất</h3>
+                <table class="tax-rates">
+                    <thead>
+                        <tr>
+                            <th>Tên thuế</th>
+                            <th>Mức thuế</th>
+                            <th>Áp dụng cho</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>VAT</td>
+                            <td>10%</td>
+                            <td>Tất cả sản phẩm</td>
+                            <td>
+                                <div class="user-actions">
+                                    <button class="user-action"><i class="fas fa-edit"></i></button>
+                                    <button class="user-action"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Thuế dịch vụ</td>
+                            <td>5%</td>
+                            <td>Bắp nước</td>
+                            <td>
+                                <div class="user-actions">
+                                    <button class="user-action"><i class="fas fa-edit"></i></button>
+                                    <button class="user-action"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button class="add-tax-btn">
+                    <i class="fas fa-plus-circle"></i> Thêm thuế mới
+                </button>
+            </div>
+            
+            <div class="settings-form">
+                <div class="form-group">
+                    <label class="form-label">Đơn vị tiền tệ</label>
+                    <select class="form-select">
+                        <option selected>VND (₫)</option>
+                        <option>USD ($)</option>
+                        <option>EUR (€)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Định dạng giá</label>
+                    <select class="form-select">
+                        <option selected>90.000đ</option>
+                        <option>đ90.000</option>
+                        <option>90.000 VND</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="toggle-setting">
+                <div>
+                    <div class="toggle-label">Hiển thị giá đã bao gồm thuế</div>
+                    <div class="info-text">Giá hiển thị trên màn hình và hóa đơn sẽ bao gồm thuế</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h2 class="settings-section-title">Cài đặt vận hành</h2>
+            
+            <div class="toggle-setting">
+                <div>
+                    <div class="toggle-label">Cho phép đặt vé trước</div>
+                    <div class="info-text">Khách hàng có thể đặt vé trước cho các suất chiếu trong tương lai</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="toggle-setting">
+                <div>
+                    <div class="toggle-label">Tự động hủy vé chưa thanh toán</div>
+                    <div class="info-text">Hệ thống sẽ tự động hủy vé chưa thanh toán sau thời gian quy định</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Thời gian giữ vé (phút)</label>
+                <input type="number" class="form-input" value="15" style="width: 100px;">
+                <div class="info-text">Thời gian tối đa để khách hàng hoàn tất thanh toán trước khi vé bị hủy</div>
+            </div>
+            
+            <div class="toggle-setting">
+                <div>
+                    <div class="toggle-label">Cho phép hoàn vé</div>
+                    <div class="info-text">Khách hàng có thể hoàn vé theo chính sách quy định</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Thời gian cho phép hoàn vé (giờ)</label>
+                <input type="number" class="form-input" value="24" style="width: 100px;">
+                <div class="info-text">Thời gian tối đa trước suất chiếu mà khách hàng có thể hoàn vé</div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button class="btn btn-secondary">Hủy thay đổi</button>
+            <button class="btn btn-primary">Lưu cài đặt</button>
+        </div>
+    </div>
+</div>
