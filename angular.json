@@ -26,7 +26,12 @@
                 "input": "src/assets/",
                 "output": "assets/"
               },
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "./node_modules/ngx-scanner-qrcode/wasm/",
+                "output": "./assets/wasm/"
+              }
             ],
             "styles": [
               
@@ -103,5 +108,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "327bb045-ee5b-4b27-be66-262d877c118d"
   }
 }

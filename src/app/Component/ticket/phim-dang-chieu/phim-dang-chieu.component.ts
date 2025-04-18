@@ -1,81 +1,38 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
+import { MovieService, Movie } from '../../../services/movie.service';
+import { Router } from '@angular/router';
 
-interface Movie {
-  id: number;
-  title: string;
-  duration: number;
-  genre: string;
-  posterUrl: string;
-  showtimes: string[];
+interface DateObject {
+  date: Date;
+  formatted: string;
 }
 
 @Component({
   selector: 'app-phim-dang-chieu',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HttpClientModule],
   templateUrl: './phim-dang-chieu.component.html',
-  styleUrl: './phim-dang-chieu.component.css'
+  styleUrl: './phim-dang-chieu.component.css',
+  providers: [MovieService]
 })
 export class PhimDangChieuComponent implements OnInit {
   // Mảng ngày hiển thị (7 ngày từ ngày hiện tại)
-  dates: { date: Date, formatted: string }[] = [];
+  dates: DateObject[] = [];
   selectedDate: Date = new Date();
   
   // Danh sách phim
-  movies: Movie[] = [
-    {
-      id: 1,
-      title: 'Avengers: Endgame',
-      duration: 181,
-      genre: 'Hành động',
-      posterUrl: 'https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg',
-      showtimes: ['10:30', '13:45', '17:00', '20:15']
-    },
-    {
-      id: 2,
-      title: 'Joker',
-      duration: 122,
-      genre: 'Tâm lý',
-      posterUrl: 'https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg',
-      showtimes: ['11:00', '14:15', '17:30', '20:45']
-    },
-    {
-      id: 3,
-      title: 'Parasite',
-      duration: 132,
-      genre: 'Kinh dị',
-      posterUrl: 'https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg',
-      showtimes: ['10:00', '13:15', '16:30', '19:45']
-    },
-    {
-      id: 4,
-      title: 'Inception',
-      duration: 148,
-      genre: 'Viễn tưởng',
-      posterUrl: 'https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg',
-      showtimes: ['09:30', '12:45', '16:00', '19:15']
-    },
-    {
-      id: 5,
-      title: 'The Dark Knight',
-      duration: 152,
-      genre: 'Hành động',
-      posterUrl: 'https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg',
-      showtimes: ['10:15', '13:30', '16:45', '20:00']
-    },
-    {
-      id: 6,
-      title: 'Interstellar',
-      duration: 169,
-      genre: 'Khoa học viễn tưởng',
-      posterUrl: 'https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg',
-      showtimes: ['11:30', '14:45', '18:00', '21:15']
-    }
-  ];
+  allMovies: Movie[] = [];
+  movies: Movie[] = [];
+  isLoading: boolean = true;
+  errorMessage: string = '';
+
+  constructor(private movieService: MovieService, private router: Router) {}
 
   ngOnInit(): void {
     this.generateDateSelector();
+    this.loadMovies();
   }
 
   // Tạo bộ chọn ngày
@@ -98,10 +55,48 @@ export class PhimDangChieuComponent implements OnInit {
     }
   }
 
+  // Lấy danh sách phim từ API
+  loadMovies(): void {
+    this.isLoading = true;
+    
+    // ID của rạp - lấy từ localStorage hoặc service tùy vào ứng dụng của bạn
+    const cinemaId = localStorage.getItem('selectedCinemaId') || 'e2131050-d219-4523-b480-2f517d8bafd0';
+    
+    this.movieService.getNowPlayingMovies(1, 20, this.selectedDate, cinemaId)
+      .subscribe({
+        next: (response) => {
+          if (response.responseCode === 200) {
+            this.allMovies = response.data;
+            // Lọc phim theo ngày đã chọn
+            this.filterMoviesByDate();
+          } else {
+            this.errorMessage = response.message || 'Có lỗi xảy ra khi tải dữ liệu';
+          }
+          this.isLoading = false;
+        },
+        error: (error) => {
+          this.errorMessage = 'Không thể kết nối với máy chủ';
+          this.isLoading = false;
+          console.error('API error:', error);
+        }
+      });
+  }
+
+  // Lọc phim theo ngày đã chọn
+  filterMoviesByDate(): void {
+    this.movies = this.movieService.getShowtimesByDate(this.allMovies, this.selectedDate);
+  }
+
   // Chọn ngày
   selectDate(date: Date): void {
     this.selectedDate = date;
-    // Ở đây bạn có thể thêm logic để lọc phim theo ngày nếu cần
+    // Nếu đã có dữ liệu, lọc lại theo ngày
+    if (this.allMovies.length > 0) {
+      this.filterMoviesByDate();
+    } else {
+      // Nếu chưa có dữ liệu, tải lại từ API
+      this.loadMovies();
+    }
   }
 
   // Kiểm tra xem ngày có được chọn không
@@ -109,5 +104,21 @@ export class PhimDangChieuComponent implements OnInit {
     return date.getDate() === this.selectedDate.getDate() && 
            date.getMonth() === this.selectedDate.getMonth() && 
            date.getFullYear() === this.selectedDate.getFullYear();
+  }
+
+  // Format thời gian chiếu phim
+  formatShowtime(showtime: string): string {
+    return this.movieService.formatShowtime(showtime);
+  }
+
+  // Kết hợp các thể loại thành chuỗi
+  getGenresString(movie: Movie): string {
+    return movie.genres.map(g => g.genreName).join(', ');
+  }
+
+  // Điều hướng đến trang sơ đồ ghế khi click vào suất chiếu
+  navigateToSeatMap(showtimeId: string): void {
+    console.log(`Navigating to seat map for showtime ID: ${showtimeId}`);
+    this.router.navigate(['/trangchu/seat-map', showtimeId]);
   }
 }

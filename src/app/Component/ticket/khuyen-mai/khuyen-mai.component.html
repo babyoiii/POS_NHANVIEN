@@ -1,10 +1,10 @@
 <div class="filter-section">
-    <div class="filter-btn active">Tất cả</div>
-    <div class="filter-btn">Ưu đãi vé</div>
-    <div class="filter-btn">Combo bắp nước</div>
-    <div class="filter-btn">Thành viên</div>
-    <div class="filter-btn">Voucher</div>
-    <div class="filter-btn">Sắp kết thúc</div>
+    <div class="filter-btn" [class.active]="isActive('all')" (click)="setActiveFilter('all')">Tất cả</div>
+    <div class="filter-btn" [class.active]="isActive('ticket')" (click)="setActiveFilter('ticket')">Ưu đãi vé</div>
+    <div class="filter-btn" [class.active]="isActive('combo')" (click)="setActiveFilter('combo')">Combo bắp nước</div>
+    <div class="filter-btn" [class.active]="isActive('member')" (click)="setActiveFilter('member')">Thành viên</div>
+    <div class="filter-btn" [class.active]="isActive('voucher')" (click)="setActiveFilter('voucher')">Voucher</div>
+    <div class="filter-btn" [class.active]="isActive('ending')" (click)="setActiveFilter('ending')">Sắp kết thúc</div>
 </div>
 
 <h2 class="section-title">Khuyến mãi đặc biệt</h2>

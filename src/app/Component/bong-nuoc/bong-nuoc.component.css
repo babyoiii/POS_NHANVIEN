@@ -1,216 +1,1554 @@
-
-
-.products-section {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-.header {
+.container {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+    flex-direction: column;
+    min-height: 90vh;
+    padding-bottom: 60px;
+    position: relative;
+    overflow-x: hidden;
 }
 
-.page-title {
-    font-size: 24px;
-    font-weight: bold;
+/* Fixed Header Section */
+.fixed-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Search Bar */
+.search-container {
+    padding: 15px 20px;
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
 }
 
 .search-bar {
     display: flex;
     align-items: center;
-    background-color: white;
-    border-radius: 5px;
-    padding: 8px 15px;
-    width: 300px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background-color: #f5f5f5;
+    padding: 10px 15px;
+    border-radius: 25px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.search-bar:focus-within {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.search-bar input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 5px 10px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
 }
 
 .search-bar i {
     color: #777;
-    margin-right: 10px;
+    font-size: 18px;
 }
 
-.search-bar input {
-    border: none;
-    outline: none;
-    flex: 1;
-    font-size: 14px;
-}
-
-.categories {
+/* Category Filter */
+.category-filter {
     display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
     flex-wrap: wrap;
+    padding: 10px;
+    gap: 8px;
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 5px;
 }
 
-.category {
-    background-color: white;
-    border: 1px solid #ddd;
-    padding: 8px 15px;
+.filter-button {
+    padding: 8px 16px;
+    background-color: #f0f0f0;
+    border-radius: 20px;
+    font-size: 14px;
+    white-space: nowrap;
+    cursor: pointer;
+    color: #555;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.filter-button:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: width 0.3s ease;
+    z-index: 1;
+}
+
+.filter-button:hover {
+    background-color: #e0e0e0;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.filter-button:hover:before {
+    width: 100%;
+}
+
+.filter-button.active {
+    background-color: #ff5722;
+    color: white;
+    box-shadow: 0 3px 8px rgba(255, 87, 34, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(255, 87, 34, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 87, 34, 0);
+    }
+}
+
+/* Disabled filter button style */
+.filter-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Scrollable Content Area */
+.scrollable-content {
+    flex: 1;
+    margin-top: 140px; /* Khoảng cách từ đầu trang, bằng khoảng không gian mà fixed-header chiếm */
+    overflow-x: hidden;
+    z-index: 1;
+    scroll-behavior: smooth;
+}
+
+/* Content Container */
+.content-container {
+    flex: 1;
+    padding: 15px;
+    background-color: #f9f9f9;
+}
+
+/* Loading, Error, Empty Containers */
+.loading-container, 
+.error-container, 
+.empty-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    text-align: center;
+    padding: 20px;
+}
+
+.loading-spinner {
+    border: 3px solid rgba(255, 87, 34, 0.1);
+    border-top: 3px solid #ff5722;
+    border-right: 3px solid #ff5722;
+    animation: rotate 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-container i,
+.empty-container i {
+    font-size: 48px;
+    color: #ff5722;
+    margin-bottom: 15px;
+    animation: pulse 2s infinite;
+}
+
+.error-container h3,
+.empty-container h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.error-container p,
+.empty-container p {
+    color: #777;
+    margin-bottom: 15px;
+}
+
+.error-container button {
+    padding: 8px 16px;
+    background-color: #ff5722;
+    color: white;
+    border: none;
     border-radius: 20px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background-color 0.2s;
 }
 
-.category:hover,
-.category.active {
-    background-color: #1a1a2e;
-    color: white;
-    border-color: #1a1a2e;
+.error-container button:hover {
+    background-color: #e64a19;
+}
+
+/* Products Container */
+.products-container {
+    margin-top: 15px;
+}
+
+.category-section {
+    margin-bottom: 30px;
+}
+
+.category-section h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f0f0f0;
+    color: #333;
 }
 
 .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
-    margin-bottom: 20px;
 }
 
 .product-card {
     background-color: white;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s;
-    cursor: pointer;
-    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .product-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
 .product-image {
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
+    height: 180px;
+    overflow: hidden;
 }
 
-.product-info {
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-image img {
+    transform: scale(1.1);
+}
+
+.product-details {
     padding: 15px;
 }
 
-.product-name {
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 16px;
-}
-
-.product-price {
-    color: #e94560;
-    font-weight: bold;
-    margin-bottom: 10px;
+.product-details h3 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    color: #333;
 }
 
 .product-description {
-    font-size: 12px;
+    font-size: 14px;
     color: #777;
-    margin-bottom: 10px;
-    height: 36px;
-    overflow: hidden;
+    margin-bottom: 12px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    height: 42px;
 }
 
-.add-to-cart {
-    background-color: #1a1a2e;
-    color: white;
-    border: none;
-    padding: 8px;
-    width: 100%;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
+.product-price {
+    font-size: 18px;
     font-weight: bold;
-    transition: background-color 0.3s;
-}
-
-.add-to-cart:hover {
-    background-color: #e94560;
-}
-
-.combo-section {
-    margin-bottom: 30px;
-}
-
-.section-title {
-    font-size: 20px;
-    font-weight: bold;
+    color: #ff5722;
     margin-bottom: 15px;
-    color: #1a1a2e;
 }
 
-.promo-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: #e94560;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-weight: bold;
-    font-size: 12px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.size-options {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 10px;
+/* Size selector - đã loại bỏ chức năng này */
+.size-selector {
+    display: none;
 }
 
 .size-option {
-    padding: 5px 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 12px;
-    cursor: pointer;
+    display: none;
 }
 
 .size-option.active {
-    background-color: #1a1a2e;
-    color: white;
-    border-color: #1a1a2e;
+    display: none;
 }
 
-.quick-add-section {
-    margin-bottom: 30px;
+/* Đảm bảo các class item-size trong giỏ hàng cũng bị ẩn */
+.item-size {
+    display: none;
 }
 
-.quick-add-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 10px;
-}
-
-.quick-add-item {
-    background-color: white;
-    border-radius: 5px;
+/* Add to cart button */
+.add-to-cart {
+    width: 100%;
     padding: 10px;
-    text-align: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.quick-add-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.quick-add-price {
-    color: #e94560;
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 15px;
     font-weight: bold;
-    margin-top: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.add-to-cart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);
+}
+
+.add-to-cart:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: all 0.6s ease;
+}
+
+.add-to-cart:hover:before {
+    left: 100%;
+}
+
+/* Cart counter */
+.cart-counter {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background-color: #ff5722;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 100;
+}
+
+.cart-counter:hover {
+    transform: scale(1.15) rotate(5deg);
+}
+
+.cart-counter i {
+    font-size: 20px;
+}
+
+.cart-counter span {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: white;
+    color: #ff5722;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.cart-counter:hover span {
+    transform: scale(1.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .scrollable-content {
+        margin-top: 120px; /* Giảm khoảng cách trên điện thoại */
+    }
+    
+    .search-container {
+        padding: 10px 15px;
+    }
+    
+    .filter-button {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .products-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .category-filter {
+        padding: 8px 5px;
+    }
+    
+    .filter-button {
+        padding: 5px 10px;
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+}
+
+/* Cart dialog styles */
+.cart-dialog-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.cart-dialog {
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.cart-header {
+    padding: 15px;
+    background-color: #ff5722;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cart-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.cart-content {
+    padding: 15px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.cart-item {
+    display: flex;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 15px 0;
+}
+
+.cart-item:first-child {
+    padding-top: 0;
+}
+
+.cart-item-image {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-right: 15px;
+}
+
+.cart-item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cart-item-details {
+    flex: 1;
+}
+
+.cart-item-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.cart-item-size {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 5px;
+}
+
+.cart-item-price {
+    color: #ff5722;
+    font-weight: bold;
+}
+
+.cart-item-actions {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.quantity-button {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid #e0e0e0;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.2s;
+}
+
+.quantity-button:hover {
+    background-color: #f0f0f0;
+}
+
+.quantity-value {
+    margin: 0 10px;
+    font-weight: bold;
+}
+
+.remove-button {
+    margin-left: auto;
+    color: #ff5722;
+    background: none;
+    border: none;
+    cursor: pointer;
     font-size: 14px;
 }
 
-/* Modal styles - giữ lại để sử dụng trong tương lai nếu cần */
+.remove-button:hover {
+    text-decoration: underline;
+}
+
+.cart-footer {
+    padding: 15px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #333;
+    font-size: 18px;
+}
+
+.checkout-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.checkout-button:hover {
+    background-color: #e64a19;
+}
+
+.empty-cart-message {
+    text-align: center;
+    padding: 30px 15px;
+    color: #777;
+}
+
+.empty-cart-message i {
+    font-size: 48px;
+    color: #e0e0e0;
+    margin-bottom: 15px;
+    animation: pulse 2s infinite;
+}
+
+.empty-cart-message p {
+    margin-top: 10px;
+}
+
+/* New 2-column layout styles */
+.main-layout {
+    display: flex;
+    margin-top: 140px;
+    gap: 20px;
+}
+
+.products-area {
+    flex: 7; /* 70% width */
+    min-width: 0; /* Prevent flex item from growing beyond its container */
+}
+
+/* Cart Sidebar Styles */
+.cart-sidebar {
+    flex: 3; /* 30% width */
+    position: sticky;
+    top: 140px;
+    align-self: flex-start;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    max-height: calc(100vh - 160px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeInUp 0.5s ease-out;
+    transition: all 0.3s ease;
+}
+
+.cart-sidebar-header {
+    padding: 15px;
+    background-color: #ff5722;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cart-sidebar-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.cart-count-badge {
+    background-color: white;
+    color: #ff5722;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.cart-sidebar-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.cart-items-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    max-height: calc(100vh - 300px);
+}
+
+.cart-sidebar-item {
+    display: flex;
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    position: relative;
+    animation: fadeIn 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+.cart-item-info {
+    flex: 1;
+}
+
+.cart-item-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 15px;
+    color: #333;
+}
+
+.item-details {
+    display: flex;
+    justify-content: space-between;
+    color: #777;
+    font-size: 13px;
+}
+
+.item-price {
+    color: #ff5722;
+    font-weight: bold;
+}
+
+.remove-item-btn {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    padding: 0 5px;
+    transition: all 0.3s ease;
+}
+
+.remove-item-btn:hover {
+    color: #ff5722;
+    transform: rotate(90deg);
+}
+
+.cart-sidebar-total {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.total-amount {
+    color: #ff5722;
+    font-size: 18px;
+}
+
+.cart-sidebar-actions {
+    padding: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.clear-cart-btn {
+    background-color: #f5f5f5;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    flex: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: #666;
+    transition: all 0.3s ease;
+}
+
+.clear-cart-btn:hover {
+    background-color: #e0e0e0;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+}
+
+.checkout-btn {
+    background-color: #ff5722;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    flex: 2;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+.checkout-btn:hover {
+    background-color: #e64a19;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+}
+
+.empty-cart-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #999;
+    text-align: center;
+}
+
+.empty-cart-message i {
+    font-size: 40px;
+    margin-bottom: 15px;
+    color: #ddd;
+    animation: pulse 2s infinite;
+}
+
+.empty-cart-hint {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #aaa;
+}
+
+/* QR Payment Modal Styles */
+.qr-payment-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    width: 90%;
+    max-width: 500px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.qr-modal-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.qr-modal-header {
+    padding: 15px;
+    background-color: #ff5722;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeInDown 0.4s ease;
+}
+
+.qr-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.close-qr-modal {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.qr-code-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.qr-image {
+    width: 200px;
+    height: 200px;
+    background-color: #f9f9f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 1px solid #eee;
+    position: relative;
+    animation: fadeIn 0.8s ease;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.qr-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.qr-image:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background: linear-gradient(90deg, #ff5722, #ff9800, #ff5722);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+}
+
+.qr-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: pulse 3s infinite;
+}
+
+.payment-details {
+    width: 100%;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    animation: fadeInUp 0.5s ease;
+    transition: all 0.3s ease;
+}
+
+.payment-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    animation: fadeIn 0.5s ease;
+    transition: all 0.3s ease;
+}
+
+.payment-info-row:last-child {
+    margin-bottom: 0;
+}
+
+.payment-label {
+    color: #777;
+}
+
+.payment-value {
+    font-weight: bold;
+    color: #333;
+}
+
+.payment-code {
+    background-color: #fff;
+    padding: 3px 6px;
+    border-radius: 3px;
+    border: 1px dashed #ddd;
+    position: relative;
+    overflow: hidden;
+    animation: pulse 2s infinite;
+}
+
+.payment-instructions {
+    padding: 0 20px 20px;
+    animation: fadeInUp 0.6s ease;
+}
+
+.payment-instructions p {
+    margin: 8px 0;
+    color: #666;
+    font-size: 14px;
+    opacity: 0;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.payment-instructions p:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.payment-instructions p:nth-child(2) {
+    animation-delay: 0.3s;
+}
+
+.payment-instructions p:nth-child(3) {
+    animation-delay: 0.5s;
+}
+
+.qr-modal-actions {
+    padding: 15px 20px 20px;
+}
+
+.confirm-payment-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.7s ease;
+}
+
+.confirm-payment-btn:hover {
+    background-color: #3d8b40;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.confirm-payment-btn i {
+    margin-right: 5px;
+    transition: all 0.3s ease;
+}
+
+.confirm-payment-btn:hover i {
+    animation: bounce 1s ease;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Responsive adjustments for the 2-column layout */
+@media (max-width: 992px) {
+    .main-layout {
+        flex-direction: column;
+    }
+    
+    .cart-sidebar {
+        position: static;
+        max-height: none;
+        margin-bottom: 20px;
+    }
+    
+    .cart-items-list {
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-layout {
+        margin-top: 120px;
+    }
+    
+    .cart-sidebar {
+        top: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .qr-code-container {
+        flex-direction: column;
+    }
+    
+    .payment-details {
+        margin-top: 10px;
+    }
+}
+
+/* Animation Keyframes */
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    0% { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    0% { 
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    100% { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    0% { 
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% { 
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-15px); }
+    60% { transform: translateY(-7px); }
+}
+
+/* Apply animations to elements */
+
+/* Search Bar Animation */
+.search-bar {
+    transition: all 0.3s ease;
+}
+
+.search-bar:focus-within {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.search-bar input {
+    transition: all 0.3s ease;
+}
+
+/* Category Filter Animation */
+.filter-button {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.filter-button:not(.active):hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.filter-button.active {
+    animation: pulse 2s infinite;
+}
+
+/* Product Card Animation */
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.product-image img {
+    transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-image img {
+    transform: scale(1.1);
+}
+
+.add-to-cart {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.add-to-cart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 87, 34, 0.3);
+}
+
+.add-to-cart:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: all 0.6s ease;
+}
+
+.add-to-cart:hover:before {
+    left: 100%;
+}
+
+/* Cart Sidebar Animation */
+.cart-sidebar {
+    animation: fadeInUp 0.5s ease-out;
+    transition: all 0.3s ease;
+}
+
+.cart-sidebar-item {
+    animation: fadeIn 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+.cart-sidebar-item:hover {
+    background-color: #f9f9f9;
+    transform: translateX(5px);
+}
+
+.remove-item-btn {
+    transition: all 0.3s ease;
+}
+
+.remove-item-btn:hover {
+    transform: rotate(90deg);
+}
+
+.cart-sidebar-actions button {
+    transition: all 0.3s ease;
+}
+
+.checkout-btn:hover, .clear-cart-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* QR Payment Modal Animation */
+.qr-payment-modal {
+    animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.qr-modal-header {
+    animation: fadeInDown 0.4s ease;
+}
+
+.qr-image {
+    position: relative;
+    animation: fadeIn 0.8s ease;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.qr-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.qr-image:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background: linear-gradient(90deg, #ff5722, #ff9800, #ff5722);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+}
+
+.qr-image img {
+    animation: pulse 3s infinite;
+}
+
+.payment-details {
+    animation: fadeInUp 0.5s ease;
+    transition: all 0.3s ease;
+}
+
+.payment-info-row {
+    animation: fadeIn 0.5s ease;
+    transition: all 0.3s ease;
+}
+
+.payment-code {
+    position: relative;
+    overflow: hidden;
+    animation: pulse 2s infinite;
+}
+
+.payment-instructions {
+    animation: fadeInUp 0.6s ease;
+}
+
+.payment-instructions p {
+    opacity: 0;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.payment-instructions p:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.payment-instructions p:nth-child(2) {
+    animation-delay: 0.3s;
+}
+
+.payment-instructions p:nth-child(3) {
+    animation-delay: 0.5s;
+}
+
+.confirm-payment-btn {
+    animation: fadeIn 0.7s ease;
+    transition: all 0.3s ease;
+}
+
+.confirm-payment-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.confirm-payment-btn i {
+    margin-right: 5px;
+    transition: all 0.3s ease;
+}
+
+.confirm-payment-btn:hover i {
+    animation: bounce 1s ease;
+}
+
+/* Loading Spinner Enhanced Animation */
+.loading-spinner {
+    border: 3px solid rgba(255, 87, 34, 0.1);
+    border-top: 3px solid #ff5722;
+    border-right: 3px solid #ff5722;
+    animation: rotate 1s linear infinite;
+}
+
+/* Modal Overlay Animation */
+.modal-overlay {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Empty States Animation */
+.empty-cart-message i, 
+.empty-container i,
+.error-container i {
+    animation: pulse 2s infinite;
+}
+
+/* Make scrollable content animate smoothly */
+.scrollable-content {
+    scroll-behavior: smooth;
+}
+
+/* Product counter animations */
+.cart-count-badge {
+    transition: all 0.3s ease;
+}
+
+.cart-count-badge:not(:empty) {
+    animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Improve cart counter animation */
+.cart-counter {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cart-counter:hover {
+    transform: scale(1.15) rotate(5deg);
+}
+
+.cart-counter span {
+    transition: all 0.3s ease;
+}
+
+.cart-counter:hover span {
+    transform: scale(1.2);
+}
+
+/* Payment Method Selection Modal */
+.payment-method-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    z-index: 1100;
+    animation: fadeInUp 0.3s ease-out;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.payment-method-content {
+    padding: 20px;
+}
+
+.payment-method-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.payment-method-header h3 {
+    font-size: 20px;
+    color: #333;
+    margin: 0;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-button:hover {
+    color: #ff5722;
+}
+
+.payment-method-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.payment-method-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background-color: #f8f8f8;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.payment-method-item:hover {
+    background-color: #f0f0f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-item i {
+    font-size: 24px;
+    color: #ff5722;
+    margin-right: 15px;
+}
+
+.payment-method-info {
+    flex: 1;
+}
+
+.payment-method-info h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.payment-method-info p {
+    margin: 0;
+    color: #777;
+    font-size: 14px;
+}
+
+/* Printing Overlay */
+.printing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1200;
+    animation: fadeIn 0.3s ease;
+}
+
+.printing-content {
+    text-align: center;
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 90%;
+}
+
+.printing-content h2 {
+    margin: 20px 0 10px;
+    color: #333;
+}
+
+.printing-content p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.spinner {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 87, 34, 0.2);
+    border-radius: 50%;
+    border-top-color: #ff5722;
+    animation: spin 1s linear infinite;
+}
+
+.close-overlay-btn {
+    padding: 10px 20px;
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+    margin-top: 15px;
+}
+
+.close-overlay-btn:hover {
+    background-color: #e64a19;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% + 20px));
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+/* Modal Overlay */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -218,62 +1556,211 @@
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+    animation: fadeIn 0.3s ease;
+}
+
+.success-icon {
     display: flex;
+    align-items: center;
     justify-content: center;
-    align-items: center;
-    z-index: 1000;
+    width: 60px;
+    height: 60px;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 30px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: fadeIn 0.5s ease, pulse 1.5s infinite ease;
 }
 
-.modal-container {
-    background-color: white;
-    border-radius: 10px;
-    width: 400px;
-    max-width: 90%;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    animation: modalFadeIn 0.3s ease-out;
+.receipt-summary {
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    border-left: 4px solid #4CAF50;
 }
 
-@keyframes modalFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.receipt-summary p {
+    margin: 8px 0;
+    color: #333;
 }
 
-.modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
+/* CSS cho danh sách dịch vụ */
+.service-list {
+    margin-top: 10px;
+    border-top: 1px dashed #ccc;
+    padding-top: 10px;
+}
+
+.service-list ul {
+    list-style-type: none;
+    padding-left: 5px;
+    margin-top: 5px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.service-list li {
+    padding: 5px 0;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
 }
 
-.modal-title {
-    font-size: 18px;
-    font-weight: bold;
+.service-list li:last-child {
+    border-bottom: none;
 }
 
-.modal-close {
-    background: none;
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.print-btn {
+    flex: 1;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
     border: none;
-    font-size: 20px;
+    border-radius: 5px;
     cursor: pointer;
-    color: #777;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-.modal-footer {
-    padding: 15px 20px;
-    border-top: 1px solid #eee;
+    font-size: 16px;
+    transition: background-color 0.2s;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.print-btn:hover {
+    background-color: #0056b3;
+}
+
+.close-overlay-btn {
+    flex: 1;
+    padding: 10px 20px;
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+    margin-top: 15px;
+}
+
+.close-overlay-btn:hover {
+    background-color: #e64a19;
+}
+
+/* Custom Notification Styles */
+.custom-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  animation: slideIn 0.3s ease-out;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 300px;
+  max-width: 400px;
+  background-color: white;
+}
+
+.notification-icon {
+  margin-right: 15px;
+  font-size: 24px;
+}
+
+.notification-message {
+  flex: 1;
+}
+
+.notification-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.notification-text {
+  font-size: 14px;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 15px;
+  font-size: 18px;
+  color: #666;
+}
+
+.notification-close:hover {
+  color: #333;
+}
+
+/* Notification Types */
+.success {
+  border-left: 4px solid #4CAF50;
+}
+
+.success .notification-icon {
+  color: #4CAF50;
+}
+
+.error {
+  border-left: 4px solid #F44336;
+}
+
+.error .notification-icon {
+  color: #F44336;
+}
+
+.warning {
+  border-left: 4px solid #FF9800;
+}
+
+.warning .notification-icon {
+  color: #FF9800;
+}
+
+.info {
+  border-left: 4px solid #2196F3;
+}
+
+.info .notification-icon {
+  color: #2196F3;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease-out forwards;
 }

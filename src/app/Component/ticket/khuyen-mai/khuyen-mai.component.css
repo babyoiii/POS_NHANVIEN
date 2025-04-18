@@ -1,0 +1,29 @@
+/* Đảm bảo filter button active luôn giữ màu đen */
+.filter-btn.active {
+    background-color: #000000 !important;
+    color: white !important;
+    font-weight: 500 !important;
+    transform: translateZ(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Hiệu ứng hover cho các filter button không active */
+.filter-btn:not(.active):hover {
+    background-color: #000000;
+    color: white;
+    transform: translateZ(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Transition mượt mà cho tất cả các filter button */
+.filter-btn {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 8px 16px;
+    margin-right: 8px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    will-change: transform, background-color, color, box-shadow;
+    overflow: hidden;
+}

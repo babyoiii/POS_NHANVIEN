@@ -1,0 +1,87 @@
+/* Đảm bảo date-item active luôn giữ màu đen */
+.date-item.selected {
+    background-color: #000000 !important;
+    color: white !important;
+    font-weight: 500 !important;
+    transform: translateZ(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Hiệu ứng hover cho các date-item không active */
+.date-item:not(.selected):hover {
+    background-color: #000000;
+    color: white;
+    transform: translateZ(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Transition mượt mà cho tất cả các date-item */
+.date-item {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-right: 8px;
+    text-align: center;
+    background-color: #f5f5f5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    will-change: transform, background-color, color, box-shadow;
+    overflow: hidden;
+}
+
+/* Hiệu ứng hover cho showtime */
+.showtime {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 5px;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    will-change: transform, background-color, color;
+}
+
+.showtime:hover {
+    background-color: #000000 !important;
+    color: white !important;
+    transform: translateZ(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Showtime container */
+.showtime-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.showtime {
+  padding: 5px 10px;
+  margin-right: 10px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.showtime:hover {
+  background-color: #e0e0e0;
+}
+
+/* Book button */
+.book-button {
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.book-button:hover {
+  background-color: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+

@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { QRcodeComponent } from './qrcode.component';
+import { SeatMapComponent } from './seat-map.component';
 
-describe('QRcodeComponent', () => {
-  let component: QRcodeComponent;
-  let fixture: ComponentFixture<QRcodeComponent>;
+describe('SeatMapComponent', () => {
+  let component: SeatMapComponent;
+  let fixture: ComponentFixture<SeatMapComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [QRcodeComponent]
+      imports: [SeatMapComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(QRcodeComponent);
+    fixture = TestBed.createComponent(SeatMapComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

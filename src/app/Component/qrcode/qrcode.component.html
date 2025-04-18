@@ -1,1 +1,140 @@
 <!-- Chưa đẩy -->
+<div class="qr-scanner-container">
+  <div class="scanner-section" *ngIf="!ticketData && !confirmSuccess && isPlatformBrowser()">
+    <h2>Quét mã QR vé</h2>
+    <p class="instructions">Di chuyển camera đến mã QR để quét vé</p>
+    
+    <!-- Nút tải lại scanner -->
+    <button (click)="reloadComponent()" class="btn btn-secondary reload-btn">
+      <i class="fas fa-sync-alt"></i> Tải lại scanner
+    </button>
+    
+    <!-- Dropdown chọn camera (bao gồm DroidCam nếu đã kết nối) -->
+    <div class="camera-select-container" *ngIf="availableCameras.length > 0">
+      <label for="cameraSelect">Chọn camera:</label>
+      <select 
+        id="cameraSelect" 
+        class="camera-select" 
+        [(ngModel)]="selectedCameraId" 
+        (change)="changeCamera(selectedCameraId)">
+        <option *ngFor="let camera of availableCameras" [value]="camera.id">
+          {{ camera.label || 'Camera ' + (availableCameras.indexOf(camera) + 1) }}
+        </option>
+      </select>
+      <small>DroidCam sẽ hiển thị trong danh sách này nếu đã được kết nối</small>
+    </div>
+    
+    <!-- HTML5 QR Code Scanner -->
+    <div class="scanner-wrapper">
+      <div id="reader" #qrReader></div>
+    </div>
+    
+    <div *ngIf="availableCameras.length === 0 && !isLoading && !error">
+      <p>Đang khởi tạo camera...</p>
+    </div>
+    
+    <div *ngIf="isLoading" class="loading">
+      <i class="fas fa-spinner fa-spin"></i> Đang xử lý...
+    </div>
+    
+    <div *ngIf="error" class="error-message">
+      <i class="fas fa-exclamation-circle"></i> {{ error }}
+      <button (click)="resetScanner()" class="btn btn-primary">Thử lại</button>
+    </div>
+  </div>
+  
+  <!-- Hiển thị thông báo khi ở server-side -->
+  <div class="scanner-section" *ngIf="!ticketData && !confirmSuccess && !isPlatformBrowser()">
+    <h2>Quét mã QR vé</h2>
+    <p class="instructions">Đang tải trình quét QR...</p>
+  </div>
+  
+  <!-- Thông tin vé -->
+  <div class="ticket-info" *ngIf="ticketData && !confirmSuccess">
+    <div class="order-card">
+      <div class="order-header">
+        <h3>Thông tin đơn hàng</h3>
+        <p class="order-code">Mã đơn hàng: {{ ticketData.orderInfo.orderCode }}</p>
+      </div>
+      
+      <div class="order-body">
+        <p><strong>Khách hàng:</strong> {{ ticketData.orderInfo.customerName }}</p>
+        <p><strong>Email:</strong> {{ ticketData.orderInfo.email }}</p>
+        <p><strong>Ngày đặt:</strong> {{ ticketData.orderInfo.formattedOrderDate }}</p>
+        <p><strong>Tổng tiền:</strong> {{ ticketData.orderInfo.formattedTotalPrice }}</p>
+      </div>
+    </div>
+    
+    <h3>Thông tin vé ({{ ticketData.tickets.length }} vé)</h3>
+    <div *ngIf="ticketData.tickets.length > 1" class="seat-summary">
+      <p><i class="fas fa-info-circle"></i> Bạn có {{ ticketData.tickets.length }} ghế: 
+        <span class="seat-labels">
+          <span class="seat-label" *ngFor="let ticket of ticketData.tickets">{{ ticket.seatName }}</span>
+        </span>
+      </p>
+    </div>
+    <div class="tickets-container">
+      <div class="ticket-card" *ngFor="let ticket of ticketData.tickets">
+        <div class="ticket-movie">
+          <img [src]="ticket.movieThumbnail" [alt]="ticket.movieName" class="movie-thumbnail">
+          <div class="movie-info">
+            <h4>{{ ticket.movieName }}</h4>
+            <p class="duration">{{ ticket.formattedDuration }}</p>
+          </div>
+        </div>
+        
+        <div class="ticket-details">
+          <p><strong>Thời gian:</strong> {{ ticket.formattedStartTime }}</p>
+          <p><strong>Rạp:</strong> {{ ticket.cinemaName }}</p>
+          <p><strong>Phòng:</strong> {{ ticket.roomName }}</p>
+          <p>
+            <strong>Ghế:</strong> 
+            <span class="seat-label">{{ ticket.seatName }}</span>
+          </p>
+          <p class="ticket-code"><strong>Mã vé:</strong> {{ ticket.ticketCode }}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div *ngIf="ticketData.services && ticketData.services.length > 0">
+      <h3>Dịch vụ đi kèm</h3>
+      <div class="services-container">
+        <div class="service-card" *ngFor="let service of ticketData.services">
+          <div class="service-image">
+            <img [src]="service.imageUrl" [alt]="service.serviceName" class="service-thumbnail">
+          </div>
+          <div class="service-details">
+            <h4>{{ service.serviceName }}</h4>
+            <p class="service-type">{{ service.serviceType }}</p>
+            <p><strong>Số lượng:</strong> {{ service.quantity }}</p>
+            <p><strong>Đơn giá:</strong> {{ service.formattedUnitPrice }}</p>
+            <p><strong>Thành tiền:</strong> {{ service.formattedTotalPrice }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button (click)="confirmTicket(ticketData.orderInfo.orderCode)" class="btn btn-success">
+        <i class="fas fa-check-circle"></i> Xác nhận sử dụng vé
+      </button>
+      <button (click)="printTickets()" class="btn btn-primary">
+        <i class="fas fa-print"></i> In vé
+      </button>
+      <button (click)="resetScanner()" class="btn btn-secondary">
+        <i class="fas fa-redo"></i> Quét mã khác
+      </button>
+    </div>
+  </div>
+  
+  <div class="confirmation-result" *ngIf="confirmSuccess">
+    <div class="success-card">
+      <i class="fas fa-check-circle success-icon"></i>
+      <h2>Xác nhận thành công!</h2>
+      <p>{{ confirmMessage }}</p>
+      <button (click)="resetScanner()" class="btn btn-primary">
+        <i class="fas fa-redo"></i> Quét vé khác
+      </button>
+    </div>
+  </div>
+</div>

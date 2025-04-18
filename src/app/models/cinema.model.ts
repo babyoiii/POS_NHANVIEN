@@ -4,10 +4,13 @@ export interface Province {
   }
   
   export interface Cinema {
-    id: number;
-    provinceId: number;
+    id: string;
+    provinceId?: number;
     name: string;
     address: string;
+    phoneNumber?: string;
+    totalRooms?: number;
+    status?: number;
   }
   
   export interface User {

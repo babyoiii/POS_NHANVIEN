@@ -1,112 +1,74 @@
 <div class="filter-section">
-    <div class="filter-btn active">Tất cả</div>
-    <div class="filter-btn">Đang mở đặt trước</div>
-    <div class="filter-btn">Sắp mở đặt trước</div>
-    <div class="filter-btn">Hành động</div>
-    <div class="filter-btn">Kinh dị</div>
-    <div class="filter-btn">Hoạt hình</div>
-    <div class="filter-btn">Hài</div>
-    <div class="filter-btn">Tình cảm</div>
+    <div class="filter-btn" [class.active]="isActive('all')" (click)="setActiveFilter('all')">Tất cả</div>
+    <div class="filter-btn" [class.active]="isActive('opening')" (click)="setActiveFilter('opening')">Đang mở đặt trước</div>
+    <div class="filter-btn" [class.active]="isActive('coming')" (click)="setActiveFilter('coming')">Sắp mở đặt trước</div>
+    
+    <!-- Hiển thị 5 thể loại đầu tiên -->
+    <div class="filter-btn" *ngFor="let genre of genres.slice(0, 5)" 
+         [class.active]="isActive(genre.genreName.toLowerCase())" 
+         (click)="setActiveFilter(genre.genreName.toLowerCase())">
+        {{ genre.genreName }}
+    </div>
+    
+    <!-- Dropdown cho các thể loại còn lại -->
+    <div class="filter-more-container" *ngIf="genres.length > 5">
+        <div class="filter-btn filter-more-btn" (click)="toggleGenreDropdown()">
+            <span>...</span>
+        </div>
+        
+        <div class="genre-dropdown" [class.show]="showGenreDropdown">
+            <div class="filter-btn dropdown-item" *ngFor="let genre of genres.slice(5)" 
+                 [class.active]="isActive(genre.genreName.toLowerCase())" 
+                 (click)="setActiveFilter(genre.genreName.toLowerCase())">
+                {{ genre.genreName }}
+            </div>
+        </div>
+    </div>
 </div>
 
 <h2 class="section-title">Phim sắp chiếu</h2>
 
-<div class="coming-soon-grid">
-    
-    
-    <div class="coming-soon-card">
-        <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg" alt="Movie Poster">
-        <div class="preorder-badge">Đặt trước ngay</div>
+<!-- Hiển thị loading -->
+<div *ngIf="isLoading" class="loading">
+    Đang tải dữ liệu...
+</div>
+
+<!-- Hiển thị lỗi -->
+<div *ngIf="errorMessage" class="error-message">
+    {{ errorMessage }}
+</div>
+
+<!-- Thông báo không có phim -->
+<div *ngIf="!isLoading && filteredMovies.length === 0 && !errorMessage" class="no-movies">
+    Không có phim nào phù hợp với bộ lọc
+</div>
+
+<div class="coming-soon-grid" *ngIf="!isLoading && filteredMovies.length > 0">
+    <div class="coming-soon-card" *ngFor="let movie of filteredMovies">
+        <img [src]="movie.thumbnail" [alt]="movie.movieName + ' Poster'">
+        <div *ngIf="canPreorder(movie)" class="preorder-badge">Đặt trước ngay</div>
+        <div *ngIf="!canPreorder(movie)" class="coming-soon-badge">Sắp mở đặt trước</div>
+        
         <div class="movie-info">
-            <div class="release-date">Khởi chiếu: 20/04/2025</div>
-            <div class="movie-title">Deadpool & Wolverine</div>
-            <div class="movie-details">120 phút | Hành động, Hài</div>
+            <div class="release-date">Ngày chiếu đầu tiên: {{ getTimeUntilFirstShowtime(movie) }}</div>
+            <div class="movie-title">{{ movie.movieName }}</div>
+            <div class="movie-details">{{ movie.duration }} phút | {{ getGenresString(movie) }}</div>
             <div class="movie-description">
-                Wade Wilson tái xuất với vai Deadpool và lần này anh sẽ hợp tác với Wolverine trong một cuộc phiêu lưu mới đầy bất ngờ.
+                {{ movie.description }}
             </div>
             <div class="movie-stats">
-                <div class="movie-stat"><i class="fas fa-heart"></i> 98%</div>
-                <div class="movie-stat"><i class="fas fa-eye"></i> 18.3K</div>
-                <div class="movie-stat"><i class="fas fa-ticket-alt"></i> Đang mở đặt trước</div>
+                <div class="movie-stat"><i class="fas fa-eye"></i> {{ movie.duration }} phút</div>
+                <div class="movie-stat">
+                    <i class="fas fa-ticket-alt"></i> 
+                    {{ canPreorder(movie) ? 'Đang mở đặt trước' : 'Sắp mở đặt trước' }}
+                </div>
             </div>
-            <button class="preorder-btn">Đặt vé trước</button>
-        </div>
-    </div>
-    
-    <div class="coming-soon-card">
-        <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg" alt="Movie Poster">
-        <div class="coming-soon-badge">Sắp mở đặt trước</div>
-        <div class="movie-info">
-            <div class="release-date">Khởi chiếu: 05/05/2025</div>
-            <div class="movie-title">Mission: Impossible 8</div>
-            <div class="movie-details">145 phút | Hành động, Phiêu lưu</div>
-            <div class="movie-description">
-                Ethan Hunt trở lại trong nhiệm vụ bất khả thi mới với những pha hành động mạo hiểm và công nghệ tối tân.
-            </div>
-            <div class="movie-stats">
-                <div class="movie-stat"><i class="fas fa-heart"></i> 92%</div>
-                <div class="movie-stat"><i class="fas fa-eye"></i> 9.7K</div>
-                <div class="movie-stat"><i class="fas fa-calendar"></i> Mở đặt trước từ 15/04</div>
-            </div>
-            <button class="preorder-btn" style="background-color: #777;">Sắp mở đặt trước</button>
-        </div>
-    </div>
-    
-    <div class="coming-soon-card">
-        <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg" alt="Movie Poster">
-        <div class="notification-badge">Đặc biệt</div>
-        <div class="preorder-badge">Đặt trước ngay</div>
-        <div class="movie-info">
-            <div class="release-date">Khởi chiếu: 18/04/2025</div>
-            <div class="movie-title">Jurassic World: New Era</div>
-            <div class="movie-details">135 phút | Phiêu lưu, Khoa học viễn tưởng</div>
-            <div class="movie-description">
-                Kỷ nguyên mới của loạt phim Jurassic World với những loài khủng long mới và những thách thức chưa từng có.
-            </div>
-            <div class="movie-stats">
-                <div class="movie-stat"><i class="fas fa-heart"></i> 91%</div>
-                <div class="movie-stat"><i class="fas fa-eye"></i> 11.2K</div>
-                <div class="movie-stat"><i class="fas fa-ticket-alt"></i> Đang mở đặt trước</div>
-            </div>
-            <button class="preorder-btn">Đặt vé trước</button>
-        </div>
-    </div>
-    
-    <div class="coming-soon-card">
-        <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg" alt="Movie Poster">
-        <div class="coming-soon-badge">Sắp mở đặt trước</div>
-        <div class="movie-info">
-            <div class="release-date">Khởi chiếu: 10/05/2025</div>
-            <div class="movie-title">Black Panther: Rise of Atlantis</div>
-            <div class="movie-details">150 phút | Hành động, Phiêu lưu</div>
-            <div class="movie-description">
-                Wakanda đối mặt với mối đe dọa mới từ vương quốc dưới biển Atlantis trong cuộc chiến giữa hai nền văn minh tiên tiến.
-            </div>
-            <div class="movie-stats">
-                <div class="movie-stat"><i class="fas fa-heart"></i> 94%</div>
-                <div class="movie-stat"><i class="fas fa-eye"></i> 8.9K</div>
-                <div class="movie-stat"><i class="fas fa-calendar"></i> Mở đặt trước từ 20/04</div>
-            </div>
-            <button class="preorder-btn" style="background-color: #777;">Sắp mở đặt trước</button>
-        </div>
-    </div>
-    
-    <div class="coming-soon-card">
-        <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_limit,w_272/f_auto/q_auto/v1732555414/amc-cdn/production/2/movies/76800/76827/PosterDynamic/168263.jpg" alt="Movie Poster">
-        <div class="coming-soon-badge">Sắp mở đặt trước</div>
-        <div class="movie-info">
-            <div class="release-date">Khởi chiếu: 25/05/2025</div>
-            <div class="movie-title">Avatar: The Fire Nation</div>
-            <div class="movie-details">170 phút | Khoa học viễn tưởng, Phiêu lưu</div>
-            <div class="movie-description">
-                Phần tiếp theo của Avatar đưa người xem khám phá một khu vực mới của Pandora với những sinh vật và thách thức mới.
-            </div>
-            <div class="movie-stats">
-                <div class="movie-stat"><i class="fas fa-heart"></i> 97%</div>
-                <div class="movie-stat"><i class="fas fa-eye"></i> 15.6K</div>
-                <div class="movie-stat"><i class="fas fa-calendar"></i> Mở đặt trước từ 25/04</div>
-            </div>
-            <button class="preorder-btn" style="background-color: #777;">Sắp mở đặt trước</button>
+            <button class="preorder-btn" 
+                    [style.background-color]="canPreorder(movie) ? '#e71a0f' : '#777'"
+                    [disabled]="!canPreorder(movie)"
+                    (click)="navigateToSeatMap(movie)">
+                {{ canPreorder(movie) ? 'Đặt vé trước' : 'Sắp mở đặt trước' }}
+            </button>
         </div>
     </div>
 </div>

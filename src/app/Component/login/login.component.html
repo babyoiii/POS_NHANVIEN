@@ -49,7 +49,14 @@
           Quay lại
         </button>
         <h4 class="selection-title">Các rạp tại {{ selectedProvince?.name }}</h4>
-        <div class="cinema-list">
+        
+        <!-- Nếu không có rạp, hiển thị thông báo -->
+        <div *ngIf="cinemas.length === 0" class="no-cinemas-message">
+          Không tìm thấy rạp nào tại {{ selectedProvince?.name }}.
+          <button class="back-btn" (click)="backToProvinces()">Chọn tỉnh/thành phố khác</button>
+        </div>
+        
+        <div class="cinema-list" *ngIf="cinemas.length > 0">
           <div class="cinema-item" *ngFor="let cinema of cinemas" (click)="selectCinema(cinema)">
             {{ cinema.name }}
           </div>

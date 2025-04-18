@@ -10,13 +10,19 @@ import { SettingComponent } from './Component/setting/setting.component';
 import { ThongKeComponent } from './Component/thong-ke/thong-ke.component';
 import { BongNuocComponent } from './Component/bong-nuoc/bong-nuoc.component';
 import { QRcodeComponent } from './Component/qrcode/qrcode.component';
+import { AuthGuard } from './guards/auth.guard';
+import { SeatMapComponent } from './Component/ticket/seat-map/seat-map.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
+
   // Thêm các routes khác ở đây
   {
-    path: 'trangchu', component: MainComponent, children: [
+    path: 'trangchu', 
+    component: MainComponent, 
+    canActivate: [AuthGuard],
+    children: [
       {
         path: 'ticket', component: TicketComponent, children: [
           { path: 'now', component: PhimDangChieuComponent },
@@ -25,13 +31,27 @@ export const routes: Routes = [
           { path: '', redirectTo: 'now', pathMatch: 'full' }
         ]
       },
+      { path: 'seat-map/:showtimeId', component: SeatMapComponent },
       { path: '', redirectTo: 'ticket', pathMatch: 'full' },
       { path: 'vedadat', component: VeDaDatComponent },
-      { path: 'caidat', component: SettingComponent },
-      { path: 'thongke', component: ThongKeComponent },
+      { 
+        path: 'caidat', 
+        component: SettingComponent,
+        canActivate: [AuthGuard],
+        data: { permission: 'caidat' }
+      },
+      { 
+        path: 'thongke', 
+        component: ThongKeComponent,
+        canActivate: [AuthGuard],
+        data: { permission: 'thongke' }
+      },
       { path: 'doan', component: BongNuocComponent },
-      
     ]
   },
-  { path: 'qr', component: QRcodeComponent },
+  { 
+    path: 'qr', 
+    component: QRcodeComponent,
+    data: { ssr: false }  // Vô hiệu hóa SSR cho trang QR scanner
+  },
 ];

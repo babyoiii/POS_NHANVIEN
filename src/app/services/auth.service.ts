@@ -1,7 +1,8 @@
 //auth.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { User } from '../models/cinema.model';
+import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
   providedIn: 'root'
@@ -32,15 +33,22 @@ export class AuthService {
   ];
 
   private currentUser: User | null = null;
+  private isBrowser: boolean;
 
-  constructor() { }
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+    // Khôi phục user từ localStorage nếu đang ở môi trường browser
+    this.getCurrentUser();
+  }
 
   login(email: string, password: string): Observable<User> {
     const foundUser = this.users.find(u => u.email === email && u.password === password);
     
     if (foundUser) {
       this.currentUser = foundUser.user;
+      if (this.isBrowser) {
       localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+      }
       return of(foundUser.user);
     } else {
       return throwError(() => new Error('Tài khoản hoặc mật khẩu không chính xác'));
@@ -49,15 +57,21 @@ export class AuthService {
 
   logout(): Observable<boolean> {
     this.currentUser = null;
+    if (this.isBrowser) {
     localStorage.removeItem('currentUser');
+    }
     return of(true);
   }
 
   getCurrentUser(): User | null {
-    if (!this.currentUser) {
+    if (!this.currentUser && this.isBrowser) {
       const storedUser = localStorage.getItem('currentUser');
       if (storedUser) {
+        try {
         this.currentUser = JSON.parse(storedUser);
+        } catch (e) {
+          console.error('Lỗi khi parse thông tin user từ localStorage:', e);
+        }
       }
     }
     return this.currentUser;
