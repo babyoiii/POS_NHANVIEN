@@ -1,279 +1,384 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { SeatInfo } from '../models/SeatModel';
 
-export interface Seat {
-  SeatStatusByShowTimeId: string;
+// Định nghĩa các trạng thái ghế để dùng trong code
+export enum SeatStatus {
+  AVAILABLE = 0,
+  SELECTED = 1,
+  UNAVAILABLE = 3,
+  BUSY = 4,
+  BOOKED = 5
+}
+
+export interface SeatStatusUpdateRequest {
   SeatId: string;
   Status: number;
-  SeatPrice: number;
-  SeatName: string;
-  RowNumber: number;
-  ColNumber: number;
-  SeatTypeName: string;
-  PairId: string | null;
-  isSelected?: boolean;
+}
+
+export interface WebSocketMessage {
+  Action?: string;
+  i?: number;
+  SeatStatusUpdateRequests?: SeatStatusUpdateRequest[];
+  Seats?: SeatInfo[];
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class WebsocketService {
-  private socket: WebSocket | null = null;
-  private seatsSubject = new BehaviorSubject<Seat[]>([]);
-  public seats$ = this.seatsSubject.asObservable();
-  private mockData: boolean = false; // Bật/tắt dữ liệu mẫu
+  // Hằng số cho URL WebSocket
+  private readonly WS_BASE_URL = 'wss://localhost:7105/ws/KeepSeat';
+  
+  // Bật debug để hiển thị log chi tiết
+  private readonly DEBUG = false;
+  
+  private webSocket: WebSocket | null = null;
+  private connectionAttempts = 0;
+  private maxConnectionAttempts = 5;
+  private reconnectInterval = 3000; // 3 seconds
+  private reconnectTimeoutId: any = null;
+  private messageSubject = new Subject<SeatInfo[]>();
+  private seatsUpdatedSubject = new Subject<SeatInfo[]>();
+  private seats: SeatInfo[] = [];
+  private isConnected = false;
+  private currentRoomId: string | null = null;
+  private currentUserId: string | null = null;
+  private reconnectAttempts = 0; // Legacy, for compatibility
 
-  constructor() { }
+  constructor() {
+    this.restoreConnection();
+  }
 
-  // Kết nối WebSocket
-  connect(showtimeId: string, userId: string): void {
-    if (this.mockData) {
-      // console.log('Using mock seat data instead of WebSocket');
-      setTimeout(() => {
-        this.seatsSubject.next(this.generateMockSeats(showtimeId));
-      }, 1500);
-      return;
-    }
-    
-    if (this.socket) {
-      this.socket.close();
-    }
-
-    // Tạo kết nối WebSocket mới - chú ý tham số roomId trong URL thực chất là showtimeId
-    this.socket = new WebSocket(`wss://localhost:7105/ws/KeepSeat?roomId=${showtimeId}&userId=${userId}`);
-
-    // Xử lý khi kết nối mở
-    this.socket.onopen = () => {
-      console.log('WebSocket connected: showtimeId=' + showtimeId);
-      
-      // Gửi tin nhắn để lấy danh sách ghế
-      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        console.log('Sending GetList action to WebSocket');
-        this.socket.send(JSON.stringify({
-          Action: "GetList"
-        }));
-      }
-    };
-
-    // Xử lý khi nhận được dữ liệu
-    this.socket.onmessage = (event) => {
+  private restoreConnection() {
+    const savedConnection = localStorage.getItem('websocketConnection');
+    if (savedConnection) {
       try {
-        // Log data type để debug
-        console.log('[WebSocket] Received data type:', typeof event.data);
-        
-        const data = JSON.parse(event.data);
-        
-        // Kiểm tra cấu trúc dữ liệu API trả về
-        if (data && data.Seats && Array.isArray(data.Seats)) {
-          console.log(`[WebSocket] Received all seats: ${data.Seats.length} items`);
-          
-          // Kiểm tra các loại trạng thái ghế nhận được từ server
-          const selectedSeats = data.Seats.filter((s: Seat) => s.Status === this.SEAT_STATUS.SELECTED);
-          const busySeats = data.Seats.filter((s: Seat) => s.Status === this.SEAT_STATUS.BUSY);
-          
-          if (selectedSeats.length > 0) {
-            console.log(`[WebSocket] Found ${selectedSeats.length} SELECTED seats:`, 
-              selectedSeats.map((s: Seat) => `${s.SeatName}(Status=${s.Status})`).join(', '));
-          }
-          
-          if (busySeats.length > 0) {
-            console.log(`[WebSocket] Found ${busySeats.length} BUSY seats:`, 
-              busySeats.map((s: Seat) => `${s.SeatName}(Status=${s.Status})`).join(', '));
-          }
-          
-          // Cập nhật trực tiếp từ server
-          this.seatsSubject.next(data.Seats);
-          
-        } else if (Array.isArray(data)) {
-          console.log(`[WebSocket] Received seats array: ${data.length} items`);
-          
-          // Cập nhật trực tiếp từ server
-          this.seatsSubject.next(data);
-          
-        } else if (data && data.SeatId) {
-          // Log chi tiết về cập nhật ghế đơn
-          const statusText = data.Status === this.SEAT_STATUS.SELECTED ? "SELECTED(1)" : 
-                             data.Status === this.SEAT_STATUS.AVAILABLE ? "AVAILABLE(0)" :
-                             data.Status === this.SEAT_STATUS.BUSY ? "BUSY(4)" : data.Status;
-                             
-          console.log(`[WebSocket] Single seat update: ${data.SeatName || data.SeatId}, Status=${statusText}`);
-          
-          // Cập nhật ghế trong danh sách hiện tại
-          const currentSeats = this.seatsSubject.getValue();
-          const updatedSeats = currentSeats.map((s: Seat) => {
-            if (s.SeatId === data.SeatId) {
-              const oldStatus = s.Status;
-              const oldStatusText = oldStatus === this.SEAT_STATUS.SELECTED ? "SELECTED(1)" : 
-                                   oldStatus === this.SEAT_STATUS.AVAILABLE ? "AVAILABLE(0)" :
-                                   oldStatus === this.SEAT_STATUS.BUSY ? "BUSY(4)" : oldStatus;
-                                   
-              console.log(`[WebSocket] Updating seat ${s.SeatName}: Status ${oldStatusText} -> ${statusText}`);
-              return {...s, ...data};
-            }
-            return s;
-          });
-          
-          this.seatsSubject.next(updatedSeats);
-        } else {
-          console.warn('[WebSocket] Unexpected data format:', data);
-        }
+        const { roomId, userId } = JSON.parse(savedConnection);
+        this.currentRoomId = roomId;
+        this.currentUserId = userId;
+        this.connect(roomId, userId);
       } catch (error) {
-        console.error('[WebSocket] Error parsing data:', error);
+        localStorage.removeItem('websocketConnection');
       }
-    };
-
-    // Xử lý khi kết nối đóng
-    this.socket.onclose = () => {
-      console.log('WebSocket disconnected');
-    };
-
-    // Xử lý lỗi
-    this.socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      // Chuyển sang dữ liệu mẫu nếu không kết nối được
-      console.log('Falling back to mock data');
-      setTimeout(() => {
-        this.seatsSubject.next(this.generateMockSeats(showtimeId));
-      }, 1000);
-    };
-  }
-
-  // Ngắt kết nối WebSocket
-  disconnect(): void {
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
     }
   }
 
-  // Gửi yêu cầu chọn/hủy chọn ghế
-  toggleSeatSelection(seat: Seat): void {
-    if (this.mockData || !this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      console.log(`[MOCK] Toggling seat ${seat.SeatName} to Status=${seat.Status}`);
-      
-      // Cập nhật trạng thái ghế trong dữ liệu mẫu
-      const currentSeats = this.seatsSubject.getValue();
-      const updatedSeats = currentSeats.map(s => {
-        if (s.SeatId === seat.SeatId) {
-          return {...s, Status: seat.Status};
-        }
-        return s;
-      });
-      
-      this.seatsSubject.next(updatedSeats);
-      return;
-    }
+  private saveConnection(roomId: string, userId: string) {
+    localStorage.setItem('websocketConnection', JSON.stringify({ roomId, userId }));
+  }
+
+  public connectWebSocket(showtimeId: string, userId: string): void {
+    this.closeWebSocketIfExists();
+    
+    // Chuyển ID thành chữ hoa để đảm bảo định dạng giống như URL mẫu
+    const roomIdUpper = showtimeId.toUpperCase();
+    const userIdUpper = userId.toUpperCase();
+    
+    // Sử dụng URL cố định cho WebSocket với đúng cấu trúc
+    const wsUrl = `${this.WS_BASE_URL}?roomId=${roomIdUpper}&userId=${userIdUpper}`;
     
     try {
-      // Hiển thị trạng thái mới đang gửi đi
-      const statusText = seat.Status === this.SEAT_STATUS.SELECTED ? "SELECTED(1)" : 
-                         seat.Status === this.SEAT_STATUS.AVAILABLE ? "AVAILABLE(0)" : seat.Status;
-      
-      // Ghi chú quan trọng về trạng thái ghế
-      console.log(`[WEBSOCKET SEND] Seat ${seat.SeatName}: Status=${statusText}, SeatStatusByShowTimeId=${seat.SeatStatusByShowTimeId}`);
-      console.log(`[NOTE] Khi chọn ghế (Status=1), server có thể trả về Status=4 (BUSY)`);
-      
-      // Gửi tin nhắn cập nhật trạng thái với SeatStatusByShowTimeId thay vì SeatId
-      const updateRequest = {
-        Action: "UpdateStatus",
-        SeatStatusUpdateRequests: [
-          {
-            SeatId: seat.SeatStatusByShowTimeId, // Quan trọng: Sử dụng SeatStatusByShowTimeId thay vì SeatId
-            Status: seat.Status
-          }
-        ]
+      this.webSocket = new WebSocket(wsUrl);
+      this.connectionAttempts = 0;
+
+      this.webSocket.onopen = () => {
+        this.isConnected = true;
+        this.connectionAttempts = 0; 
+        this.getList(showtimeId);
+        
+        // Thiết lập ping định kỳ để giữ kết nối
+        this.setupPingInterval();
       };
-      
-      // Ghi log chi tiết request để debug
-      console.log('[WEBSOCKET SEND] Request:', JSON.stringify(updateRequest));
-      
-      // Gửi yêu cầu đến server
-      this.socket.send(JSON.stringify(updateRequest));
+
+      this.webSocket.onmessage = (event) => {
+        try {
+          const data: WebSocketMessage = JSON.parse(event.data);
+          
+          if (data.Seats) {
+            this.seats = data.Seats;
+            this.seatsUpdatedSubject.next(data.Seats);
+            this.messageSubject.next(data.Seats);
+          } else if (data.SeatStatusUpdateRequests) {
+            // Cập nhật trạng thái ghế ngay lập tức
+            this.updateSeatStatus(data.SeatStatusUpdateRequests);
+            // Sau đó lấy lại danh sách đầy đủ
+            this.getList(showtimeId);
+          } else {
+            this.handleMessage(event.data);
+          }
+        } catch (error) {
+          console.error('WebSocket message processing error:', error);
+          // Refresh data on error
+          this.getList(showtimeId);
+        }
+      };
+
+      this.webSocket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        this.isConnected = false;
+        this.attemptReconnect(showtimeId, userId);
+      };
+
+      this.webSocket.onclose = (event) => {
+        this.isConnected = false;
+        this.attemptReconnect(showtimeId, userId);
+      };
     } catch (error) {
-      console.error('[WebSocket] Error sending WebSocket message:', error);
+      console.error('WebSocket connection error:', error);
+      this.attemptReconnect(showtimeId, userId);
     }
   }
 
-  // Định nghĩa các trạng thái ghế
-  public readonly SEAT_STATUS = {
-    AVAILABLE: 0,        // Ghế trống, có thể chọn
-    SELECTED: 1,         // Ghế đang được chọn
-    UNAVAILABLE: 3,      // Ghế không khả dụng
-    BUSY: 4,             // Ghế đang được giữ
-    BOOKED: 5            // Ghế đã đặt
-  };
-
-  // Tạo dữ liệu ghế mẫu cho mục đích test
-  private generateMockSeats(showtimeId: string): Seat[] {
-    const seats: Seat[] = [];
-    const rows = 8;
-    const cols = 12;
-    
-    for (let row = 1; row <= rows; row++) {
-      for (let col = 1; col <= cols; col++) {
-        // Tạo id ghế
-        const seatId = `seat-${row}-${col}-${Math.random().toString(36).substring(2, 10)}`;
-        
-        // Xác định loại ghế
-        let seatType = 'Ghế thường';
-        if (row >= 5 && row <= 7) {
-          seatType = 'Ghế VIP';
-        }
-        
-        // Xác định giá ghế
-        let price = 90000;
-        if (seatType === 'Ghế VIP') {
-          price = 120000;
-        }
-        
-        // Xác định trạng thái ghế (ngẫu nhiên)
-        let status = this.SEAT_STATUS.AVAILABLE;
-        const rand = Math.random();
-        
-        if (rand < 0.2) {
-          status = this.SEAT_STATUS.BOOKED; // 20% ghế đã đặt
-        } else if (rand < 0.25) {
-          status = this.SEAT_STATUS.BUSY; // 5% ghế đang được giữ
-        }
-        
-        // Tạo ghế đôi ở hàng cuối
-        let pairId = null;
-        if (row === 8 && col % 2 === 1 && col < cols) {
-          const nextSeatId = `seat-${row}-${col+1}-${Math.random().toString(36).substring(2, 10)}`;
-          pairId = nextSeatId;
-          seatType = 'Ghế đôi';
-          price = 160000;
-          
-          // Thêm ghế tiếp theo trong cặp ghế đôi
-          seats.push({
-            SeatStatusByShowTimeId: showtimeId,
-            SeatId: nextSeatId,
-            Status: status,
-            SeatPrice: price,
-            SeatName: `${String.fromCharCode(64 + row)}${col+1}`,
-            RowNumber: row,
-            ColNumber: col+1,
-            SeatTypeName: seatType,
-            PairId: seatId
-          });
-        }
-        
-        seats.push({
-          SeatStatusByShowTimeId: showtimeId,
-          SeatId: seatId,
-          Status: status,
-          SeatPrice: price,
-          SeatName: `${String.fromCharCode(64 + row)}${col}`,
-          RowNumber: row,
-          ColNumber: col,
-          SeatTypeName: seatType,
-          PairId: pairId
-        });
+  private attemptReconnect(showtimeId: string, userId: string): void {
+    if (this.connectionAttempts < this.maxConnectionAttempts) {
+      this.connectionAttempts++;
+      
+      // Clear any existing reconnect timeout
+      if (this.reconnectTimeoutId) {
+        clearTimeout(this.reconnectTimeoutId);
       }
+      
+      this.reconnectTimeoutId = setTimeout(() => {
+        this.connectWebSocket(showtimeId, userId);
+      }, this.reconnectInterval);
+    } else {
+      // Emit an event that the connection failed permanently
+      this.onConnectionFailed.next();
+    }
+  }
+
+  private closeWebSocketIfExists(): void {
+    if (this.webSocket) {
+      this.webSocket.onclose = null; // Prevent triggering reconnect on intentional close
+      this.webSocket.close();
+      this.webSocket = null;
     }
     
-    console.log(`Generated ${seats.length} mock seats`);
-    return seats;
+    // Clear any pending reconnect attempts
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
+    }
+  }
+
+  connect(roomId: string, userId: string): void {
+    if (this.isConnected && this.currentRoomId === roomId && this.currentUserId === userId) {
+      return;
+    }
+
+    if (this.isConnected) {
+      this.close();
+    }
+
+    this.currentRoomId = roomId;
+    this.currentUserId = userId;
+    this.saveConnection(roomId, userId);
+    
+    // Kết nối WebSocket
+    this.connectWebSocket(roomId, userId);
+  }
+
+  private handleMessage(data: string): void {
+    try {
+      const message: WebSocketMessage = JSON.parse(data);
+
+      if (message.i !== undefined) {
+        this.updateCountdown(message.i);
+
+        if (Object.keys(message).length === 1) {
+          return;
+        }
+      }
+
+      if (this.isSeatUpdate(message)) {
+        this.updateSeatStatus(message.SeatStatusUpdateRequests || []);
+        // Sau khi cập nhật trạng thái từng ghế, gọi getList để lấy lại toàn bộ dữ liệu ghế
+        this.getList(this.currentRoomId || undefined);
+      } else if (Array.isArray(message)) {
+        this.seats = message;
+        this.messageSubject.next([...this.seats]);
+      } else if (typeof message === 'object' && message !== null) {
+        // Kiểm tra nếu có thuộc tính Seats trước
+        if (message.Seats && Array.isArray(message.Seats)) {
+          this.seats = message.Seats;
+          this.messageSubject.next([...this.seats]);
+        } else {
+          try {
+            // Thử chuyển đổi object thành danh sách ghế
+            this.seats = Object.values(message) as SeatInfo[];
+            if (this.seats.length > 0 && this.seats[0].SeatId) {
+              this.messageSubject.next([...this.seats]);
+            }
+          } catch (conversionError) {
+            // Silent error
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error handling WebSocket message:', error);
+      // Gọi getList trong trường hợp lỗi xử lý để đảm bảo dữ liệu luôn được cập nhật
+      this.getList(this.currentRoomId || undefined);
+    }
+  }
+
+  private updateCountdown(countdown: number) {
+    localStorage.setItem('roomCountdown', countdown.toString());
+    if (countdown <= 0) {
+      localStorage.removeItem('selectedSeats');
+      this.getList();
+    }
+  }
+
+  private isSeatUpdate(message: WebSocketMessage): boolean {
+    const action = message.Action?.toLowerCase();
+    return action === 'updatestatus' &&
+      Array.isArray(message.SeatStatusUpdateRequests);
+  }
+
+  private updateSeatStatus(updates: SeatStatusUpdateRequest[]): void {
+    let hasUpdates = false;
+    updates.forEach(({ SeatId, Status }) => {
+      // Tìm ghế bằng SeatStatusByShowTimeId
+      const seat = this.seats.find(s => s.SeatStatusByShowTimeId === SeatId);
+      if (seat) {
+        seat.Status = Status;
+        hasUpdates = true;
+      }
+    });
+    
+    // Thông báo cập nhật
+    if (hasUpdates) {
+      this.messageSubject.next([...this.seats]);
+      this.seatsUpdatedSubject.next([...this.seats]);
+    }
+  }
+
+  sendMessage(action: string, data?: any): void {
+    if (!this.webSocket) {
+      // Thử kết nối lại nếu đang mất kết nối
+      if (this.currentRoomId && this.currentUserId) {
+        this.connectWebSocket(this.currentRoomId, this.currentUserId);
+        // Lưu tin nhắn để gửi sau khi kết nối
+        setTimeout(() => {
+          if (this.isConnected) {
+            this.sendMessage(action, data);
+          }
+        }, 1000);
+      }
+      return;
+    }
+    
+    if (this.webSocket.readyState === WebSocket.OPEN) {
+      // Tạo message để gửi đi
+      const message = JSON.stringify({ 
+        Action: action, 
+        ...data 
+      });
+      
+      try {
+        this.webSocket.send(message);
+      } catch (error) {
+        // Silent error
+      }
+    } else {
+      // Nếu WebSocket đang kết nối (readyState === 0), thì chờ và thử lại
+      if (this.webSocket.readyState === WebSocket.CONNECTING) {
+        setTimeout(() => {
+          this.sendMessage(action, data);
+        }, 1000);
+      }
+    }
+  }
+
+  getList(showtimeId?: string): void {
+    if (showtimeId) {
+      this.sendMessage('GetList', { showtimeId });
+    } else {
+      this.sendMessage('GetList');
+    }
+  }
+
+  updateStatus(seats: SeatStatusUpdateRequest[]): void {
+    if (!seats || seats.length === 0) {
+      return;
+    }
+
+    const requestData = {
+      SeatStatusUpdateRequests: seats
+    };
+
+    this.sendMessage('UpdateStatus', requestData);
+  }
+
+  getMessages(): Observable<SeatInfo[]> {
+    return this.messageSubject.asObservable();
+  }
+
+  get seatsUpdated$(): Observable<SeatInfo[]> {
+    return this.seatsUpdatedSubject.asObservable();
+  }
+
+  close(): void {
+    if (this.webSocket) {
+      this.webSocket.close();
+      this.webSocket = null;
+    }
+    
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
+    }
+    
+    if (this.pingIntervalId) {
+      clearInterval(this.pingIntervalId);
+      this.pingIntervalId = null;
+    }
+    
+    this.isConnected = false;
+  }
+
+  clearConnection() {
+    localStorage.removeItem('websocketConnection');
+    this.close();
+    this.currentRoomId = null;
+    this.currentUserId = null;
+    this.isConnected = false;
+  }
+
+  disconnect(): void {
+    this.close();
+  }
+
+  payment(seats: SeatStatusUpdateRequest[]): void {
+    if (!seats || seats.length === 0) {
+      return;
+    }
+
+    const requestData = {
+      SeatStatusUpdateRequests: seats
+    };
+
+    this.sendMessage('Payment', requestData);
+  }
+
+  private onConnectionFailed = new Subject<void>();
+  public connectionFailed$ = this.onConnectionFailed.asObservable();
+
+  // Thiết lập ping định kỳ để giữ kết nối WebSocket
+  private pingIntervalId: any = null;
+  
+  private setupPingInterval() {
+    // Hủy interval hiện tại nếu có
+    if (this.pingIntervalId) {
+      clearInterval(this.pingIntervalId);
+    }
+    
+    // Tạo interval mới để ping mỗi 30 giây
+    this.pingIntervalId = setInterval(() => {
+      if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+        this.sendMessage('Ping');
+      }
+    }, 30000); // 30 giây
   }
 }

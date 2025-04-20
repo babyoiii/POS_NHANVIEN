@@ -27,43 +27,44 @@
         <!-- Hiển thị hàng ghế -->
         <div class="seating-row" *ngFor="let row of seatingRows">
             <div class="row-name">{{ row.rowName }}</div>
-            
+
             <div class="seats-container">
                 <!-- Tạo ghế trống ở đầu hàng nếu cần -->
-                <div class="empty-seat" *ngFor="let empty of [].constructor(row.seats[0]?.ColNumber ? row.seats[0].ColNumber - 1 : 0)"></div>
-                
+                <div class="empty-seat"
+                    *ngFor="let empty of [].constructor(row.seats[0]?.ColNumber ? row.seats[0].ColNumber - 1 : 0)">
+                </div>
+
                 <!-- Hiển thị ghế thực tế -->
                 <ng-container *ngFor="let seat of row.seats; let i = index">
                     <!-- Tạo ghế trống giữa các ghế nếu cần -->
-                    <div class="empty-seat" *ngFor="let empty of [].constructor(seat.ColNumber - (row.seats[i-1]?.ColNumber || 0) - 1)"></div>
-                    
-                    <!-- Xử lý hiển thị ghế đôi -->
-                    <ng-container *ngIf="seat.PairId">
-                        <!-- Chỉ hiển thị ghế đôi một lần, nếu là ghế thứ nhất trong cặp -->
-                        <div *ngIf="seat.SeatId < seat.PairId" 
-                             [class]="getSeatClass(seat)"
-                             [class.disabled]="!isSeatSelectable(seat)"
-                             (click)="toggleSeat(seat)"
-                             class="couple-seat-container">
-                            <div class="couple-seat-left">{{ seat.SeatName }}</div>
-                            <div class="couple-seat-right">{{ getPairedSeatName(seat) }}</div>
+                    <div class="empty-seat"
+                        *ngFor="let empty of [].constructor(seat.ColNumber - (row.seats[i-1]?.ColNumber || 0) - 1)">
+                    </div>
+
+                    <!-- Chỉ hiển thị ghế nếu thỏa mãn điều kiện -->
+                    <ng-container *ngIf="shouldDisplaySeat(seat)">
+                        <!-- Xử lý hiển thị ghế đôi -->
+                        <div *ngIf="seat.PairId" [class]="getSeatClass(seat)"
+                            [class.disabled]="!isSeatSelectable(seat)" (click)="toggleSeat(seat)"
+                            class="couple-seat-container">
+                            <div class="couple-seat-label">{{ getCoupleSeatName(seat) }}</div>
+                        </div>
+
+                        <!-- Hiển thị ghế đơn -->
+                        <div *ngIf="!seat.PairId" [class]="getSeatClass(seat)"
+                            [class.disabled]="!isSeatSelectable(seat)"
+                            [title]="'Ghế ' + seat.SeatName + ' - Trạng thái: ' + seat.Status" (click)="toggleSeat(seat)">
+                            {{ seat.SeatName }}
                         </div>
                     </ng-container>
-                    
-                    <!-- Hiển thị ghế đơn hoặc ghế không phải ghế đôi -->
-                    <div *ngIf="!seat.PairId || (seat.PairId && seat.SeatId > seat.PairId)"
-                         [class]="getSeatClass(seat)"
-                         [class.disabled]="!isSeatSelectable(seat)"
-                         [title]="'Ghế ' + seat.SeatName + ' - Trạng thái: ' + seat.Status"
-                         (click)="toggleSeat(seat)">
-                        {{ seat.SeatName }}
-                    </div>
                 </ng-container>
-                
+
                 <!-- Tạo ghế trống ở cuối hàng nếu cần -->
-                <div class="empty-seat" *ngFor="let empty of [].constructor(maxCols - (row.seats[row.seats.length-1]?.ColNumber || 0))"></div>
+                <div class="empty-seat"
+                    *ngFor="let empty of [].constructor(maxCols - (row.seats[row.seats.length-1]?.ColNumber || 0))">
+                </div>
             </div>
-            
+
             <div class="row-name">{{ row.rowName }}</div>
         </div>
     </div>
@@ -95,8 +96,7 @@
         </div>
         <div class="legend-item">
             <div class="couple-seat-container seat-legend-example">
-                <div class="couple-seat-left"></div>
-                <div class="couple-seat-right"></div>
+                <div class="couple-seat-label">C1-C2</div>
             </div>
             <span>Ghế đôi</span>
         </div>
@@ -113,8 +113,7 @@
             <div class="selected-seat-list">
                 <span *ngIf="selectedSeats.length === 0">Chưa chọn ghế nào</span>
                 <span *ngFor="let seat of selectedSeats; let i = index">
-                    {{ seat.SeatName }}{{ i < selectedSeats.length - 1 ? ', ' : '' }}
-                </span>
+                    {{ seat.SeatName }}{{ i < selectedSeats.length - 1 ? ', ' : '' }} </span>
             </div>
         </div>
         <div class="total-price">

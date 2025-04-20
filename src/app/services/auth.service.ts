@@ -14,7 +14,7 @@ export class AuthService {
       email: 'staff@cinex.com', 
       password: 'staff123', 
       user: { 
-        id: 1, 
+        id: 'D6720C7B-F1FF-4605-6155-08DD7069A111', 
         email: 'staff@cinex.com', 
         name: 'Nguyễn Văn A', 
         role: 'staff' 
@@ -24,7 +24,7 @@ export class AuthService {
       email: 'manager@cinex.com', 
       password: 'manager123', 
       user: { 
-        id: 2, 
+        id: '0FB36DD9-BCF1-CCFD-5C4C-66D99CECA741', 
         email: 'manager@cinex.com', 
         name: 'Trần Thị B', 
         role: 'manager' 

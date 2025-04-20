@@ -12,6 +12,7 @@ import { BongNuocComponent } from './Component/bong-nuoc/bong-nuoc.component';
 import { QRcodeComponent } from './Component/qrcode/qrcode.component';
 import { AuthGuard } from './guards/auth.guard';
 import { SeatMapComponent } from './Component/ticket/seat-map/seat-map.component';
+import { FoodSelectionComponent } from './Component/ticket/food-selection/food-selection.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -32,6 +33,7 @@ export const routes: Routes = [
         ]
       },
       { path: 'seat-map/:showtimeId', component: SeatMapComponent },
+      { path: 'ticket/food/:showtimeId', component: FoodSelectionComponent },
       { path: '', redirectTo: 'ticket', pathMatch: 'full' },
       { path: 'vedadat', component: VeDaDatComponent },
       { 

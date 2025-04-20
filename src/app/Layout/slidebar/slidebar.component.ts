@@ -32,31 +32,27 @@ export class SlidebarComponent implements OnInit {
       // Lấy phần path cuối cùng của URL (ví dụ: từ /trangchu/ticket => ticket)
       const segments = url.split('/');
       this.activeRoute = segments[segments.length - 1];
-      
+
       // Xử lý trường hợp route mặc định
       if (this.activeRoute === 'trangchu') {
         this.activeRoute = 'ticket';
       }
-      
-      console.log('Active route:', this.activeRoute);
     });
   }
 
   ngOnInit(): void {
     // Lấy thông tin rạp đã chọn từ localStorage
     this.selectedCinema = this.cinemaService.getSelectedCinema();
-    
+
     // Khởi tạo activeRoute ban đầu
     const currentUrl = this.router.url;
     const segments = currentUrl.split('/');
     this.activeRoute = segments[segments.length - 1];
-    
+
     // Xử lý trường hợp route mặc định
     if (this.activeRoute === 'trangchu') {
       this.activeRoute = 'ticket';
     }
-    
-    console.log('Initial active route:', this.activeRoute);
   }
 
   // Kiểm tra xem một menu item có đang active hay không
@@ -82,7 +78,7 @@ export class SlidebarComponent implements OnInit {
   get currentUser() {
     return this.authService.getCurrentUser();
   }
-  
+
   // Phương thức đăng xuất
   logout(): void {
     this.authService.logout().subscribe({

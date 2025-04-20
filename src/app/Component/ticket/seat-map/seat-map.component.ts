@@ -1,13 +1,15 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { WebsocketService, Seat } from '../../../services/websocket.service';
+import { WebsocketService, SeatStatusUpdateRequest, SeatStatus } from '../../../services/websocket.service';
+import { SeatInfo } from '../../../models/SeatModel';
 import { Subscription } from 'rxjs';
+import { AuthService } from '../../../services/auth.service';
 
 interface SeatingRow {
   rowName: string;
   rowNumber: number;
-  seats: Seat[];
+  seats: SeatInfo[];
 }
 
 @Component({
@@ -19,77 +21,123 @@ interface SeatingRow {
 })
 export class SeatMapComponent implements OnInit, OnDestroy {
   showtimeId: string = '';
-  seats: Seat[] = [];
+  seats: SeatInfo[] = [];
   seatingRows: SeatingRow[] = [];
-  selectedSeats: Seat[] = [];
+  selectedSeats: SeatInfo[] = [];
   totalPrice: number = 0;
   maxCols: number = 0;
   isPreorder: boolean = false; // Cờ đánh dấu là đặt vé trước
   validationMessage: string = ''; // Thông báo lỗi validation
   private subscriptions: Subscription = new Subscription();
   
-  // Tạo người dùng mẫu - sẽ được thay thế bằng người dùng thực tế sau
-  private userId: string = localStorage.getItem('userId') || 'c7b7ec11-add5-4d71-bae9-d72ea84e88e5';
+  // Lấy userId từ user đã đăng nhập
+  private userId: string = '';
+
+  // Định nghĩa các trạng thái ghế
+  readonly SEAT_STATUS = {
+    AVAILABLE: 0,        // Ghế trống, có thể chọn
+    SELECTED: 1,         // Ghế đang được chọn
+    UNAVAILABLE: 3,      // Ghế không khả dụng
+    BUSY: 4,             // Ghế đang được giữ
+    BOOKED: 5            // Ghế đã đặt
+  };
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private websocketService: WebsocketService
+    private seatService: WebsocketService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
-    console.log('SeatMap component initialized');
+    // Lấy thông tin người dùng đã đăng nhập
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser) {
+      // Sử dụng ID của user hiện tại cho WebSocket
+      this.userId = currentUser.id.toString();
+    } else {
+      // Nếu không có user đăng nhập, điều hướng về trang đăng nhập
+      this.router.navigate(['/login']);
+      return;
+    }
+    
     this.route.queryParams.subscribe(queryParams => {
       this.isPreorder = queryParams['isPreorder'] === 'true';
-      console.log(`Is preorder booking: ${this.isPreorder}`);
     });
     
     this.route.params.subscribe(params => {
       this.showtimeId = params['showtimeId'];
       if (this.showtimeId) {
-        console.log(`Loading seat map for showtime ID: ${this.showtimeId}`);
         // Kết nối WebSocket khi có showtimeId
         this.connectWebSocket();
       }
     });
+
+    // Thêm sự kiện lắng nghe khi người dùng rời khỏi trang
+    window.addEventListener('beforeunload', this.handlePageUnload);
   }
 
   ngOnDestroy(): void {
+    // Bỏ chọn tất cả các ghế khi rời khỏi component
+    this.resetAllSelectedSeats();
+    
     // Ngắt kết nối WebSocket khi rời khỏi component
     console.log('SeatMap component destroyed, closing WebSocket');
-    this.websocketService.disconnect();
+    this.seatService.disconnect();
     this.subscriptions.unsubscribe();
+
+    // Hủy đăng ký sự kiện
+    window.removeEventListener('beforeunload', this.handlePageUnload);
   }
+
+  // Xử lý khi người dùng rời khỏi trang
+  private handlePageUnload = (event: BeforeUnloadEvent) => {
+    // Bỏ chọn tất cả các ghế 
+    this.resetAllSelectedSeats();
+  };
 
   connectWebSocket(): void {
     // Kết nối tới WebSocket
-    this.websocketService.connect(this.showtimeId, this.userId);
+    this.seatService.connect(this.showtimeId, this.userId);
     
     // Đăng ký lắng nghe dữ liệu ghế
-    const seatsSub = this.websocketService.seats$.subscribe(seats => {
-      this.seats = seats;
-      if (seats.length > 0) {
-        // Chỉ log khi nhận được ghế lần đầu
-        if (!this.seatingRows || this.seatingRows.length === 0) {
-          console.log(`Organizing ${seats.length} seats into rows`);
-        }
+    const seatsSub = this.seatService.getMessages().subscribe((seats: SeatInfo[]) => {
+      if (seats && seats.length > 0) {
+        console.log('Received updated seats from WebSocket');
+        this.seats = seats;
+        
+        this.organizeSeats();
+        
+        // Cập nhật danh sách ghế đã chọn dựa trên dữ liệu từ server
+        this.selectedSeats = seats.filter(seat => seat.Status === this.SEAT_STATUS.SELECTED);
+        
+        // Tính lại tổng tiền
+        this.calculateTotalPrice();
       }
-      this.organizeSeats();
-      
-      // Cập nhật danh sách ghế đã chọn dựa trên dữ liệu từ server
-      this.selectedSeats = seats.filter(seat => seat.Status === this.websocketService.SEAT_STATUS.SELECTED);
-      
-      // Tính lại tổng tiền
-      this.calculateTotalPrice();
+    });
+    
+    // Đăng ký lắng nghe cập nhật trạng thái ghế theo sự kiện riêng biệt
+    const seatsUpdateSub = this.seatService.seatsUpdated$.subscribe((seats: SeatInfo[]) => {
+      if (seats && seats.length > 0) {
+        console.log('Seats status updated via WebSocket');
+        this.seats = seats;
+        this.organizeSeats();
+      }
+    });
+    
+    // Đăng ký lắng nghe sự kiện lỗi kết nối
+    const connectionErrorSub = this.seatService.connectionFailed$.subscribe(() => {
+      alert('Không thể kết nối đến máy chủ đặt vé. Vui lòng thử lại sau!');
+      this.router.navigate(['/trangchu/ticket/now']);
     });
     
     this.subscriptions.add(seatsSub);
+    this.subscriptions.add(seatsUpdateSub);
+    this.subscriptions.add(connectionErrorSub);
   }
 
   organizeSeats(): void {
     if (!this.seats || this.seats.length === 0) return;
-    
-    // console.log('Organizing seats, sample seat:', this.seats[0]);
     
     // Tìm số cột lớn nhất
     this.maxCols = Math.max(...this.seats.map(seat => seat.ColNumber));
@@ -123,11 +171,6 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     this.seatingRows.forEach(row => {
       row.seats.sort((a, b) => a.ColNumber - b.ColNumber);
     });
-
-    if (this.seatingRows.length > 0) {
-      console.log(`Created ${this.seatingRows.length} rows with max ${this.maxCols} columns`);
-      // console.log('First row seats:', this.seatingRows[0].seats.map(s => s.SeatName).join(', '));
-    }
   }
 
   getRowName(rowNumber: number): string {
@@ -136,18 +179,18 @@ export class SeatMapComponent implements OnInit, OnDestroy {
   }
 
   // Lấy tên của ghế đôi đi kèm
-  getPairedSeatName(seat: Seat): string {
+  getPairedSeatName(seat: SeatInfo): string {
     if (!seat.PairId) return '';
     const pairedSeat = this.seats.find(s => s.SeatId === seat.PairId);
     return pairedSeat ? pairedSeat.SeatName : '';
   }
 
-  isSeatSelectable(seat: Seat): boolean {
+  isSeatSelectable(seat: SeatInfo): boolean {
     // Ghế có thể chọn nếu trạng thái là AVAILABLE (0)
-    return seat.Status === this.websocketService.SEAT_STATUS.AVAILABLE;
+    return seat.Status === this.SEAT_STATUS.AVAILABLE;
   }
 
-  getSeatClass(seat: Seat): string {
+  getSeatClass(seat: SeatInfo): string {
     let classes = 'seat';
     
     // Áp dụng class dựa trên loại ghế
@@ -158,27 +201,27 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     }
     
     // Áp dụng class dựa trên trạng thái ghế
-    if (seat.Status === this.websocketService.SEAT_STATUS.BOOKED) {
+    if (seat.Status === this.SEAT_STATUS.BOOKED) {
       classes += ' booked';
-    } else if (seat.Status === this.websocketService.SEAT_STATUS.BUSY) {
+    } else if (seat.Status === this.SEAT_STATUS.BUSY) {
       classes += ' reserved';
-    } else if (seat.Status === this.websocketService.SEAT_STATUS.UNAVAILABLE) {
+    } else if (seat.Status === this.SEAT_STATUS.UNAVAILABLE) {
       classes += ' unavailable';
-    } else if (seat.Status === this.websocketService.SEAT_STATUS.SELECTED || this.isSelected(seat)) {
+    } else if (seat.Status === this.SEAT_STATUS.SELECTED || this.isSelected(seat)) {
       classes += ' selected';
     }
     
     return classes;
   }
 
-  isSelected(seat: Seat): boolean {
+  isSelected(seat: SeatInfo): boolean {
     // Ghế được coi là đã chọn nếu trạng thái là SELECTED hoặc có trong danh sách selectedSeats
-    return seat.Status === this.websocketService.SEAT_STATUS.SELECTED || 
+    return seat.Status === this.SEAT_STATUS.SELECTED || 
            this.selectedSeats.some(s => s.SeatId === seat.SeatId);
   }
 
   // Kiểm tra xem việc chọn ghế có hợp lệ không
-  validateSeatSelection(seat: Seat): boolean {
+  validateSeatSelection(seat: SeatInfo): boolean {
     // Nếu đang bỏ chọn ghế, luôn hợp lệ
     if (this.isSelected(seat)) {
       return true;
@@ -190,7 +233,7 @@ export class SeatMapComponent implements OnInit, OnDestroy {
 
     // Lọc ra những ghế có thể chọn được trong hàng đó (trạng thái AVAILABLE hoặc đã được chọn)
     const selectableSeats = rowSeats.filter(s => 
-      s.Status === this.websocketService.SEAT_STATUS.AVAILABLE || this.isSelected(s)
+      s.Status === this.SEAT_STATUS.AVAILABLE || this.isSelected(s)
     );
     
     // Lọc ra những ghế đã được chọn trong hàng
@@ -213,9 +256,9 @@ export class SeatMapComponent implements OnInit, OnDestroy {
           const seatsInGap = rowSeats.filter(s => 
             s.ColNumber > currentSeat.ColNumber && 
             s.ColNumber < nextSeat.ColNumber &&
-            (s.Status === this.websocketService.SEAT_STATUS.BOOKED || 
-             s.Status === this.websocketService.SEAT_STATUS.BUSY ||
-             s.Status === this.websocketService.SEAT_STATUS.UNAVAILABLE)
+            (s.Status === this.SEAT_STATUS.BOOKED || 
+             s.Status === this.SEAT_STATUS.BUSY ||
+             s.Status === this.SEAT_STATUS.UNAVAILABLE)
           );
           
           // Nếu không phải tất cả ghế trong khoảng trống đều đã được đặt/giữ/không khả dụng, thì không hợp lệ
@@ -246,79 +289,116 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  toggleSeat(seat: Seat): void {
-    if (!this.isSeatSelectable(seat) && seat.Status !== this.websocketService.SEAT_STATUS.SELECTED) {
+  toggleSeat(seat: SeatInfo): void {
+    if (seat.Status === this.SEAT_STATUS.SELECTED) {
+      // Bỏ chọn ghế      
+      // Chuẩn bị yêu cầu cập nhật trạng thái ghế
+      const updateRequest: SeatStatusUpdateRequest = {
+        SeatId: seat.SeatStatusByShowTimeId, // Sử dụng SeatStatusByShowTimeId làm SeatId
+        Status: this.SEAT_STATUS.AVAILABLE // Chuyển từ SELECTED (1) về AVAILABLE (0)
+      };
+      
+      // Gửi yêu cầu cập nhật
+      this.seatService.updateStatus([updateRequest]);
+      
       return;
     }
     
-    // Nếu đang bỏ chọn ghế đã chọn
-    if (seat.Status === this.websocketService.SEAT_STATUS.SELECTED) {
-      // Không cần kiểm tra validation khi bỏ chọn
-      // console.log(`Unselecting seat ${seat.SeatName}`);
-      this.selectedSeats = this.selectedSeats.filter(s => s.SeatId !== seat.SeatId);
-      
-      // Nếu là ghế đôi, hủy chọn ghế đi kèm
-      if (seat.PairId) {
-        this.selectedSeats = this.selectedSeats.filter(s => s.SeatId !== seat.PairId);
-        // const pairedSeatName = this.getPairedSeatName(seat);
-        // console.log(`Unselected paired seat ${pairedSeatName}`);
-        
-        // Tìm ghế đôi đi kèm
-        const pairedSeat = this.seats.find(s => s.SeatId === seat.PairId);
-        if (pairedSeat && pairedSeat.Status === this.websocketService.SEAT_STATUS.SELECTED) {
-          // Gửi yêu cầu thay đổi trạng thái ghế đôi lên server
-          this.websocketService.toggleSeatSelection(pairedSeat);
-        }
-      }
-      
-      // Gửi yêu cầu thay đổi trạng thái ghế lên server
-      this.websocketService.toggleSeatSelection(seat);
-      return;
-    }
-    
-    // Kiểm tra tính hợp lệ khi chọn ghế
+    // Kiểm tra validation trước khi chọn ghế
     if (!this.validateSeatSelection(seat)) {
       return;
     }
     
-    // Nếu ghế chưa được chọn, tiến hành chọn
-    // console.log(`Selecting seat ${seat.SeatName}`);
+    // Chọn ghế
+    // Chuẩn bị yêu cầu cập nhật trạng thái ghế
+    const updateRequest: SeatStatusUpdateRequest = {
+      SeatId: seat.SeatStatusByShowTimeId, // Sử dụng SeatStatusByShowTimeId làm SeatId
+      Status: this.SEAT_STATUS.SELECTED // Chuyển từ AVAILABLE (0) sang SELECTED (1)
+    };
     
-    // Nếu là ghế đôi, kiểm tra và chọn ghế đi kèm
+    // Gửi yêu cầu cập nhật
+    this.seatService.updateStatus([updateRequest]);
+    
+    // Xử lý ghế đôi
     if (seat.PairId) {
       const pairedSeat = this.seats.find(s => s.SeatId === seat.PairId);
-      if (pairedSeat && this.isSeatSelectable(pairedSeat)) {
-        // console.log(`Auto-selecting paired seat ${pairedSeat.SeatName}`);
-        // Gửi yêu cầu thay đổi trạng thái ghế đôi lên server
-        this.websocketService.toggleSeatSelection(pairedSeat);
+      if (pairedSeat && pairedSeat.Status === this.SEAT_STATUS.AVAILABLE) {
+        // Chuẩn bị yêu cầu cập nhật trạng thái ghế đôi
+        const pairUpdateRequest: SeatStatusUpdateRequest = {
+          SeatId: pairedSeat.SeatStatusByShowTimeId, // Sử dụng SeatStatusByShowTimeId làm SeatId
+          Status: this.SEAT_STATUS.SELECTED
+        };
+        
+        // Gửi yêu cầu cập nhật cho ghế đôi
+        this.seatService.updateStatus([pairUpdateRequest]);
       }
     }
-    
-    // Gửi yêu cầu thay đổi trạng thái ghế lên server
-    this.websocketService.toggleSeatSelection(seat);
   }
 
   calculateTotalPrice(): void {
     this.totalPrice = this.selectedSeats.reduce((total, seat) => total + seat.SeatPrice, 0);
-    if (this.selectedSeats.length > 0) {
-      console.log(`Total price for ${this.selectedSeats.length} seats: ${this.totalPrice} VND`);
-    }
   }
 
   continueToFoodSelection(): void {
     // Lưu danh sách ghế đã chọn để sử dụng ở bước tiếp theo
     localStorage.setItem('selectedSeats', JSON.stringify(this.selectedSeats));
-    console.log(`Saved ${this.selectedSeats.length} selected seats to localStorage`);
     
-    // Điều hướng đến trang chọn đồ ăn
-    // this.router.navigate(['/trangchu/doan'], { queryParams: { from: 'seat-map' } });
-    
-    // Thông báo chức năng đang được phát triển
-    alert('Chức năng chọn đồ ăn đang được phát triển!');
+    // Chuyển đến trang chọn dịch vụ
+    this.router.navigate(['/trangchu/ticket/food', this.showtimeId]);
   }
 
   goBack(): void {
-    console.log('Navigating back to movie listing');
-    this.router.navigate(['/trangchu/ticket/now']);
+    // Bỏ chọn tất cả các ghế đã chọn trước khi quay lại
+    this.resetAllSelectedSeats();
+    
+    // Đợi một chút để đảm bảo cập nhật được gửi đi trước khi chuyển trang
+    setTimeout(() => {
+      this.router.navigate(['/trangchu/ticket/now']);
+    }, 300);
+  }
+
+  // Kiểm tra xem ghế có nên hiển thị hay không (đối với ghế đôi)
+  shouldDisplaySeat(seat: SeatInfo): boolean {
+    // Nếu không phải ghế đôi thì luôn hiển thị
+    if (!seat.PairId) return true;
+    
+    // Với ghế đôi, chỉ hiển thị một trong hai ghế
+    // Chúng ta sẽ hiển thị ghế có SeatId nhỏ hơn (thường là ghế đầu tiên trong cặp)
+    // hoặc ghế có vị trí bên trái (ColNumber nhỏ hơn)
+    const pairedSeat = this.seats.find(s => s.SeatId === seat.PairId);
+    if (!pairedSeat) return true;
+    
+    // Nếu cùng hàng, chọn ghế có số cột nhỏ hơn
+    if (seat.RowNumber === pairedSeat.RowNumber) {
+      return seat.ColNumber < pairedSeat.ColNumber;
+    }
+    
+    // Nếu khác hàng, chọn ghế có số hàng nhỏ hơn
+    return seat.RowNumber < pairedSeat.RowNumber;
+  }
+
+  // Xây dựng tên ghế đôi (kết hợp cả hai ghế)
+  getCoupleSeatName(seat: SeatInfo): string {
+    if (!seat.PairId) return seat.SeatName;
+    
+    const pairedSeat = this.seats.find(s => s.SeatId === seat.PairId);
+    if (!pairedSeat) return seat.SeatName;
+    
+    return `${seat.SeatName}-${pairedSeat.SeatName}`;
+  }
+
+  // Hàm bỏ chọn tất cả các ghế đã chọn
+  resetAllSelectedSeats(): void {
+    const selectedSeatsToReset = this.selectedSeats.map(seat => ({
+      SeatId: seat.SeatStatusByShowTimeId,
+      Status: this.SEAT_STATUS.AVAILABLE
+    }));
+    
+    if (selectedSeatsToReset.length > 0) {
+      // Gửi yêu cầu cập nhật trạng thái các ghế về AVAILABLE
+      this.seatService.updateStatus(selectedSeatsToReset);
+      // Xóa dữ liệu ghế đã chọn trong localStorage
+      localStorage.removeItem('selectedSeats');
+    }
   }
 }

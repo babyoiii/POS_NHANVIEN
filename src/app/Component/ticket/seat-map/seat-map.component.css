@@ -296,22 +296,15 @@
   }
 }
 
-.couple-seat-left, .couple-seat-right {
-  width: 50%;
+.couple-seat-label {
+  width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   font-weight: bold;
-}
-
-.couple-seat-left {
-  border-right: 1px dashed #e91e63;
-}
-
-.couple-seat-container.selected .couple-seat-left {
-  border-right-color: rgba(255, 255, 255, 0.5);
+  text-align: center;
 }
 
 /* Chú thích */
@@ -417,17 +410,17 @@
     font-size: 11px;
   }
   
-  .couple-seat-container {
-    width: 75px;
-    height: 35px;
-  }
-  
   .seat-summary {
     flex-direction: column;
   }
   
   .total-price {
     margin-top: 20px;
+  }
+  
+  .couple-seat-container {
+    width: 75px;
+    height: 35px;
   }
 }
 

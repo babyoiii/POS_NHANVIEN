@@ -10,37 +10,37 @@ let scanTimeout = null;
 if (canvas) {
   ctx = canvas.getContext("2d");
 } else {
-  // Tạo canvas mới nếu không tìm thấy
-  console.warn("Canvas không tồn tại, sẽ được tạo khi cần thiết");
+
 }
 
 // Khởi tạo camera khi trang đã tải xong
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
   video = document.getElementById("video");
   canvas = document.getElementById("canvas");
-  
+
   if (canvas) {
     ctx = canvas.getContext("2d");
   }
-  
+
   // Thêm event listeners cho các nút
   const startBtn = document.getElementById("startBtn");
   const pauseBtn = document.getElementById("pauseBtn");
   const manualBtn = document.getElementById("manualBtn");
-  
+
   if (startBtn) startBtn.addEventListener("click", startCamera);
   if (pauseBtn) pauseBtn.addEventListener("click", pauseCamera);
   if (manualBtn) manualBtn.addEventListener("click", showManualInput);
-  
+
   // Hiệu ứng đường quét
   const scanLine = document.querySelector(".scan-line");
   if (scanLine) {
-    scanLine.style.animation = "scanAnimation 2s ease-in-out infinite alternate";
+    scanLine.style.animation =
+      "scanAnimation 2s ease-in-out infinite alternate";
   }
-  
+
   // Hiệu ứng góc quét
   const scanCorners = document.querySelectorAll(".scan-corner");
-  if (scanCorners.length > 0 && typeof anime !== 'undefined') {
+  if (scanCorners.length > 0 && typeof anime !== "undefined") {
     anime({
       targets: scanCorners,
       borderColor: ["#00ffcc", "#00ccff"],

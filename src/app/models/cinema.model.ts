@@ -14,7 +14,7 @@ export interface Province {
   }
   
   export interface User {
-    id: number;
+    id: string;
     email: string;
     name: string;
     role: 'staff' | 'manager' ;
