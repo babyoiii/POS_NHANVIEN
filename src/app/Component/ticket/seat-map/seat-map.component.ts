@@ -67,10 +67,26 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     
     this.route.params.subscribe(params => {
       this.showtimeId = params['showtimeId'];
-      if (this.showtimeId) {
-        // Kết nối WebSocket khi có showtimeId
-        this.connectWebSocket();
+      
+      // Nếu không có showtimeId từ params, thử lấy từ localStorage
+      if (!this.showtimeId) {
+        const savedShowtimeId = localStorage.getItem('currentShowTimeId');
+        if (savedShowtimeId) {
+          console.log(`Recovered showTimeId from localStorage: ${savedShowtimeId}`);
+          this.showtimeId = savedShowtimeId;
+        } else {
+          console.error('No showTimeId found in params or localStorage');
+          // Điều hướng về trang danh sách phim
+          this.router.navigate(['/trangchu/ticket/now']);
+          return;
+        }
       }
+      
+      // Lưu showTimeId vào localStorage để đảm bảo có thể truy cập sau khi quay lại
+      localStorage.setItem('currentShowTimeId', this.showtimeId);
+      
+      // Kết nối WebSocket khi có showtimeId
+      this.connectWebSocket();
     });
 
     // Thêm sự kiện lắng nghe khi người dùng rời khỏi trang
@@ -78,8 +94,13 @@ export class SeatMapComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Bỏ chọn tất cả các ghế khi rời khỏi component
+    // Check if we're navigating to the food selection page
+    // If we are, don't reset the seats
+    const currentUrl = this.router.url;
+    if (!currentUrl.includes('food')) {
+      // Only reset seats if we're not navigating to food selection
     this.resetAllSelectedSeats();
+    }
     
     // Ngắt kết nối WebSocket khi rời khỏi component
     console.log('SeatMap component destroyed, closing WebSocket');
@@ -92,8 +113,12 @@ export class SeatMapComponent implements OnInit, OnDestroy {
 
   // Xử lý khi người dùng rời khỏi trang
   private handlePageUnload = (event: BeforeUnloadEvent) => {
-    // Bỏ chọn tất cả các ghế 
+    // Check if we're navigating to the food selection page
+    const currentUrl = this.router.url;
+    if (!currentUrl.includes('food')) {
+      // Only reset seats if we're not navigating to food selection
     this.resetAllSelectedSeats();
+    }
   };
 
   connectWebSocket(): void {
@@ -340,10 +365,28 @@ export class SeatMapComponent implements OnInit, OnDestroy {
   }
 
   continueToFoodSelection(): void {
-    // Lưu danh sách ghế đã chọn để sử dụng ở bước tiếp theo
+    // Validate chọn ghế trước khi tiếp tục
+    if (this.selectedSeats.length === 0) {
+      this.validationMessage = 'Vui lòng chọn ít nhất một ghế để tiếp tục.';
+      return;
+    }
+    
+    // Reset validation message nếu có
+    this.validationMessage = '';
+    
+    // Lưu danh sách ghế đã chọn vào localStorage
     localStorage.setItem('selectedSeats', JSON.stringify(this.selectedSeats));
     
-    // Chuyển đến trang chọn dịch vụ
+    // Lưu showTimeId vào localStorage để sử dụng sau này
+    localStorage.setItem('currentShowTimeId', this.showtimeId);
+    
+    // Đảm bảo không cập nhật UI khi chuyển hướng
+    const currentStatuses = this.selectedSeats.map(seat => ({ 
+      SeatId: seat.SeatStatusByShowTimeId, 
+      Status: this.SEAT_STATUS.SELECTED 
+    }));
+    
+    // Chuyển hướng tới trang chọn thức ăn
     this.router.navigate(['/trangchu/ticket/food', this.showtimeId]);
   }
 

@@ -10,6 +10,10 @@
   background-color: #f8f9fa;
   border-radius: 10px;
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+  height: auto;
+  min-height: auto;
+  position: relative;
+  overflow-y: visible;
 }
 
 /* Header */
@@ -19,6 +23,9 @@
   margin-bottom: 25px;
   padding-bottom: 15px;
   border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  z-index: 10;
+  width: 100%;
 }
 
 .back-button {
@@ -126,12 +133,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
+  margin: 20px 0;
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 55vh;
   padding: 25px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  -webkit-overflow-scrolling: touch;
+  min-height: 300px;
+  position: relative;
+  border: 1px solid #e0e0e0;
 }
 
 .column-indicators {
@@ -312,84 +325,121 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 15px;
-  margin-bottom: 30px;
-  padding: 20px;
+  gap: 10px;
+  margin: 15px auto 30px;
+  padding: 15px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  width: 95%;
+  max-width: 900px;
+  position: relative;
+  z-index: 50;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  margin-right: 15px;
+  margin: 5px 10px;
+  font-size: 13px;
 }
 
 .seat-legend-example {
-  width: 25px;
-  height: 25px;
-  margin-right: 10px;
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
   border-width: 1px;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 /* Thông tin tóm tắt */
 .seat-summary {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  padding: 12px 15px;
+  box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  border-radius: 8px 8px 0 0;
+}
+
+.summary-content {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 25px;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  align-items: center;
+  width: 100%;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
 }
 
 .selected-seats, .total-price {
+  padding: 8px 15px;
+  margin-bottom: 5px;
+}
+
+.selected-seats {
+  flex: 2;
+  min-width: 250px;
+}
+
+.total-price {
   flex: 1;
+  text-align: right;
+  min-width: 150px;
 }
 
 .selected-seats h3, .total-price h3 {
-  margin: 0 0 15px 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  margin: 0 0 8px 0;
+  color: #555;
 }
 
 .selected-seat-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .price {
-  font-size: 24px;
-  font-weight: bold;
-  color: #e91e63;
+  font-size: 22px;
+  font-weight: 700;
+  color: #e53935;
 }
 
 /* Nút hành động */
 .action-buttons {
   display: flex;
   justify-content: flex-end;
-  margin-top: 25px;
+  margin-top: 15px;
 }
 
 .btn-continue {
-  padding: 14px 28px;
-  font-size: 16px;
-  font-weight: 600;
+  background-color: #e53935;
   color: #fff;
-  background-color: #000;
   border: none;
-  border-radius: 6px;
+  padding: 12px 25px;
+  border-radius: 5px;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 16px;
+  min-width: 150px;
 }
 
 .btn-continue:hover:not(:disabled) {
-  background-color: #333;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  background-color: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-continue:disabled {
@@ -397,30 +447,97 @@
   cursor: not-allowed;
 }
 
-/* Responsive */
+/* Media queries để cải thiện trải nghiệm di động */
 @media (max-width: 768px) {
   .seat-map-container {
-    padding: 15px;
+    padding: 10px;
+    min-height: calc(100vh - 180px);
   }
   
   .seat, .empty-seat {
-    width: 35px;
-    height: 35px;
-    margin: 0 3px;
-    font-size: 11px;
+    width: 30px;
+    height: 30px;
+    margin: 0 2px;
+    font-size: 10px;
   }
   
   .seat-summary {
+    padding: 10px;
     flex-direction: column;
   }
   
+  .action-buttons {
+    justify-content: center;
+    margin-top: 10px;
+  }
+  
+  .btn-continue {
+    width: 100%;
+    padding: 10px;
+  }
+  
   .total-price {
-    margin-top: 20px;
+    font-size: 16px;
   }
   
   .couple-seat-container {
-    width: 75px;
-    height: 35px;
+    width: 70px;
+  }
+  
+  .seating-plan {
+    padding: 10px;
+    margin-bottom: 15px;
+    max-height: 55vh;
+  }
+  
+  .summary-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .selected-seats, .total-price {
+    width: 100%;
+    padding: 5px 0;
+    text-align: left;
+  }
+  
+  .price {
+    font-size: 18px;
+  }
+  
+  .row-name {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  
+  .column-number {
+    width: 30px;
+    height: 20px;
+    font-size: 12px;
+  }
+  
+  .column-spacer {
+    width: 30px;
+  }
+  
+  .seat-legend {
+    gap: 5px;
+    padding: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+  }
+  
+  .legend-item {
+    margin: 3px 5px;
+    font-size: 11px;
+  }
+  
+  .seat-legend-example {
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    font-size: 8px;
   }
 }
 
@@ -462,5 +579,69 @@
   .validation-error {
     font-size: 13px;
     padding: 8px 12px;
+  }
+}
+
+/* Style thanh cuộn */
+.seating-plan::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.seating-plan::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 5px;
+}
+
+.seating-plan::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 5px;
+}
+
+.seating-plan::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Thêm gợi ý cuộn */
+.scroll-hint {
+  text-align: center;
+  color: #666;
+  font-size: 12px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-hint i {
+  margin-right: 5px;
+}
+
+/* Chỉnh sửa cho phần chú thích ghế đôi */
+.seat-legend-example.couple-seat-container {
+  width: 44px;
+  height: 22px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.couple-seat-container.seat-legend-example .couple-seat-label {
+  font-size: 8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .seat-legend-example.couple-seat-container {
+    width: 36px;
+    height: 18px;
+  }
+  
+  .couple-seat-container.seat-legend-example .couple-seat-label {
+    font-size: 7px;
   }
 }

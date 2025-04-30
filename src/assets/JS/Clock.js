@@ -1,4 +1,3 @@
-
 // Hàm cập nhật đồng hồ
 function updateClock() {
     const now = new Date();
@@ -33,6 +32,12 @@ function updateClock() {
 document.addEventListener('DOMContentLoaded', function () {
     // Tìm sidebar
     const sidebar = document.querySelector('.sidebar');
+
+    // Chỉ tiếp tục nếu tìm thấy sidebar
+    if (!sidebar) {
+        console.log('Không tìm thấy phần tử .sidebar, bỏ qua việc tạo đồng hồ');
+        return;
+    }
 
     // Tạo phần tử đồng hồ
     const clockContainer = document.createElement('div');

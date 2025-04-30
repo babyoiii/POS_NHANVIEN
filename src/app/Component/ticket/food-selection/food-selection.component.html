@@ -160,6 +160,56 @@
                 <p class="empty-cart-hint">Hãy thêm sản phẩm vào giỏ hàng</p>
             </div>
 
+            <!-- Phần nhập email khách hàng -->
+            <div class="customer-email-section">
+                <h4><i class="fas fa-user"></i> Thông tin khách hàng</h4>
+                
+                <div class="email-options">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="emailOption" id="useDefaultEmail" 
+                               [(ngModel)]="useDefaultEmail" [value]="true" checked>
+                        <label class="form-check-label" for="useDefaultEmail">
+                            Dùng email mặc định ({{ defaultEmail }})
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="emailOption" id="useCustomerEmail" 
+                               [(ngModel)]="useDefaultEmail" [value]="false">
+                        <label class="form-check-label" for="useCustomerEmail">
+                            Sử dụng email khách hàng
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="customer-email-input" *ngIf="!useDefaultEmail">
+                    <div class="input-group">
+                        <input type="email" class="form-control" placeholder="Nhập email khách hàng..." 
+                               [(ngModel)]="customerEmail" (blur)="checkCustomerEmail(customerEmail)"
+                               [disabled]="isCheckingEmail">
+                        <button class="btn btn-outline-primary" type="button" 
+                                (click)="checkCustomerEmail(customerEmail)"
+                                [disabled]="isCheckingEmail">
+                            <i class="fas fa-search" *ngIf="!isCheckingEmail"></i>
+                            <i class="fas fa-spinner fa-spin" *ngIf="isCheckingEmail"></i>
+                            Kiểm tra
+                        </button>
+                    </div>
+                    
+                    <div class="email-feedback error" *ngIf="emailError">
+                        <i class="fas fa-exclamation-circle"></i> {{ emailError }}
+                    </div>
+                    
+                    <div class="email-feedback success" *ngIf="emailSuccess">
+                        <i class="fas fa-check-circle"></i> {{ emailSuccess }}
+                    </div>
+                    
+                    <div class="customer-info" *ngIf="customerInfo">
+                        <p><strong>Tên:</strong> {{ customerInfo.name }}</p>
+                        <p><strong>SĐT:</strong> {{ customerInfo.phoneNumber }}</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="cart-summary">
                 <div class="summary-row">
                     <span>Tổng tiền ghế:</span>
@@ -182,24 +232,23 @@
     </div>
 
     <!-- Payment Method Modal -->
-    <div class="modal-overlay" *ngIf="showPaymentModal">
-        <div class="payment-modal">
-            <div class="modal-header">
-                <h3>Chọn phương thức thanh toán</h3>
-                <button class="close-btn" (click)="closePaymentModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="payment-methods">
-                    <div class="payment-method" *ngFor="let method of paymentMethods" (click)="selectPaymentMethod(method)">
-                        <div class="method-icon">
-                            <i class="fas" [ngClass]="method.icon"></i>
-                        </div>
-                        <div class="method-info">
-                            <h4>{{ method.name }}</h4>
-                            <p>{{ method.description }}</p>
-                        </div>
+    <div class="modal-overlay" *ngIf="showPaymentModal" (click)="closePaymentModal()"></div>
+    <div class="payment-modal" *ngIf="showPaymentModal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Chọn phương thức thanh toán</h3>
+            <button class="close-btn" (click)="closePaymentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="payment-methods">
+                <div class="payment-method" *ngFor="let method of paymentMethods" (click)="selectPaymentMethod(method)">
+                    <div class="method-icon">
+                        <i class="fas" [ngClass]="method.icon"></i>
+                    </div>
+                    <div class="method-info">
+                        <h4>{{ method.name }}</h4>
+                        <p>{{ method.description }}</p>
                     </div>
                 </div>
             </div>
@@ -207,39 +256,38 @@
     </div>
 
     <!-- QR Payment Modal -->
-    <div class="modal-overlay" *ngIf="showQRCode">
-        <div class="qr-modal">
-            <div class="modal-header">
-                <h3>Quét mã QR để thanh toán</h3>
-                <button class="close-btn" (click)="showQRCode = false">
-                    <i class="fas fa-times"></i>
-                </button>
+    <div class="modal-overlay" *ngIf="showQRCode" (click)="showQRCode = false"></div>
+    <div class="qr-modal" *ngIf="showQRCode" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Quét mã QR để thanh toán</h3>
+            <button class="close-btn" (click)="showQRCode = false">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="qr-image">
+                <img [src]="qrImageUrl" alt="QR Code">
             </div>
-            <div class="modal-body">
-                <div class="qr-image">
-                    <img [src]="qrImageUrl" alt="QR Code">
+            <div class="payment-details">
+                <div class="payment-detail-row">
+                    <span>Số tiền:</span>
+                    <span class="payment-value">{{ formatPrice(getTotalPrice()) }}</span>
                 </div>
-                <div class="payment-details">
-                    <div class="payment-detail-row">
-                        <span>Số tiền:</span>
-                        <span class="payment-value">{{ formatPrice(getTotalPrice()) }}</span>
-                    </div>
-                    <div class="payment-detail-row">
-                        <span>Mã đơn hàng:</span>
-                        <span class="payment-value">{{ orderId }}</span>
-                    </div>
+                <div class="payment-detail-row">
+                    <span>Mã đơn hàng:</span>
+                    <span class="payment-value">{{ orderId }}</span>
                 </div>
-                <div class="payment-instructions">
-                    <p>1. Mở ứng dụng ngân hàng và quét mã QR</p>
-                    <p>2. Kiểm tra thông tin và xác nhận thanh toán</p>
-                    <p>3. Sau khi thanh toán thành công, nhấn "Xác nhận đã thanh toán"</p>
-                </div>
-                <button class="confirm-payment-btn" (click)="confirmPayment()" [disabled]="isLoading">
-                    <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
-                    <i class="fas fa-check-circle" *ngIf="!isLoading"></i>
-                    {{ isLoading ? 'Đang xử lý...' : 'Xác nhận đã thanh toán' }}
-                </button>
             </div>
+            <div class="payment-instructions">
+                <p>1. Mở ứng dụng ngân hàng và quét mã QR</p>
+                <p>2. Kiểm tra thông tin và xác nhận thanh toán</p>
+                <p>3. Sau khi thanh toán thành công, nhấn "Xác nhận đã thanh toán"</p>
+            </div>
+            <button class="confirm-payment-btn" (click)="confirmPayment()" [disabled]="isLoading">
+                <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+                <i class="fas fa-check-circle" *ngIf="!isLoading"></i>
+                {{ isLoading ? 'Đang xử lý...' : 'Xác nhận đã thanh toán' }}
+            </button>
         </div>
     </div>
 
@@ -248,6 +296,154 @@
         <div class="loader">
             <div class="spinner"></div>
             <p>Đang xử lý thanh toán...</p>
+        </div>
+    </div>
+
+    <!-- Modal nhập tiền khách thanh toán -->
+    <div class="cash-payment-modal" *ngIf="showCashPaymentModal">
+        <div class="modal-overlay" (click)="closeCashPaymentModal()"></div>
+        <div class="cash-payment-content" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Thanh toán tiền mặt</h3>
+                <button class="close-button" (click)="closeCashPaymentModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="payment-info">
+                    <div class="info-row">
+                        <span class="info-label">Tổng tiền:</span>
+                        <span class="info-value">{{ getTotalPrice() | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Tiền khách đưa:</span>
+                        <div class="input-with-buttons">
+                            <input type="number" [(ngModel)]="cashReceived" (ngModelChange)="calculateChange()" placeholder="Nhập số tiền">
+                            <div class="quick-buttons">
+                                <button (click)="setQuickAmount(100000)">100K</button>
+                                <button (click)="setQuickAmount(200000)">200K</button>
+                                <button (click)="setQuickAmount(500000)">500K</button>
+                                <button (click)="setQuickAmount(getTotalPrice())">Đủ</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-row change-amount" [class.positive]="changeAmount >= 0">
+                        <span class="info-label">Tiền thừa:</span>
+                        <span class="info-value">{{ changeAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" (click)="closeCashPaymentModal()">Hủy</button>
+                <button class="confirm-btn" [disabled]="cashReceived < getTotalPrice()" (click)="processCashPayment()">
+                    Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal in hóa đơn -->
+    <div class="receipt-modal" *ngIf="showReceiptModal">
+        <div class="modal-overlay" (click)="closeReceiptModal()"></div>
+        <div class="receipt-modal-content" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Hóa đơn thanh toán</h3>
+                <button class="close-button" (click)="closeReceiptModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="receipt-content" id="receipt-content">
+                <div class="cinema-logo">
+                    <img src="assets/Image/cinexLogo.png" alt="Cinema Logo">
+                </div>
+                <div class="receipt-header">
+                    <h2>HÓA ĐƠN THANH TOÁN</h2>
+                    <p>Mã đơn hàng: {{ orderId }}</p>
+                    <p>Ngày: {{ formatLocalDate(today) }}</p>
+                    <p>Nhân viên: {{ getStaffName() }}</p>
+                </div>
+                
+                <!-- Thông tin ghế đã chọn -->
+                <div class="receipt-section">
+                    <h3 class="section-title">THÔNG TIN VÉ</h3>
+                    <div class="seat-list">
+                        <div class="seat-item" *ngFor="let seat of selectedSeats">
+                            <span>Ghế: {{ seat.SeatName }}</span>
+                            <span>{{ seat.SeatPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                        </div>
+                        <div class="seat-item seat-total">
+                            <span>Tổng tiền ghế:</span>
+                            <span>{{ seatsTotalPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Thông tin dịch vụ -->
+                <div class="receipt-section">
+                    <h3 class="section-title">THÔNG TIN DỊCH VỤ</h3>
+                    <div class="receipt-items">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>SL</th>
+                                    <th>Đơn giá</th>
+                                    <th class="amount">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngIf="receiptItems.length === 0">
+                                    <td colspan="4" style="text-align: center;">Không có dịch vụ</td>
+                                </tr>
+                                <tr *ngFor="let item of receiptItems">
+                                    <td>{{ item.serviceName }}</td>
+                                    <td>{{ item.count || 1 }}</td>
+                                    <td>{{ item.price | currency:'VND':'symbol':'1.0-0' }}</td>
+                                    <td class="amount">{{ item.price * (item.count || 1) | currency:'VND':'symbol':'1.0-0' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="receipt-summary">
+                    <div class="summary-row">
+                        <span>Tổng tiền ghế:</span>
+                        <span>{{ seatsTotalPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Tổng tiền dịch vụ:</span>
+                        <span>{{ receiptTotalAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row total-row">
+                        <span>Tổng cộng:</span>
+                        <span>{{ (receiptTotalAmount + seatsTotalPrice) | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row" *ngIf="cashReceived > 0">
+                        <span>Tiền khách đưa:</span>
+                        <span>{{ cashReceived | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row" *ngIf="changeAmount >= 0 && cashReceived > 0">
+                        <span>Tiền thừa:</span>
+                        <span>{{ changeAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                </div>
+                <div class="receipt-barcode">
+                    * {{ orderId }} *
+                </div>
+                <div class="receipt-footer">
+                    <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+                    <p>Chúc quý khách xem phim vui vẻ</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="cancel-btn" (click)="closeReceiptModal()">Đóng</button>
+                <button class="print-btn" (click)="printReceipt()">
+                    <i class="fas fa-print"></i> In hóa đơn
+                </button>
+            </div>
         </div>
     </div>
 </div>

@@ -15,8 +15,31 @@ export interface Province {
   
   export interface User {
     id: string;
-    email: string;
-    name: string;
-    role: 'staff' | 'manager' ;
+    email?: string;
+    userName: string;
+    displayName: string;
+    role?: string;
+    roles?: string[];
+    accessToken?: string;
+    refreshToken?: string;
+  }
+  
+  export interface LoginRequest {
+    userName: string;
+    passWord: string;
+  }
+  
+  export interface LoginResponse {
+    responseCode: number;
+    message: string;
+    data: {
+      accessToken: string;
+      refreshToken: string;
+      roles: string[];
+      userId: string;
+      userName: string;
+      displayName: string;
+      email: string | null;
+    }
   }
   
