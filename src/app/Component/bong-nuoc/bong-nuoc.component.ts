@@ -63,20 +63,20 @@ interface ToastService {
 export class BongNuocComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private serviceApi = inject(ServiceApiService); // Thêm service mới
-  
+
   private toastr: ToastService = {
     success: (message: string, title: string) => console.log(`SUCCESS: ${title} - ${message}`),
     error: (message: string, title: string) => console.log(`ERROR: ${title} - ${message}`),
     info: (message: string, title: string) => console.log(`INFO: ${title} - ${message}`),
     warning: (message: string, title: string) => console.log(`WARNING: ${title} - ${message}`)
   };
-  
+
   // Thêm thuộc tính mới
   isPaymentModalVisible = false;
   serviceListJsonTemp = '';
   currentUserId = '3fa85f64-5717-4562-b3fc-2c963f66afa6'; // Giả sử ID nhân viên mặc định
   printingReceipt = false;
-  
+
   services: Service[] = [];
   filteredServices: Service[] = [];
   serviceTypes: ServiceType[] = [];
@@ -90,7 +90,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   recordsPerPage = 20;
   totalRecords = 0;
   isCartModalVisible = false;
-  
+
   // Thêm các thuộc tính mới cho thanh toán QR
   showQRCode = false;
   qrImageUrl = 'assets/Image/sample-qr.png'; // Replace with actual QR code
@@ -136,7 +136,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadServiceTypes();
     this.loadCartFromLocalStorage();
-    
+
     // Cập nhật thời gian hiện tại mỗi phút
     setInterval(() => {
       this.today = new Date();
@@ -151,14 +151,14 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.isLoading = true;
     this.error = null;
-    
+
     // Sử dụng URL API đúng theo yêu cầu
     this.http.get<ApiResponse<ServiceType[]>>(`${API_URL}/api/Service/GetServiceTypeList?currentPage=${this.currentPage}&recordPerPage=${this.recordsPerPage}`)
       .pipe(
         catchError(error => {
           console.error('Lỗi khi tải loại dịch vụ:', error);
           this.error = 'Không thể tải dữ liệu. Vui lòng thử lại sau.';
-          
+
           return of({
             responseCode: 400,
             message: 'Lỗi kết nối đến máy chủ',
@@ -175,7 +175,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         if (response.responseCode === 200) {
           this.serviceTypes = response.data;
           this.totalRecords = response.totalRecord || 0;
-          
+
           // Lấy tất cả dịch vụ từ tất cả danh mục
           this.services = [];
           response.data.forEach(type => {
@@ -184,7 +184,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
               this.services = [...this.services, ...type.serviceList];
             }
           });
-          
+
           this.applyFilters();
         } else {
           this.error = response.message || 'Đã xảy ra lỗi khi tải dữ liệu';
@@ -206,14 +206,14 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     // Lọc theo tìm kiếm
     if (this.searchText.trim()) {
       const term = this.searchText.toLowerCase().trim();
-      result = result.filter(service => 
-        service.serviceName.toLowerCase().includes(term) || 
+      result = result.filter(service =>
+        service.serviceName.toLowerCase().includes(term) ||
         service.description?.toLowerCase().includes(term)
       );
     }
 
     this.filteredServices = result;
-    
+
     // Tự động đặt lại bộ lọc nếu không tìm thấy kết quả khi tìm kiếm
     if (this.filteredServices.length === 0 && this.searchText.trim() && this.services.length > 0) {
       console.log('Không tìm thấy kết quả cho từ khóa: ' + this.searchText);
@@ -241,18 +241,18 @@ export class BongNuocComponent implements OnInit, OnDestroy {
 
   addToCart(service: Service): void {
     // Tạo bản sao của dịch vụ để thêm vào giỏ hàng - không cần xử lý size
-    const serviceToAdd = { 
+    const serviceToAdd = {
       ...service,
       // Sử dụng giá gốc luôn
       price: service.price
     };
-    
+
     this.cartItems.push(serviceToAdd);
     this.saveCartToLocalStorage();
-    
+
     // Sử dụng toastr service - không hiển thị thông tin size
     this.toastr.success(`Đã thêm ${service.serviceName} vào giỏ hàng`, 'Thành công');
-    
+
     console.log(`Đã thêm vào giỏ hàng: ${service.serviceName}`);
   }
 
@@ -285,16 +285,16 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       alert('Giỏ hàng của bạn đang trống');
       return;
     }
-    
+
     let cartContent = 'Giỏ hàng của bạn:\n\n';
     let totalPrice = 0;
-    
+
     this.cartItems.forEach((item, index) => {
       const price = item.price;
       totalPrice += price;
       cartContent += `${index + 1}. ${item.serviceName} - ${this.formatPrice(price)}\n`;
     });
-    
+
     cartContent += `\nTổng cộng: ${this.formatPrice(totalPrice)}`;
     alert(cartContent);
   }
@@ -337,7 +337,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   processPaymentCash(): void {
     this.isLoading = true;
     this.isPaymentModalVisible = false;
-    
+
     this.serviceApi.quickServiceSale(this.serviceListJsonTemp, this.currentUserId)
       .pipe(
         finalize(() => {
@@ -365,7 +365,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   // Thay thế phương thức generateQRCode để sử dụng API
   processPaymentQR(): void {
     this.isPaymentModalVisible = false;
-    
+
     if (this.cartItems.length === 0) {
       this.toastr.warning('Vui lòng thêm sản phẩm vào giỏ hàng trước khi thanh toán', 'Giỏ hàng trống');
       return;
@@ -381,7 +381,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         Quantity: item.count || 1
       }))
     };
-    
+
     const serviceListJsonStr = JSON.stringify(orderData.services);
 
     // Gọi API tạo đơn hàng
@@ -397,14 +397,14 @@ export class BongNuocComponent implements OnInit, OnDestroy {
           if (response.responseCode === 200) {
             // Lưu mã đơn hàng để sau này xác nhận
             this.orderId = response.orderCode;
-            
+
             // Tạo URL QR code sử dụng mã đơn và tổng tiền
             this.qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
               encodeURIComponent(`BankTransfer:${this.getTotalPrice()}:CINEMA_${this.orderId}`);
-            
+
             this.showQRCode = true;
             this.isCartModalVisible = false;
-            
+
             this.toastr.info('Vui lòng quét mã QR để hoàn tất thanh toán', 'Thanh toán');
           } else {
             this.toastr.error(response.message || 'Có lỗi xảy ra khi tạo đơn hàng', 'Lỗi');
@@ -433,10 +433,10 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       this.showNotification('Không tìm thấy mã đơn hàng', 'error');
       return;
     }
-    
+
     // Cập nhật thời gian hiện tại
     this.today = new Date();
-    
+
     this.isLoading = true;
     this.serviceApi.confirmServicePayment(this.orderId, this.currentUserId)
       .pipe(
@@ -449,16 +449,16 @@ export class BongNuocComponent implements OnInit, OnDestroy {
           if (response.responseCode === 200) {
             this.paymentStatus = 'success';
             this.showQRCode = false;
-            
+
             // Hiển thị overlay in hóa đơn
             this.showPrintingOverlay = true;
-            
+
             // Xóa giỏ hàng sau khi thanh toán thành công
             this.cartItems = [];
             this.saveCartToLocalStorage();
-            
+
             this.toastr.success('Thanh toán thành công!', 'Hoàn tất');
-            
+
             // Hiển thị hóa đơn
             this.showPrintReceipt(this.orderId, this.getTotalPrice(), this.formatPrice(this.getTotalPrice()));
           } else {
@@ -485,7 +485,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     // Bắt đầu in hóa đơn
     this.isPrinting = false; // Không còn đang in nữa
     this.orderId = orderCode; // Lưu mã đơn hàng để hiển thị
-    
+
     // Tạo nội dung hóa đơn và lưu vào biến để sử dụng sau nếu người dùng chọn in
     this.receiptContent = `
       <html>
@@ -535,8 +535,8 @@ export class BongNuocComponent implements OnInit, OnDestroy {
             </div>
           </div>
           <script>
-            window.onload = function() { 
-              window.print(); 
+            window.onload = function() {
+              window.print();
               setTimeout(function() { window.close(); }, 500);
             }
           </script>
@@ -553,7 +553,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    
+
     return `${hours}:${minutes} ${day}/${month}/${year}`;
   }
 
@@ -566,13 +566,13 @@ export class BongNuocComponent implements OnInit, OnDestroy {
 
     // Đánh dấu đang in
     this.isPrinting = true;
-    
+
     // Mở cửa sổ in mới
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(this.receiptContent);
       printWindow.document.close();
-      
+
       // Đặt hẹn giờ để tắt hiệu ứng loading sau khi in
       setTimeout(() => {
         this.isPrinting = false;
@@ -590,14 +590,14 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     this.serviceTypes = [];
     this.error = null;
     this.currentPage = 1;
-    
+
     this.loadServiceTypes();
   }
 
   formatPrice(price: number): string {
-    return new Intl.NumberFormat('vi-VN', { 
-      style: 'currency', 
-      currency: 'VND' 
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
     }).format(price);
   }
 
@@ -605,20 +605,20 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   processPayment(paymentMethod?: any): void {
     // Close payment modal
     this.closePaymentModal();
-    
+
     if (paymentMethod) {
       this.selectedPaymentMethod = paymentMethod;
     }
-    
+
     // Nếu là thanh toán tiền mặt (id = 1)
     if (this.selectedPaymentMethod && this.selectedPaymentMethod.id === 1) {
       // Show printing overlay và đặt trạng thái in
       this.showPrintingOverlay = true;
       this.isPrinting = true;
-      
+
       // Cập nhật thời gian hiện tại
       this.today = new Date();
-      
+
       // Chuẩn bị dữ liệu đơn hàng
       const orderData = {
         services: this.cartItems.map(item => ({
@@ -652,11 +652,11 @@ export class BongNuocComponent implements OnInit, OnDestroy {
           if (response.responseCode === 200) {
             // Hiển thị hóa đơn để in
             this.showPrintReceipt(response.orderCode, response.totalAmount, this.formatPrice(response.totalAmount));
-            
+
             // Xóa giỏ hàng
             this.cartItems = [];
             this.saveCartToLocalStorage();
-            
+
             // Hiển thị thông báo thành công
             this.showNotification('Thanh toán thành công! Hóa đơn đã được in.', 'success');
           } else {
@@ -665,8 +665,8 @@ export class BongNuocComponent implements OnInit, OnDestroy {
           }
         });
     } else if (this.selectedPaymentMethod && this.selectedPaymentMethod.id === 2) {
-      // Hiển thị thông báo chức năng đang phát triển
-      this.showNotification('Chức năng thanh toán QR đang được phát triển. Vui lòng sử dụng phương thức thanh toán khác.', 'warning');
+      // Gọi lại hàm selectPaymentMethod để xử lý thanh toán QR
+      this.selectPaymentMethod(this.selectedPaymentMethod);
     }
   }
 
@@ -678,13 +678,13 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     }
     this.showPaymentModal = true;
   }
-  
+
   // Đóng modal chọn phương thức thanh toán
   closePaymentModal(): void {
     this.showPaymentModal = false;
     this.selectedPaymentMethod = null;
   }
-  
+
   // Tính tổng tiền của giỏ hàng
   calculateTotal(): number {
     return this.cartItems.reduce((total, item) => {
@@ -701,12 +701,26 @@ export class BongNuocComponent implements OnInit, OnDestroy {
 
   selectPaymentMethod(method: any): void {
     this.selectedPaymentMethod = method;
-    
+
     // Nếu là thanh toán QR (chuyển khoản)
     if (method.id === 2) {
       this.closePaymentModal(); // Đóng modal thanh toán
-      // Hiển thị thông báo cảnh báo cho người dùng
-      this.showNotification('Chức năng thanh toán QR đang được phát triển. Vui lòng sử dụng phương thức thanh toán khác.', 'warning');
+
+      // Mở tab mới với trang QR payment
+      // Tạo một mã đơn hàng tạm thời để hiển thị
+      const tempOrderId = 'TEMP-' + new Date().getTime();
+
+      // Tạo URL QR code mẫu
+      const sampleQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
+        encodeURIComponent(`BankTransfer:${this.getTotalPrice()}:CINEMA_${tempOrderId}`);
+
+      const amount = this.getTotalPrice();
+      const paymentCode = `CINEMA_${tempOrderId}`;
+      const qrUrl = encodeURIComponent(sampleQrUrl);
+
+      // Mở tab mới với URL chứa các tham số
+      window.open(`/qr-payment?amount=${amount}&orderId=${tempOrderId}&paymentCode=${paymentCode}&qrUrl=${qrUrl}`, '_blank');
+
       return;
     } else {
       // Các phương thức khác, xử lý trực tiếp
@@ -720,7 +734,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       this.showNotification('Giỏ hàng trống, hãy thêm dịch vụ!', 'error');
       return;
     }
-    
+
     this.openPaymentModal();
   }
 
@@ -754,32 +768,32 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       default:
         this.notificationTitle = 'Thông tin';
     }
-    
+
     // Đặt loại thông báo và nội dung
     this.notificationType = type;
     this.notificationMessage = message;
-    
+
     // Hiển thị thông báo
     this.showCustomNotification = true;
-    
+
     // Xóa timeout cũ nếu có
     if (this.notificationTimeout) {
       clearTimeout(this.notificationTimeout);
     }
-    
+
     // Tự động đóng thông báo sau 5 giây
     this.notificationTimeout = setTimeout(() => {
       this.closeNotification();
     }, 5000);
   }
-  
+
   // Đóng thông báo
   closeNotification(): void {
     // Thêm class fade-out để tạo hiệu ứng biến mất
     const notificationElement = document.querySelector('.custom-notification');
     if (notificationElement) {
       notificationElement.classList.add('fade-out');
-      
+
       // Đợi animation kết thúc rồi mới ẩn thông báo
       setTimeout(() => {
         this.showCustomNotification = false;

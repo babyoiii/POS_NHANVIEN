@@ -1,0 +1,44 @@
+<div class="qr-payment-fullscreen">
+    <div class="qr-payment-container">
+        <div class="qr-payment-header">
+            <h1>Quét mã QR để thanh toán</h1>
+            <button type="button" class="close-button" (click)="closeWindow()" title="Đóng cửa sổ">
+                <i class="fas fa-times"></i> Đóng
+            </button>
+        </div>
+
+        <div class="qr-payment-content">
+            <div class="qr-code-display">
+                <img [src]="qrImageUrl" alt="QR Code thanh toán" *ngIf="qrImageUrl">
+                <div class="no-qr-message" *ngIf="!qrImageUrl">
+                    <p>Không có mã QR để hiển thị</p>
+                </div>
+            </div>
+
+            <div class="payment-info">
+                <div class="payment-detail">
+                    <span class="detail-label">Số tiền:</span>
+                    <span class="detail-value">{{ formatPrice(amount) }}</span>
+                </div>
+                <div class="payment-detail">
+                    <span class="detail-label">Mã đơn hàng:</span>
+                    <span class="detail-value">{{ orderId }}</span>
+                </div>
+                <div class="payment-detail">
+                    <span class="detail-label">Nội dung CK:</span>
+                    <span class="detail-value payment-code">{{ paymentCode || 'CINEMA_' + orderId }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="payment-instructions">
+            <h3>Hướng dẫn thanh toán</h3>
+            <ol>
+                <li>Mở ứng dụng ngân hàng trên điện thoại của bạn</li>
+                <li>Quét mã QR hiển thị ở trên</li>
+                <li>Kiểm tra thông tin và xác nhận thanh toán</li>
+                <li>Sau khi thanh toán thành công, đóng cửa sổ này và xác nhận với nhân viên</li>
+            </ol>
+        </div>
+    </div>
+</div>

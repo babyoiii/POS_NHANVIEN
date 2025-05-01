@@ -10,6 +10,7 @@ import { SettingComponent } from './Component/setting/setting.component';
 import { ThongKeComponent } from './Component/thong-ke/thong-ke.component';
 import { BongNuocComponent } from './Component/bong-nuoc/bong-nuoc.component';
 import { QRcodeComponent } from './Component/qrcode/qrcode.component';
+import { QrPaymentComponent } from './qr-payment/qr-payment.component';
 import { AuthGuard } from './guards/auth.guard';
 import { SeatMapComponent } from './Component/ticket/seat-map/seat-map.component';
 import { FoodSelectionComponent } from './Component/ticket/food-selection/food-selection.component';
@@ -20,8 +21,8 @@ export const routes: Routes = [
 
   // Thêm các routes khác ở đây
   {
-    path: 'trangchu', 
-    component: MainComponent, 
+    path: 'trangchu',
+    component: MainComponent,
     canActivate: [AuthGuard],
     children: [
       {
@@ -36,14 +37,14 @@ export const routes: Routes = [
       { path: 'ticket/food/:showtimeId', component: FoodSelectionComponent },
       { path: '', redirectTo: 'ticket', pathMatch: 'full' },
       { path: 'vedadat', component: VeDaDatComponent },
-      { 
-        path: 'caidat', 
+      {
+        path: 'caidat',
         component: SettingComponent,
         canActivate: [AuthGuard],
         data: { permission: 'caidat' }
       },
-      { 
-        path: 'thongke', 
+      {
+        path: 'thongke',
         component: ThongKeComponent,
         canActivate: [AuthGuard],
         data: { permission: 'thongke' }
@@ -51,9 +52,15 @@ export const routes: Routes = [
       { path: 'doan', component: BongNuocComponent },
     ]
   },
-  { 
-    path: 'qr', 
+  {
+    path: 'qr',
     component: QRcodeComponent,
     data: { ssr: false }  // Vô hiệu hóa SSR cho trang QR scanner
   },
+  {
+    path: 'qr-payment',
+    component: QrPaymentComponent,
+    data: { ssr: false }
+  },
+
 ];
