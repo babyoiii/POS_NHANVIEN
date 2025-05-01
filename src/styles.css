@@ -1842,3 +1842,42 @@
 
 
 /* Css 5 */
+
+/* Loại bỏ khoảng cách trong app-bong-nuoc */
+app-bong-nuoc {
+    display: block;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+app-bong-nuoc .container {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+}
+
+app-bong-nuoc .search-container {
+    margin: 0 !important;
+    padding: 8px 15px !important;
+}
+
+app-bong-nuoc .category-filter {
+    margin: 0 !important;
+    padding: 8px 10px !important;
+}
+
+app-bong-nuoc .main-layout {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Điều chỉnh router-outlet */
+router-outlet + * {
+    display: block;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}

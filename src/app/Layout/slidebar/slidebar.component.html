@@ -4,7 +4,7 @@
     </div>
     <div class="user-info">
         <div>
-            <div>Nhân viên: <h4>{{ currentUser?.name || 'Người dùng' }}</h4>
+            <div>Nhân viên: <h4>{{ currentUser?.displayName || 'Người dùng' }}</h4>
             </div>
             <div style="font-size: 12px; color: #777;">{{ selectedCinema?.name || 'Chưa chọn rạp' }}</div>
         </div>
@@ -12,8 +12,7 @@
     <ul class="menu">
         <li routerLinkActive="active" [routerLink]="'ticket'"><i class="fas fa-film"></i> Bán vé</li>
         <li routerLinkActive="active" [routerLink]="'doan'"><i class="fas fa-coffee"></i> Bắp nước</li>
-        <li routerLinkActive="active" [routerLink]="'vedadat'"><i class="fas fa-ticket-alt"></i> Vé đã đặt</li>
-        <!-- <li routerLinkActive="active" *ngIf="hasPermission('thongke')" [routerLink]="'thongke'"><i class="fas fa-chart-line"></i> Báo cáo</li> -->
+        <li routerLinkActive="active" [routerLink]="'refund-ticket'"><i class="fas fa-undo"></i> Hoàn vé</li>
         <li routerLinkActive="active" *ngIf="hasPermission('caidat')" [routerLink]="'caidat'"><i class="fas fa-cog"></i> Cài đặt</li>
         <li (click)="openQRCodeInNewTab()"><i class="fas fa-qrcode"></i> QRCode</li>
         <li (click)="logout()"><i class="fas fa-sign-out-alt"></i> Đăng xuất</li>

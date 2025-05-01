@@ -38,8 +38,19 @@
     </div>
     
     <div *ngIf="error" class="error-message">
-      <i class="fas fa-exclamation-circle"></i> {{ error }}
-      <button (click)="resetScanner()" class="btn btn-primary">Thử lại</button>
+      <div class="error-icon">
+        <i class="fas fa-exclamation-circle"></i>
+      </div>
+      <div class="error-content">
+        <h3>Không thể quét mã QR</h3>
+        <p>{{ error }}</p>
+        <div class="error-buttons">
+          <button (click)="resetScanner()" class="btn btn-primary retry-btn">
+            <i class="fas fa-sync-alt"></i> Thử lại ngay
+          </button>
+          <span class="auto-retry-info">Tự động thử lại sau <span class="countdown">5</span> giây</span>
+        </div>
+      </div>
     </div>
   </div>
   
@@ -118,8 +129,8 @@
       <button (click)="confirmTicket(ticketData.orderInfo.orderCode)" class="btn btn-success">
         <i class="fas fa-check-circle"></i> Xác nhận sử dụng vé
       </button>
-      <button (click)="printTickets()" class="btn btn-primary">
-        <i class="fas fa-print"></i> In vé
+      <button (click)="printOptions()" class="btn btn-primary">
+        <i class="fas fa-print"></i> Tùy chọn in
       </button>
       <button (click)="resetScanner()" class="btn btn-secondary">
         <i class="fas fa-redo"></i> Quét mã khác
@@ -135,6 +146,47 @@
       <button (click)="resetScanner()" class="btn btn-primary">
         <i class="fas fa-redo"></i> Quét vé khác
       </button>
+    </div>
+  </div>
+  
+  <!-- Thêm popup chọn tùy chọn in -->
+  <div class="print-options-modal" *ngIf="showPrintOptions && ticketData">
+    <div class="print-options-content">
+      <h3>Tùy chọn in</h3>
+      <div class="close-btn" (click)="showPrintOptions = false">×</div>
+      
+      <div class="print-tickets-options">
+        <h4>Vé xem phim</h4>
+        <div class="ticket-print-items">
+          <div class="ticket-print-item" *ngFor="let ticket of ticketData.tickets">
+            <div class="ticket-preview">
+              <p class="movie-name">{{ ticket.movieName }}</p>
+              <p class="seat-info">Ghế: <span class="seat-badge">{{ ticket.seatName }}</span></p>
+              <p class="time-info">{{ ticket.formattedStartTime }}</p>
+            </div>
+            <button (click)="printTicketAsPdf(ticket)" class="btn-print-ticket">
+              <i class="fas fa-file-pdf"></i> In vé PDF
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="print-services-option" *ngIf="ticketData.services && ticketData.services.length > 0">
+        <h4>Hóa đơn dịch vụ</h4>
+        <div class="services-summary">
+          <p>{{ ticketData.services.length }} dịch vụ - Tổng tiền: {{ ticketData.orderInfo.formattedTotalPrice }}</p>
+          <button (click)="printServicesAsPdf()" class="btn-print-services">
+            <i class="fas fa-file-invoice-dollar"></i> In hóa đơn PDF
+          </button>
+        </div>
+      </div>
+      
+      <div class="print-all-option">
+        <h4>In tất cả</h4>
+        <button (click)="printTickets()" class="btn-print-all">
+          <i class="fas fa-print"></i> In hóa đơn và vé (cách cũ)
+        </button>
+      </div>
     </div>
   </div>
 </div>

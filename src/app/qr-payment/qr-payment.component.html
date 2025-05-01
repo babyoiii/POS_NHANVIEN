@@ -9,10 +9,8 @@
 
         <div class="qr-payment-content">
             <div class="qr-code-display">
-                <img [src]="qrImageUrl" alt="QR Code thanh toán" *ngIf="qrImageUrl">
-                <div class="no-qr-message" *ngIf="!qrImageUrl">
-                    <p>Không có mã QR để hiển thị</p>
-                </div>
+                <img
+                    src='https://img.vietqr.io/image/970422-0334414209-compact2.png?amount=90000&addInfo=testt&accountName=CineX' />
             </div>
 
             <div class="payment-info">
@@ -37,7 +35,8 @@
                 <li>Mở ứng dụng ngân hàng trên điện thoại của bạn</li>
                 <li>Quét mã QR hiển thị ở trên</li>
                 <li>Kiểm tra thông tin và xác nhận thanh toán</li>
-                <li>Sau khi thanh toán thành công, đóng cửa sổ này và xác nhận với nhân viên</li>
+                <li>Sau khi thanh toán thành công, đóng cửa sổ này và chờ để hệ thống xác nhận hoặc xác nhận với nhân
+                    viên</li>
             </ol>
         </div>
     </div>

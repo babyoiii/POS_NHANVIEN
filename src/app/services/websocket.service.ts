@@ -77,6 +77,7 @@ export class WebsocketService {
     
     // Sử dụng URL cố định cho WebSocket với đúng cấu trúc
     const wsUrl = `${this.WS_BASE_URL}?roomId=${roomIdUpper}&userId=${userIdUpper}`;
+
     
     try {
       this.webSocket = new WebSocket(wsUrl);
@@ -85,6 +86,7 @@ export class WebsocketService {
       this.webSocket.onopen = () => {
         this.isConnected = true;
         this.connectionAttempts = 0; 
+
         this.getList(showtimeId);
         
         // Thiết lập ping định kỳ để giữ kết nối
@@ -94,6 +96,7 @@ export class WebsocketService {
       this.webSocket.onmessage = (event) => {
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
+
           
           if (data.Seats) {
             this.seats = data.Seats;
@@ -108,24 +111,38 @@ export class WebsocketService {
             this.handleMessage(event.data);
           }
         } catch (error) {
-          console.error('WebSocket message processing error:', error);
+
           // Refresh data on error
           this.getList(showtimeId);
         }
       };
 
       this.webSocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+
         this.isConnected = false;
         this.attemptReconnect(showtimeId, userId);
       };
 
       this.webSocket.onclose = (event) => {
+
         this.isConnected = false;
         this.attemptReconnect(showtimeId, userId);
       };
+      
+      // Thêm timeout để kiểm tra nếu kết nối không thành công trong 5 giây
+      setTimeout(() => {
+        if (this.webSocket && this.webSocket.readyState !== WebSocket.OPEN) {
+
+          if (this.webSocket.readyState === WebSocket.CONNECTING) {
+            this.webSocket.close();
+            this.webSocket = null;
+            this.attemptReconnect(showtimeId, userId);
+          }
+        }
+      }, 5000);
+      
     } catch (error) {
-      console.error('WebSocket connection error:', error);
+
       this.attemptReconnect(showtimeId, userId);
     }
   }
@@ -163,20 +180,28 @@ export class WebsocketService {
   }
 
   connect(roomId: string, userId: string): void {
-    if (this.isConnected && this.currentRoomId === roomId && this.currentUserId === userId) {
+    // Luôn chuyển ID thành chữ hoa để khớp với định dạng yêu cầu
+    const roomIdUpper = roomId.toUpperCase();
+    const userIdUpper = userId.toUpperCase();
+    
+
+    
+    if (this.isConnected && this.currentRoomId === roomIdUpper && this.currentUserId === userIdUpper) {
+
       return;
     }
 
     if (this.isConnected) {
+
       this.close();
     }
 
-    this.currentRoomId = roomId;
-    this.currentUserId = userId;
-    this.saveConnection(roomId, userId);
+    this.currentRoomId = roomIdUpper;
+    this.currentUserId = userIdUpper;
+    this.saveConnection(roomIdUpper, userIdUpper);
     
     // Kết nối WebSocket
-    this.connectWebSocket(roomId, userId);
+    this.connectWebSocket(roomIdUpper, userIdUpper);
   }
 
   private handleMessage(data: string): void {
@@ -216,7 +241,7 @@ export class WebsocketService {
         }
       }
     } catch (error) {
-      console.error('Error handling WebSocket message:', error);
+
       // Gọi getList trong trường hợp lỗi xử lý để đảm bảo dữ liệu luôn được cập nhật
       this.getList(this.currentRoomId || undefined);
     }
@@ -256,13 +281,18 @@ export class WebsocketService {
 
   sendMessage(action: string, data?: any): void {
     if (!this.webSocket) {
+
       // Thử kết nối lại nếu đang mất kết nối
       if (this.currentRoomId && this.currentUserId) {
+
         this.connectWebSocket(this.currentRoomId, this.currentUserId);
         // Lưu tin nhắn để gửi sau khi kết nối
         setTimeout(() => {
           if (this.isConnected) {
+
             this.sendMessage(action, data);
+          } else {
+
           }
         }, 1000);
       }
@@ -276,14 +306,19 @@ export class WebsocketService {
         ...data 
       });
       
+
+      
       try {
         this.webSocket.send(message);
+
       } catch (error) {
-        // Silent error
+
       }
     } else {
+
       // Nếu WebSocket đang kết nối (readyState === 0), thì chờ và thử lại
       if (this.webSocket.readyState === WebSocket.CONNECTING) {
+
         setTimeout(() => {
           this.sendMessage(action, data);
         }, 1000);
@@ -352,12 +387,40 @@ export class WebsocketService {
 
   payment(seats: SeatStatusUpdateRequest[]): void {
     if (!seats || seats.length === 0) {
+
       return;
     }
 
+    // Log chi tiết ghế cần cập nhật
+
+    
     const requestData = {
       SeatStatusUpdateRequests: seats
     };
+
+    // Kiểm tra kết nối WebSocket
+    if (!this.webSocket || this.webSocket.readyState !== WebSocket.OPEN) {
+
+      
+      // Thử kết nối lại nếu cần
+      if (this.currentRoomId && this.currentUserId) {
+
+        this.connectWebSocket(this.currentRoomId, this.currentUserId);
+        
+        // Thử gửi lại sau khi kết nối
+        setTimeout(() => {
+          if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+
+            this.sendMessage('Payment', requestData);
+          } else {
+
+          }
+        }, 1000);
+      }
+      return;
+    }
+
+    // Gửi tin nhắn Payment
 
     this.sendMessage('Payment', requestData);
   }

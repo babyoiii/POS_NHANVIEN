@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { MovieService, Movie } from '../../../services/movie.service';
 import { Router } from '@angular/router';
+import { SearchService } from '../../../services/search.service';
+import { Subscription } from 'rxjs';
 
 interface DateObject {
   date: Date;
@@ -17,22 +19,44 @@ interface DateObject {
   styleUrl: './phim-dang-chieu.component.css',
   providers: [MovieService]
 })
-export class PhimDangChieuComponent implements OnInit {
+export class PhimDangChieuComponent implements OnInit, OnDestroy {
   // Mảng ngày hiển thị (7 ngày từ ngày hiện tại)
   dates: DateObject[] = [];
   selectedDate: Date = new Date();
   
   // Danh sách phim
   allMovies: Movie[] = [];
-  movies: Movie[] = [];
+  filteredMovies: Movie[] = []; // Filtered by date
+  movies: Movie[] = []; // Filtered by date and search
   isLoading: boolean = true;
   errorMessage: string = '';
+  
+  // Search related
+  private searchSubscription: Subscription | null = null;
+  currentSearchTerm: string = '';
 
-  constructor(private movieService: MovieService, private router: Router) {}
+  constructor(
+    private movieService: MovieService, 
+    private router: Router,
+    private searchService: SearchService
+  ) {}
 
   ngOnInit(): void {
     this.generateDateSelector();
     this.loadMovies();
+    
+    // Subscribe to search query changes
+    this.searchSubscription = this.searchService.searchQuery$.subscribe(query => {
+      this.currentSearchTerm = query;
+      this.filterMovies();
+    });
+  }
+  
+  ngOnDestroy(): void {
+    // Clean up subscription
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
   }
 
   // Tạo bộ chọn ngày
@@ -84,7 +108,19 @@ export class PhimDangChieuComponent implements OnInit {
 
   // Lọc phim theo ngày đã chọn
   filterMoviesByDate(): void {
-    this.movies = this.movieService.getShowtimesByDate(this.allMovies, this.selectedDate);
+    this.filteredMovies = this.movieService.getShowtimesByDate(this.allMovies, this.selectedDate);
+    this.filterMovies();
+  }
+  
+  // Apply both date and search filters
+  filterMovies(): void {
+    // First filter by date
+    if (this.currentSearchTerm) {
+      // Then apply search filter if there's a search term
+      this.movies = this.searchService.filterMovies(this.filteredMovies, this.currentSearchTerm);
+    } else {
+      this.movies = [...this.filteredMovies];
+    }
   }
 
   // Chọn ngày
@@ -119,6 +155,8 @@ export class PhimDangChieuComponent implements OnInit {
   // Điều hướng đến trang sơ đồ ghế khi click vào suất chiếu
   navigateToSeatMap(showtimeId: string): void {
     console.log(`Navigating to seat map for showtime ID: ${showtimeId}`);
+    // Lưu showTimeId vào localStorage để đảm bảo có thể truy cập khi cần
+    localStorage.setItem('currentShowTimeId', showtimeId);
     this.router.navigate(['/trangchu/seat-map', showtimeId]);
   }
 }

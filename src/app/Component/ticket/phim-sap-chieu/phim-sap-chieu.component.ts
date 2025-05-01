@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { MovieService, Movie, ApiResponse, ApiGenre } from '../../../services/movie.service';
 import { Router } from '@angular/router';
+import { SearchService } from '../../../services/search.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-phim-sap-chieu',
@@ -16,7 +18,8 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
   activeFilter: string = 'all';
   
   allMovies: Movie[] = [];
-  filteredMovies: Movie[] = [];
+  filteredByCategory: Movie[] = []; // Filtered by category (all, opening, coming, genre)
+  filteredMovies: Movie[] = []; // Final filtered list (category + search)
   isLoading: boolean = true;
   errorMessage: string = '';
   
@@ -25,8 +28,16 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
   
   // Trạng thái hiển thị dropdown thể loại
   showGenreDropdown: boolean = false;
+  
+  // Search related
+  private searchSubscription: Subscription | null = null;
+  currentSearchTerm: string = '';
 
-  constructor(private movieService: MovieService, private router: Router) {}
+  constructor(
+    private movieService: MovieService, 
+    private router: Router,
+    private searchService: SearchService
+  ) {}
 
   ngOnInit(): void {
     this.loadGenres();
@@ -34,11 +45,22 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
     
     // Đóng dropdown khi click ra ngoài
     document.addEventListener('click', this.closeDropdownOnClickOutside.bind(this));
+    
+    // Subscribe to search query changes
+    this.searchSubscription = this.searchService.searchQuery$.subscribe(query => {
+      this.currentSearchTerm = query;
+      this.applySearchFilter();
+    });
   }
   
   ngOnDestroy(): void {
     // Xóa event listener khi component bị hủy
     document.removeEventListener('click', this.closeDropdownOnClickOutside.bind(this));
+    
+    // Clean up subscription
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
   }
   
   // Đóng dropdown khi click ra ngoài
@@ -86,6 +108,7 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
           this.applyFilter(this.activeFilter);
         } else {
           this.allMovies = [];
+          this.filteredByCategory = [];
           this.filteredMovies = [];
         }
         this.isLoading = false;
@@ -109,13 +132,25 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
 
   applyFilter(filter: string): void {
     if (filter === 'all') {
-      this.filteredMovies = [...this.allMovies];
+      this.filteredByCategory = [...this.allMovies];
     } else if (filter === 'opening' || filter === 'coming') {
       // Phân loại dựa trên trạng thái đặt vé
-      this.filteredMovies = this.movieService.filterMoviesByPreorderStatus(this.allMovies, filter as 'opening' | 'coming');
+      this.filteredByCategory = this.movieService.filterMoviesByPreorderStatus(this.allMovies, filter as 'opening' | 'coming');
     } else {
       // Lọc theo thể loại
-      this.filteredMovies = this.movieService.filterMoviesByGenre(this.allMovies, filter);
+      this.filteredByCategory = this.movieService.filterMoviesByGenre(this.allMovies, filter);
+    }
+    
+    // Apply search filter after category filter
+    this.applySearchFilter();
+  }
+  
+  // Apply search filter to movies already filtered by category
+  applySearchFilter(): void {
+    if (this.currentSearchTerm) {
+      this.filteredMovies = this.searchService.filterMovies(this.filteredByCategory, this.currentSearchTerm);
+    } else {
+      this.filteredMovies = [...this.filteredByCategory];
     }
   }
 
@@ -185,6 +220,8 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
     // Lấy suất chiếu đầu tiên
     const showtime = movie.showtimes[0];
     console.log(`Navigating to seat map for showtime ID: ${showtime.showtimeId}`);
+    // Lưu showTimeId vào localStorage để đảm bảo có thể truy cập khi cần
+    localStorage.setItem('currentShowTimeId', showtime.showtimeId);
     this.router.navigate(['/trangchu/seat-map', showtime.showtimeId]);
   }
 }

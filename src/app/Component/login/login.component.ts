@@ -26,6 +26,9 @@ export class LoginComponent implements OnInit {
   loginVisible = false;
   noCinemasFound = false;
   selectedProvinceId: number | null = null;
+  errorMessage: string = '';
+  showCinemaError: boolean = false;
+  isLoading: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -35,8 +38,8 @@ export class LoginComponent implements OnInit {
     @Inject(PLATFORM_ID) private platformId: Object // Inject PLATFORM_ID
   ) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]]
+      userName: ['', [Validators.required]],
+      passWord: ['', [Validators.required]]
     });
   }
 
@@ -107,11 +110,17 @@ export class LoginComponent implements OnInit {
   }
 
   onSubmit(): void {
+    this.showCinemaError = false;
     if (this.loginForm.valid && this.selectedCinema) {
-      const { email, password } = this.loginForm.value;
+      this.isLoading = true;
+      this.errorMessage = '';
+      const { userName, passWord } = this.loginForm.value;
       
-      this.authService.login(email, password).subscribe({
+      console.log('Login form submitted with:', { userName });
+      
+      this.authService.login(userName, passWord).subscribe({
         next: (user) => {
+          this.isLoading = false;
           // Lưu thông tin user đã đăng nhập
           console.log('Đăng nhập thành công với người dùng:', user);
           console.log('Rạp đã chọn:', this.selectedCinema);
@@ -128,10 +137,16 @@ export class LoginComponent implements OnInit {
           }, 500);
         },
         error: (error) => {
+          this.isLoading = false;
           console.error('Đăng nhập thất bại', error);
-          alert('Tài khoản hoặc mật khẩu không chính xác!');
+          console.error('Error type:', typeof error);
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+          this.errorMessage = 'Tài khoản hoặc mật khẩu không chính xác!';
         }
       });
+    } else if (this.loginForm.valid && !this.selectedCinema) {
+      this.showCinemaError = true;
     }
   }
 

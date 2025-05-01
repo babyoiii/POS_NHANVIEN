@@ -1,16 +1,26 @@
-<div class="header">
-    <div class="search-bar">
-        <input type="text" placeholder="Tìm kiếm phim...">
+<div class="container">
+    <!-- Fixed Header -->
+    <div class="header">
+        <div class="search-bar">
+            <input 
+                type="text" 
+                placeholder="Tìm kiếm phim hoặc thể loại..." 
+                [(ngModel)]="searchTerm" 
+                (input)="onSearchInputChange()"
+                (keyup.enter)="onSearch()">
+            <i class="fas fa-search" (click)="onSearch()"></i>
+        </div>
     </div>
 
-</div>
+    <!-- Tab Navigation -->
+    <div class="tabs">
+        <div class="tab" routerLinkActive="active" [routerLink]="'now'">Phim đang chiếu</div>
+        <div class="tab" routerLinkActive="active" [routerLink]="'coming'">Phim sắp chiếu</div>
+        <!-- <div class="tab" routerLinkActive="active" [routerLink]="'sale'">Khuyến mãi</div> -->
+    </div>
 
-<div class="tabs">
-    <div class="tab" routerLinkActive="active" [routerLink]="'now'">Phim đang chiếu</div>
-    <div class="tab" routerLinkActive="active" [routerLink]="'coming'">Phim sắp chiếu</div>
-    <!-- <div class="tab" routerLinkActive="active" [routerLink]="'sale'">Khuyến mãi</div> -->
-</div>
-
-<div>
-    <router-outlet></router-outlet>
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <router-outlet></router-outlet>
+    </div>
 </div>
