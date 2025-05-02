@@ -34,7 +34,7 @@
               }
             ],
             "styles": [
-              
+
               "src/styles.css"
             ],
             "scripts": [],
@@ -70,6 +70,9 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.js"
+          },
           "configurations": {
             "production": {
               "buildTarget": "POS_NHANVIEN:build:production"
@@ -100,7 +103,7 @@
               "src/assets"
             ],
             "styles": [
-              
+
               "src/styles.css"
             ],
             "scripts": []

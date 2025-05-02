@@ -458,12 +458,12 @@
         height: auto;
         overflow: visible;
     }
-    
+
     .products-area {
         height: auto;
         max-height: none;
     }
-    
+
     .cart-sidebar {
         position: static;
         width: 100%;
@@ -479,15 +479,15 @@
     .category-filter {
         top: 40px;
     }
-    
+
     .main-layout {
         height: calc(100vh - 80px);
     }
-    
+
     .products-area {
         padding: 10px;
     }
-    
+
     .filter-button {
         padding: 5px 10px;
         font-size: 13px;
@@ -499,11 +499,11 @@
     .products-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .category-filter {
         padding: 8px 5px;
     }
-    
+
     .filter-button {
         padding: 5px 10px;
         font-size: 12px;
@@ -1485,6 +1485,112 @@
 /* QR Payment Modal Animation */
 .qr-payment-modal {
     animation: fadeIn 0.3s ease-in-out;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-payment-content {
+    background-color: #fff;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 2001;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.qr-code-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    margin: 15px;
+}
+
+.qr-code-image {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.payment-status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    width: 100%;
+    text-align: center;
+}
+
+.status-pending {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #2196F3;
+}
+
+.status-pending .spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(33, 150, 243, 0.3);
+    border-radius: 50%;
+    border-top-color: #2196F3;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+
+.status-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #4CAF50;
+}
+
+.status-success i {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.status-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #F44336;
+}
+
+.status-failed i {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.payment-instructions {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    border-left: 4px solid #2196F3;
+}
+
+.payment-instructions p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #333;
 }
 
 .qr-modal-header {
@@ -1589,7 +1695,7 @@
 }
 
 /* Empty States Animation */
-.empty-cart-message i, 
+.empty-cart-message i,
 .empty-container i,
 .error-container i {
     animation: pulse 2s infinite;
@@ -2008,29 +2114,29 @@
     max-width: 100%;
     box-shadow: none;
   }
-  
+
   .receipt-header {
     margin-bottom: 20px;
   }
-  
+
   .receipt-items table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
   }
-  
+
   .receipt-items th, .receipt-items td {
     padding: 8px;
     border: 1px solid #ddd;
     text-align: left;
   }
-  
+
   .receipt-summary {
     margin-top: 20px;
     border-top: 2px solid #000;
     padding-top: 10px;
   }
-  
+
   .receipt-footer {
     margin-top: 30px;
     text-align: center;

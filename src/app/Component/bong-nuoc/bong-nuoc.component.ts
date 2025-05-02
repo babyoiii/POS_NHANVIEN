@@ -85,7 +85,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   private searchService = inject(ConcessionSearchService);
   private router = inject(Router);
   private authService = new AuthService();
-  
+
   private toastr: ToastService = {
     success: (message: string, title: string) => console.log(`SUCCESS: ${title} - ${message}`),
     error: (message: string, title: string) => console.log(`ERROR: ${title} - ${message}`),
@@ -183,17 +183,35 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadServiceTypes();
     this.loadCartFromLocalStorage();
-    
+
     // Subscribe to search query changes
     this.searchSubscription = this.searchService.searchQuery$.subscribe(query => {
       this.currentSearchTerm = query;
       this.applyFilters();
     });
-    
+
     // Cập nhật thời gian hiện tại mỗi phút
     setInterval(() => {
       this.today = new Date();
     }, 60000);
+
+    // Kiểm tra xem có thanh toán QR thành công không
+    this.checkQRPaymentSuccess();
+  }
+
+  // Kiểm tra thanh toán QR thành công
+  checkQRPaymentSuccess(): void {
+    try {
+      const paymentSuccess = localStorage.getItem('payment_success');
+      if (paymentSuccess === 'true') {
+        console.log('Phát hiện thanh toán QR thành công khi khởi tạo component');
+
+        // Xử lý thanh toán thành công
+        this.processSuccessfulPayment();
+      }
+    } catch (e) {
+      console.error('Lỗi khi kiểm tra thanh toán QR:', e);
+    }
   }
 
   ngOnDestroy(): void {
@@ -201,6 +219,12 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
     }
+
+    // Dừng kiểm tra định kỳ thanh toán QR
+    this.stopPaymentCheckInterval();
+
+    // Hủy đăng ký sự kiện storage
+    window.removeEventListener('storage', this.handleStorageChange.bind(this));
   }
 
   loadServiceTypes(): void {
@@ -208,7 +232,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.error = null;
     this.errorMessage = null; // Reset error message
-    
+
     // Sử dụng URL API đúng theo yêu cầu
     this.http.get<ApiResponse<ServiceType[]>>(`${API_URL}/api/Service/GetServiceTypeList?currentPage=${this.currentPage}&recordPerPage=${this.recordsPerPage}`)
       .pipe(
@@ -216,7 +240,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
           console.error('Lỗi khi tải loại dịch vụ:', error);
           this.error = 'Không thể tải dữ liệu. Vui lòng thử lại sau.';
           this.errorMessage = this.error;
-          
+
           return of({
             responseCode: 400,
             message: 'Lỗi kết nối đến máy chủ',
@@ -269,11 +293,11 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         2: "nước", // Drinks
         3: "combo" // Combo
       };
-      
+
       if (categoryMapping[this.selectedCategory]) {
         const categoryTerm = categoryMapping[this.selectedCategory].toLowerCase();
-        result = result.filter(service => 
-          service.serviceName.toLowerCase().includes(categoryTerm) || 
+        result = result.filter(service =>
+          service.serviceName.toLowerCase().includes(categoryTerm) ||
           (service.description && service.description.toLowerCase().includes(categoryTerm))
         );
       }
@@ -286,8 +310,8 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       // For backward compatibility with existing search
       const searchLower = this.searchText.toLowerCase();
       result = result.filter(
-        service => 
-          service.serviceName.toLowerCase().includes(searchLower) || 
+        service =>
+          service.serviceName.toLowerCase().includes(searchLower) ||
           (service.description && service.description.toLowerCase().includes(searchLower))
       );
     }
@@ -351,29 +375,29 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   addToCart(service: Service): void {
     // Kiểm tra sản phẩm đã tồn tại trong giỏ hàng chưa
     const existingItemIndex = this.cartItems.findIndex(item => item.id === service.id);
-    
+
     if (existingItemIndex !== -1) {
       // Nếu sản phẩm đã tồn tại, tăng số lượng lên
       this.cartItems[existingItemIndex].quantity = (this.cartItems[existingItemIndex].quantity || 1) + 1;
       this.cartItems[existingItemIndex].count = (this.cartItems[existingItemIndex].count || 1) + 1;
-      
+
       this.saveCartToLocalStorage();
-      
+
       // Hiển thị thông báo
       this.toastr.success(`Đã thêm ${service.serviceName} vào giỏ hàng (SL: ${this.cartItems[existingItemIndex].quantity})`, 'Thành công');
       console.log(`Đã tăng số lượng sản phẩm trong giỏ hàng: ${service.serviceName} (SL: ${this.cartItems[existingItemIndex].quantity})`);
     } else {
       // Nếu sản phẩm chưa tồn tại, thêm mới vào giỏ hàng
-      const serviceToAdd = { 
+      const serviceToAdd = {
         ...service,
         price: service.price,
         quantity: 1,
         count: 1
       };
-      
+
       this.cartItems.push(serviceToAdd);
       this.saveCartToLocalStorage();
-      
+
       // Hiển thị thông báo
       this.toastr.success(`Đã thêm ${service.serviceName} vào giỏ hàng`, 'Thành công');
       console.log(`Đã thêm vào giỏ hàng: ${service.serviceName}`);
@@ -483,7 +507,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         return;
       }
     }
-    
+
     this.showPaymentModal = true;
   }
 
@@ -521,59 +545,107 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       );
   }
 
-  // Thay thế phương thức generateQRCode để sử dụng API
+  // Tạo mã tham chiếu ngẫu nhiên cho thanh toán QR
+  generateRandomReference(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = 'cinex';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  // Phương thức xử lý thanh toán QR và mở tab mới
   processPaymentQR(): void {
     this.isPaymentModalVisible = false;
+    console.log('Bắt đầu xử lý thanh toán QR (phương thức mới)');
 
     if (this.cartItems.length === 0) {
       this.toastr.warning('Vui lòng thêm sản phẩm vào giỏ hàng trước khi thanh toán', 'Giỏ hàng trống');
       return;
     }
 
+    // Hiển thị overlay chờ xử lý
+    this.showPrintingOverlay = true;
+    this.isPrinting = true;
+
     // Cập nhật thời gian hiện tại
     this.today = new Date();
 
-    // Chuẩn bị dữ liệu đơn hàng
+    // Lưu danh sách mặt hàng cho hóa đơn
+    this.receiptItems = [...this.cartItems];
+    this.receiptTotalAmount = this.getTotalAmount();
+
+    // Tạo mã tham chiếu ngẫu nhiên cho thanh toán
+    const paymentReference = this.generateRandomReference();
+    console.log('Mã tham chiếu thanh toán:', paymentReference);
+
+    // Tạo URL QR code sử dụng tổng tiền
+    const amount = this.getTotalAmount();
+    console.log('Số tiền thanh toán:', amount);
+
+    // Sử dụng đúng URL QR từ VietQR, chỉ thay đổi amount và addInfo
+    // Đảm bảo URL QR được tạo đúng cách với các tham số cần thiết
+    const qrImageUrl = `https://img.vietqr.io/image/970422-0334414209-compact2.png?amount=${amount}&addInfo=${paymentReference}&accountName=CineX`;
+    console.log('URL QR đã tạo:', qrImageUrl);
+
+    // Chuẩn bị dữ liệu đơn hàng cho API
     const orderData = {
       services: this.cartItems.map(item => ({
         ServiceId: item.id,
-        Quantity: item.count || 1
+        Quantity: item.quantity || item.count || 1
       }))
     };
 
+    // Lưu thông tin giỏ hàng vào localStorage để có thể truy xuất sau khi thanh toán thành công
+    try {
+      localStorage.setItem('pendingCartItems', JSON.stringify(this.cartItems));
+      localStorage.setItem('pendingCartTotal', amount.toString());
+    } catch (e) {
+      console.error('Lỗi khi lưu thông tin giỏ hàng vào localStorage:', e);
+    }
+
     const serviceListJsonStr = JSON.stringify(orderData.services);
+    console.log('Dữ liệu đơn hàng:', serviceListJsonStr);
 
-    // Gọi API tạo đơn hàng
-    this.isLoading = true;
-    this.serviceApi.createServiceOrder(serviceListJsonStr)
-      .pipe(
-        finalize(() => {
-          this.isLoading = false;
-        })
-      )
-      .subscribe(
-        response => {
-          if (response.responseCode === 200) {
-            // Lưu mã đơn hàng để sau này xác nhận
-            this.orderId = response.orderCode;
+    // Sử dụng email đã chọn (tự nhập hoặc mặc định)
+    const customerEmail = this.useDefaultEmail ? this.defaultEmail : this.customerEmail;
 
-            // Tạo URL QR code sử dụng mã đơn và tổng tiền
-            this.qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
-              encodeURIComponent(`BankTransfer:${this.getTotalAmount()}:CINEMA_${this.orderId}`);
-            
-            this.showQRCode = true;
-            this.isCartModalVisible = false;
+    // Lưu email đã sử dụng vào localStorage
+    localStorage.setItem('lastOrderEmail', customerEmail);
 
-            this.toastr.info('Vui lòng quét mã QR để hoàn tất thanh toán', 'Thanh toán');
-          } else {
-            this.toastr.error(response.message || 'Có lỗi xảy ra khi tạo đơn hàng', 'Lỗi');
-          }
-        },
-        error => {
-          console.error('Lỗi khi tạo đơn hàng:', error);
-          this.toastr.error('Không thể kết nối đến máy chủ', 'Lỗi');
-        }
-      );
+    // Lưu thông tin dịch vụ vào localStorage để sử dụng sau khi thanh toán thành công
+    localStorage.setItem('pendingServiceListJson', serviceListJsonStr);
+    localStorage.setItem('pendingUserEmail', customerEmail);
+    localStorage.setItem('pendingUserId', this.currentUserId);
+
+    // Tạo mã đơn hàng tạm thời để hiển thị
+    this.orderId = 'QR' + new Date().getTime().toString().slice(-8);
+    console.log('Đã tạo mã đơn hàng tạm thời:', this.orderId);
+
+    // Mở tab mới với thông tin thanh toán QR
+    const qrPaymentUrl = `/qr-payment?orderId=${encodeURIComponent(this.orderId)}&amount=${encodeURIComponent(amount)}&paymentCode=${encodeURIComponent(paymentReference)}`;
+    console.log('URL thanh toán QR:', qrPaymentUrl);
+
+    // Mở tab mới với URL có tham số
+    window.open(qrPaymentUrl, '_blank');
+
+    // Đóng modal giỏ hàng
+    this.isCartModalVisible = false;
+
+    // Hiển thị thông báo
+    this.toastr.info('Đã mở trang thanh toán QR trong tab mới', 'Thanh toán');
+
+    // Ẩn overlay chờ xử lý
+    this.showPrintingOverlay = false;
+    this.isPrinting = false;
+
+    // Lắng nghe sự kiện storage để biết khi nào thanh toán thành công
+    window.addEventListener('storage', this.handleStorageChange.bind(this));
+
+    // Thêm cơ chế kiểm tra định kỳ để đảm bảo dữ liệu được lưu vào cơ sở dữ liệu
+    // Đôi khi sự kiện storage không được kích hoạt khi tab đóng lại
+    this.startPaymentCheckInterval();
   }
 
   // Giữ lại phương thức generateQRCode cho nút thanh toán
@@ -599,32 +671,32 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.showPrintingOverlay = true; // Hiển thị overlay chờ xử lý
     this.isPrinting = true; // Đặt trạng thái đang xử lý
-    
+
     this.serviceApi.confirmServicePayment(this.orderId, this.currentUserId)
       .pipe(
         finalize(() => {
           this.isLoading = false;
         })
       )
-      .subscribe(
-        response => {
+      .subscribe({
+        next: (response) => {
           if (response.responseCode === 200) {
             this.paymentStatus = 'success';
             this.showQRCode = false;
-            
+
             // Xóa giỏ hàng sau khi thanh toán thành công
             this.cartItems = [];
             this.saveCartToLocalStorage();
-            
+
             // Hiển thị hóa đơn
             this.showPrintReceipt(this.orderId, this.getTotalAmount(), this.formatPrice(this.getTotalAmount()));
-            
+
             // Tắt overlay sau khi thanh toán thành công
             this.showPrintingOverlay = false;
             this.isPrinting = false;
-            
+
             this.toastr.success('Thanh toán thành công!', 'Hoàn tất');
-            
+
             // Thêm setTimeout đảm bảo overlay đã được đóng
             setTimeout(() => {
               if (this.showPrintingOverlay) {
@@ -636,19 +708,19 @@ export class BongNuocComponent implements OnInit, OnDestroy {
             // Tắt overlay nếu có lỗi
             this.showPrintingOverlay = false;
             this.isPrinting = false;
-            
+
             this.toastr.error(response.message || 'Có lỗi xảy ra khi xác nhận thanh toán', 'Lỗi');
           }
         },
-        error => {
+        error: (error) => {
           console.error('Lỗi khi xác nhận thanh toán:', error);
           // Tắt overlay nếu có lỗi
           this.showPrintingOverlay = false;
           this.isPrinting = false;
-          
+
           this.toastr.error('Không thể kết nối đến máy chủ', 'Lỗi');
         }
-      );
+      });
   }
 
   closeAllModals(): void {
@@ -660,7 +732,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   }
 
   // Thêm phương thức mới để hiển thị và in hóa đơn
-  showPrintReceipt(orderCode: string, amount: number, formattedAmount: string): void {
+  showPrintReceipt(orderCode: string, _amount: number, formattedAmount: string): void {
     // Bắt đầu in hóa đơn
     this.isPrinting = false; // Không còn đang in nữa
     this.orderId = orderCode; // Lưu mã đơn hàng để hiển thị
@@ -671,14 +743,14 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         <head>
           <title>Hóa đơn dịch vụ</title>
           <style>
-            body { 
+            body {
               font-family: Arial, sans-serif;
               margin: 0;
               padding: 20px;
               color: #333;
               background-color: #f9f9f9;
             }
-            .receipt { 
+            .receipt {
               max-width: 80mm;
               margin: 0 auto;
               background: #eeeeee;
@@ -698,7 +770,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
               max-width: 100px;
               height: auto;
             }
-            .header { 
+            .header {
               text-align: center;
               margin-bottom: 20px;
               padding-bottom: 10px;
@@ -730,16 +802,16 @@ export class BongNuocComponent implements OnInit, OnDestroy {
               display: flex;
               justify-content: space-between;
             }
-            .details { 
+            .details {
               margin-bottom: 20px;
               font-size: 12px;
             }
-            .table { 
+            .table {
               width: 100%;
               border-collapse: collapse;
               font-size: 12px;
             }
-            .table th, .table td { 
+            .table th, .table td {
               padding: 8px 4px;
               text-align: left;
               border-bottom: 1px solid #eee;
@@ -750,7 +822,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
             .table td.amount {
               text-align: right;
             }
-            .total { 
+            .total {
               text-align: right;
               margin-top: 10px;
               padding-top: 10px;
@@ -795,16 +867,16 @@ export class BongNuocComponent implements OnInit, OnDestroy {
               <p>Ngày: ${this.formatLocalDate(this.today)}</p>
               <p>Nhân viên: ${this.getStaffName()}</p>
             </div>
-            
+
             <div class="section-title">THÔNG TIN VÉ</div>
             <div class="seats-section">
-              ${this.selectedSeats && this.selectedSeats.length > 0 ? 
+              ${this.selectedSeats && this.selectedSeats.length > 0 ?
                 this.selectedSeats.map(seat => `
                   <div class="seat-info">
                     <span>Ghế: ${seat.SeatName}</span>
                     <span>${this.formatPrice(seat.SeatPrice)}</span>
                   </div>
-                `).join('') : 
+                `).join('') :
                 '<p>Không có vé được chọn</p>'
               }
               <div class="seat-info" style="font-weight: bold;">
@@ -812,7 +884,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
                 <span>${this.formatPrice(this.seatsTotalPrice || 0)}</span>
               </div>
             </div>
-            
+
             <div class="section-title">THÔNG TIN DỊCH VỤ</div>
             <div class="details">
               <table class="table">
@@ -879,19 +951,28 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     // Đánh dấu đang in
     this.isPrinting = true;
 
-    // Mở cửa sổ in mới
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(this.receiptContent);
-      printWindow.document.close();
+    try {
+      // Mở cửa sổ in mới
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        // Sử dụng document.open() trước khi ghi nội dung
+        printWindow.document.open();
+        // Ghi nội dung vào document
+        printWindow.document.write(this.receiptContent);
+        printWindow.document.close();
 
-      // Đặt hẹn giờ để tắt hiệu ứng loading sau khi in
-      setTimeout(() => {
+        // Đặt hẹn giờ để tắt hiệu ứng loading sau khi in
+        setTimeout(() => {
+          this.isPrinting = false;
+        }, 2000);
+      } else {
         this.isPrinting = false;
-      }, 2000);
-    } else {
+        this.showNotification('Trình duyệt đã chặn cửa sổ popup. Vui lòng cho phép popup để in hóa đơn.', 'warning');
+      }
+    } catch (e) {
+      console.error('Lỗi khi mở cửa sổ in:', e);
       this.isPrinting = false;
-      this.showNotification('Trình duyệt đã chặn cửa sổ popup. Vui lòng cho phép popup để in hóa đơn.', 'warning');
+      this.showNotification('Có lỗi xảy ra khi mở cửa sổ in. Vui lòng thử lại.', 'error');
     }
   }
 
@@ -924,7 +1005,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       paymentMethod = this.selectedPaymentMethod;
     }
 
-    // Lưu thông tin email được sử dụng 
+    // Lưu thông tin email được sử dụng
     const userEmail = this.useDefaultEmail ? this.defaultEmail : this.customerEmail;
     localStorage.setItem('lastOrderEmail', userEmail);
     console.log('Email khách hàng:', userEmail);
@@ -935,8 +1016,8 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     if (paymentMethod.id === 1) { // Tiền mặt
       this.openCashPaymentModal();
     } else if (paymentMethod.id === 2) { // QR Code
-      // Hiển thị QR code
-      console.log('Hiển thị QR code');
+      // Xử lý thanh toán QR
+      this.processPaymentQR();
     }
   }
 
@@ -946,18 +1027,18 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       this.emailError = 'Vui lòng nhập email';
       return;
     }
-    
+
     // Validate email format using regex
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       this.emailError = 'Email không đúng định dạng';
       return;
     }
-    
+
     this.isCheckingEmail = true;
     this.emailError = '';
     this.emailSuccess = '';
-    
+
     // Giả lập API call và kết quả trả về - trong môi trường thực tế sẽ gọi API thực
     setTimeout(() => {
       if (email.includes('@gmail.com') || email.includes('@yahoo.com') || email.includes('@hotmail.com')) {
@@ -993,6 +1074,141 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     this.selectedPaymentMethod = null;
   }
 
+  // Biến để lưu interval ID
+  private paymentCheckIntervalId: any = null;
+
+  // Bắt đầu kiểm tra định kỳ xem thanh toán đã thành công chưa
+  startPaymentCheckInterval(): void {
+    console.log('Bắt đầu kiểm tra định kỳ thanh toán QR');
+
+    // Dừng interval cũ nếu có
+    this.stopPaymentCheckInterval();
+
+    // Kiểm tra mỗi 2 giây
+    this.paymentCheckIntervalId = setInterval(() => {
+      // Kiểm tra xem có thông tin thanh toán thành công trong localStorage không
+      const paymentSuccess = localStorage.getItem('payment_success');
+
+      if (paymentSuccess === 'true') {
+        console.log('Phát hiện thanh toán thành công từ kiểm tra định kỳ');
+
+        // Xử lý thanh toán thành công
+        this.processSuccessfulPayment();
+
+        // Dừng kiểm tra
+        this.stopPaymentCheckInterval();
+      }
+    }, 2000);
+
+    // Tự động dừng kiểm tra sau 5 phút để tránh chạy mãi
+    setTimeout(() => {
+      this.stopPaymentCheckInterval();
+    }, 5 * 60 * 1000);
+  }
+
+  // Dừng kiểm tra định kỳ
+  stopPaymentCheckInterval(): void {
+    if (this.paymentCheckIntervalId) {
+      clearInterval(this.paymentCheckIntervalId);
+      this.paymentCheckIntervalId = null;
+    }
+  }
+
+  // Xử lý thanh toán thành công
+  processSuccessfulPayment(): void {
+    // Lấy thông tin từ localStorage
+    const orderId = localStorage.getItem('payment_order_id');
+    const amount = localStorage.getItem('payment_amount');
+    const transactionId = localStorage.getItem('payment_transaction_id');
+
+    console.log('Thông tin thanh toán:', { orderId, amount, transactionId });
+
+    // Lấy thông tin dịch vụ đã lưu
+    const serviceListJson = localStorage.getItem('pendingServiceListJson');
+    const userEmail = localStorage.getItem('pendingUserEmail');
+    const userId = localStorage.getItem('pendingUserId') || this.currentUserId;
+
+    if (serviceListJson && userId) {
+      console.log('Thực hiện lưu dữ liệu vào database với:', { serviceListJson, userId, userEmail });
+
+      // Gọi API để lưu dữ liệu vào database
+      this.isLoading = true;
+      // Đảm bảo userEmail không null khi truyền vào API
+      const email = userEmail || undefined;
+      this.serviceApi.quickServiceSale(serviceListJson, userId, email)
+        .pipe(
+          finalize(() => {
+            this.isLoading = false;
+          })
+        )
+        .subscribe({
+          next: (response) => {
+            console.log('Kết quả API lưu dữ liệu:', response);
+
+            if (response.responseCode === 200) {
+              // Lưu mã đơn hàng thực tế từ API
+              this.orderId = response.orderCode || orderId || '';
+
+              // Hiển thị thông báo thành công
+              this.toastr.success('Thanh toán QR thành công và đã lưu dữ liệu', 'Thành công');
+
+              // Xóa giỏ hàng
+              this.cartItems = [];
+              this.saveCartToLocalStorage();
+
+              // Hiển thị hóa đơn
+              this.showPrintReceipt(
+                this.orderId,
+                parseFloat(amount || '0'),
+                response.formattedTotalAmount || this.formatPrice(parseFloat(amount || '0'))
+              );
+
+              // Xóa dữ liệu tạm trong localStorage
+              localStorage.removeItem('pendingServiceListJson');
+              localStorage.removeItem('pendingUserEmail');
+              localStorage.removeItem('pendingUserId');
+              localStorage.removeItem('pendingCartItems');
+              localStorage.removeItem('pendingCartTotal');
+            } else {
+              this.toastr.error(response.message || 'Có lỗi xảy ra khi lưu dữ liệu', 'Lỗi');
+            }
+          },
+          error: (error) => {
+            console.error('Lỗi khi lưu dữ liệu:', error);
+            this.toastr.error('Không thể kết nối đến máy chủ', 'Lỗi');
+          }
+        });
+    } else {
+      console.error('Không tìm thấy dữ liệu dịch vụ trong localStorage');
+      this.toastr.warning('Không tìm thấy thông tin đơn hàng', 'Cảnh báo');
+    }
+
+    // Xóa thông tin thanh toán trong localStorage
+    localStorage.removeItem('payment_success');
+    localStorage.removeItem('payment_order_id');
+    localStorage.removeItem('payment_amount');
+    localStorage.removeItem('payment_transaction_id');
+
+    // Hủy đăng ký sự kiện storage
+    window.removeEventListener('storage', this.handleStorageChange.bind(this));
+  }
+
+  // Xử lý sự kiện thay đổi localStorage từ tab QR payment
+  handleStorageChange(event: StorageEvent): void {
+    console.log('Storage event detected:', event);
+
+    // Kiểm tra xem có phải là sự kiện thanh toán thành công không
+    if (event.key === 'payment_success' && event.newValue === 'true') {
+      console.log('Phát hiện thanh toán thành công từ tab QR payment');
+
+      // Dừng kiểm tra định kỳ
+      this.stopPaymentCheckInterval();
+
+      // Xử lý thanh toán thành công
+      this.processSuccessfulPayment();
+    }
+  }
+
   // Tính tổng tiền của giỏ hàng
   calculateTotalPrice(): number {
     let total = 0;
@@ -1011,18 +1227,20 @@ export class BongNuocComponent implements OnInit, OnDestroy {
 
   selectPaymentMethod(method: any): void {
     this.selectedPaymentMethod = method;
-    
+
     // Đóng modal phương thức thanh toán
     this.closePaymentModal();
-    
+
     // Nếu là thanh toán tiền mặt, mở modal nhập tiền
     if (method === 'cash' || (method?.id === 1)) {
       setTimeout(() => {
         this.openCashPaymentModal();
       }, 300);
     } else if (method === 'qr' || (method?.id === 2)) {
-      // Hiển thị thông báo chức năng đang phát triển
-      this.showNotification('Chức năng thanh toán QR đang được phát triển. Vui lòng sử dụng phương thức thanh toán khác.', 'warning');
+      // Gọi phương thức xử lý thanh toán QR
+      setTimeout(() => {
+        this.processPaymentQR();
+      }, 300);
     } else {
       // Xử lý các phương thức khác
       this.processPayment(method);
@@ -1187,14 +1405,14 @@ export class BongNuocComponent implements OnInit, OnDestroy {
 
     // Đóng modal thanh toán
     this.closeCashPaymentModal();
-    
+
     // Hiển thị overlay chờ xử lý
     this.showPrintingOverlay = true;
     this.isPrinting = true;
-    
+
     // Cập nhật thời gian hiện tại
     this.today = new Date();
-    
+
     // Chuẩn bị dữ liệu đơn hàng
     const orderData = {
       services: this.cartItems.map(item => ({
@@ -1213,10 +1431,10 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     // Sử dụng email đã chọn (tự nhập hoặc mặc định)
     const customerEmail = this.useDefaultEmail ? this.defaultEmail : this.customerEmail;
-    
+
     // Lưu email đã sử dụng vào localStorage
     localStorage.setItem('lastOrderEmail', customerEmail);
-    
+
     this.serviceApi.quickServiceSale(serviceListJsonStr, this.currentUserId, customerEmail)
       .pipe(
         finalize(() => {
@@ -1234,17 +1452,17 @@ export class BongNuocComponent implements OnInit, OnDestroy {
           // Tắt overlay xử lý
           this.showPrintingOverlay = false;
           this.isPrinting = false;
-          
+
           // Lưu mã đơn hàng
           this.orderId = response.orderCode || '';
-          
+
           // Xóa giỏ hàng
           this.cartItems = [];
           this.saveCartToLocalStorage();
-          
+
           // Mở modal in hóa đơn
           this.openReceiptModal();
-          
+
           // Hiển thị thông báo thành công
           this.showNotification('Thanh toán thành công!', 'success');
         } else {
@@ -1273,27 +1491,27 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     }
 
     this.showNotification('Đang xuất file PDF...', 'info');
-    
+
     // Clone the element to work with a copy without affecting the display
     const clonedElement = element.cloneNode(true) as HTMLElement;
-    
+
     // Create a temporary container to hold our clone with proper styling
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'absolute';
     tempContainer.style.left = '-9999px';
     tempContainer.style.top = '0';
     tempContainer.style.width = element.offsetWidth + 'px';
-    
+
     // Apply specific styles to ensure it renders completely
     clonedElement.style.overflow = 'visible';
     clonedElement.style.maxHeight = 'none';
     clonedElement.style.height = 'auto';
     clonedElement.style.position = 'relative';
-    
+
     // Append to temporary container and add to document
     tempContainer.appendChild(clonedElement);
     document.body.appendChild(tempContainer);
-    
+
     // Ensure all images in the cloned element are loaded
     const images = Array.from(clonedElement.getElementsByTagName('img'));
     const imagePromises = images.map(img => {
@@ -1303,7 +1521,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         img.onerror = resolve;
       });
     });
-    
+
     // Continue after all images are loaded
     Promise.all(imagePromises).then(() => {
       // Fix the logo size and position in the cloned element
@@ -1313,7 +1531,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         logoImg.style.display = 'block';
         logoImg.style.margin = '0 auto';
       }
-      
+
       // Use html2canvas to capture the entire cloned element
       html2canvas(clonedElement, {
         scale: 2,
@@ -1327,22 +1545,22 @@ export class BongNuocComponent implements OnInit, OnDestroy {
       }).then(canvas => {
         // Clean up - remove the temporary container
         document.body.removeChild(tempContainer);
-        
+
         // Create PDF
         const pdf = new jsPDF('p', 'mm', 'a4');
-        
+
         // Convert to image and add to PDF
         const imgWidth = 210; // A4 width in mm
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         const imgData = canvas.toDataURL('image/png');
-        
+
         pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        
+
         // Add multiple pages if needed
         if (imgHeight > 297) { // 297mm is A4 height
           let heightLeft = imgHeight - 297;
           let position = -297;
-          
+
           while (heightLeft > 0) {
             position = position - Math.min(297, heightLeft);
             pdf.addPage();
@@ -1350,11 +1568,11 @@ export class BongNuocComponent implements OnInit, OnDestroy {
             heightLeft -= 297;
           }
         }
-        
+
         // Save the PDF
         const fileName = `Hoa-Don-${this.orderId || new Date().getTime()}.pdf`;
         pdf.save(fileName);
-        
+
         this.showNotification(`Đã xuất file PDF thành công: ${fileName}`, 'success');
       }).catch(error => {
         console.error('Lỗi khi tạo PDF:', error);
@@ -1377,13 +1595,13 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     // Lấy thông tin người dùng hiện tại
     const currentUser = this.authService.getCurrentUser();
     const staffName = currentUser ? currentUser.userName : 'Nhân viên';
-    
+
     // Tạo mã đơn hàng
     const orderCode = `ORD-${new Date().getTime()}`;
-    
+
     // Tính tổng tiền
     const totalAmount = this.calculateTotalPrice() + this.seatsTotalPrice;
-    
+
     // Tạo nội dung cho phần ghế
     let seatsSection = '';
     if (this.selectedSeats && this.selectedSeats.length > 0) {
@@ -1411,21 +1629,21 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     } else {
       seatsSection = '';
     }
-    
+
     // Tạo nội dung hóa đơn
     this.receiptContent = `
       <html>
         <head>
           <title>Hóa đơn thanh toán</title>
           <style>
-            body { 
+            body {
               font-family: Arial, sans-serif;
               margin: 0;
               padding: 20px;
               color: #333;
               background-color: #f9f9f9;
             }
-            .receipt { 
+            .receipt {
               max-width: 80mm;
               margin: 0 auto;
               background: #fff;
@@ -1440,7 +1658,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
               max-width: 100px;
               height: auto;
             }
-            .header { 
+            .header {
               text-align: center;
               margin-bottom: 20px;
               padding-bottom: 10px;
@@ -1455,16 +1673,16 @@ export class BongNuocComponent implements OnInit, OnDestroy {
               font-size: 12px;
               color: #666;
             }
-            .details { 
+            .details {
               margin-bottom: 20px;
               font-size: 12px;
             }
-            .table { 
+            .table {
               width: 100%;
               border-collapse: collapse;
               font-size: 12px;
             }
-            .table th, .table td { 
+            .table th, .table td {
               padding: 8px 4px;
               text-align: left;
               border-bottom: 1px solid #eee;
@@ -1475,7 +1693,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
             .table td.amount {
               text-align: right;
             }
-            .total { 
+            .total {
               text-align: right;
               margin-top: 10px;
               padding-top: 10px;
@@ -1520,9 +1738,9 @@ export class BongNuocComponent implements OnInit, OnDestroy {
               <p>Ngày: ${this.formatLocalDate(new Date())}</p>
               <p>Nhân viên: ${staffName}</p>
             </div>
-            
+
             ${seatsSection}
-            
+
             ${this.cartItems.length > 0 ? `
             <div class="details">
               <h3 style="font-size: 14px; margin: 10px 0;">BẮP NƯỚC & THỨC ĂN</h3>
@@ -1548,15 +1766,15 @@ export class BongNuocComponent implements OnInit, OnDestroy {
               </table>
             </div>
             ` : ''}
-            
+
             <div class="total">
               <p>Tổng cộng: ${this.formatPrice(totalAmount)}</p>
             </div>
-            
+
             <div class="barcode">
               * ${orderCode} *
             </div>
-            
+
             <div class="footer">
               <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
               <p>Quý khách vui lòng giữ hóa đơn để đối chiếu khi cần thiết</p>
@@ -1577,13 +1795,13 @@ export class BongNuocComponent implements OnInit, OnDestroy {
     // Reset trạng thái ghế đã chọn
     this.selectedSeats = [];
     this.seatsTotalPrice = 0;
-    
+
     // Lưu trạng thái mới vào localStorage
     localStorage.removeItem('selectedSeats');
-    
+
     // Thông báo thành công
     this.showNotification('Đã hủy chọn ghế', 'success');
-    
+
     // Quay lại trang chủ
     this.router.navigate(['/trang-chu']);
   }

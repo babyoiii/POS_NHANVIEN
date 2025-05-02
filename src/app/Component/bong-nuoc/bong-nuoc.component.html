@@ -117,30 +117,30 @@
                 <!-- Phần nhập email khách hàng -->
                 <div *ngIf="cartItems.length > 0" class="customer-email-section">
                     <h4><i class="fas fa-user"></i> Thông tin khách hàng</h4>
-                    
+
                     <div class="email-options">
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="emailOption" id="useDefaultEmail" 
+                            <input class="form-check-input" type="radio" name="emailOption" id="useDefaultEmail"
                                    [(ngModel)]="useDefaultEmail" [value]="true" checked>
                             <label class="form-check-label" for="useDefaultEmail">
                                 Dùng email mặc định ({{ defaultEmail }})
                             </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="emailOption" id="useCustomerEmail" 
+                            <input class="form-check-input" type="radio" name="emailOption" id="useCustomerEmail"
                                    [(ngModel)]="useDefaultEmail" [value]="false">
                             <label class="form-check-label" for="useCustomerEmail">
                                 Sử dụng email khách hàng
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="customer-email-input" *ngIf="!useDefaultEmail">
                         <div class="input-group">
-                            <input type="email" class="form-control" placeholder="Nhập email khách hàng..." 
+                            <input type="email" class="form-control" placeholder="Nhập email khách hàng..."
                                    [(ngModel)]="customerEmail" (blur)="checkCustomerEmail(customerEmail)"
                                    [disabled]="isCheckingEmail">
-                            <button class="btn btn-outline-primary" type="button" 
+                            <button class="btn btn-outline-primary" type="button"
                                     (click)="checkCustomerEmail(customerEmail)"
                                     [disabled]="isCheckingEmail">
                                 <i class="fa" [ngClass]="isCheckingEmail ? 'fa-spinner fa-spin' : 'fa-check'"></i>
@@ -170,26 +170,54 @@
 </div>
 
 <!-- QR Payment Modal -->
-<div class="modal fade" id="qrPaymentModal" tabindex="-1" role="dialog" aria-labelledby="qrPaymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="qrPaymentModalLabel">Thanh toán bằng QR Code</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center">
-                <img src="assets/images/qr-payment.png" alt="QR Payment Code" class="img-fluid">
-                <p class="mt-3">Vui lòng quét mã QR để hoàn tất thanh toán</p>
-                <div class="alert alert-info">
-                    <strong>Số tiền:</strong> {{ getTotalAmount() | currency:'VND':'symbol':'1.0-0' }}
+<div class="qr-payment-modal" *ngIf="showQRCode">
+    <div class="modal-overlay" (click)="hideQRCode()"></div>
+    <div class="qr-payment-content">
+        <div class="modal-header">
+            <h3>Thanh toán bằng QR Code</h3>
+            <button class="close-button" (click)="hideQRCode()">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="qr-code-container">
+                <img [src]="qrImageUrl" alt="QR Payment Code" class="qr-code-image">
+                <div class="payment-status" [ngClass]="paymentStatus">
+                    <div *ngIf="paymentStatus === 'pending'" class="status-pending">
+                        <div class="spinner"></div>
+                        <p>Đang chờ thanh toán...</p>
+                    </div>
+                    <div *ngIf="paymentStatus === 'success'" class="status-success">
+                        <i class="fa fa-check-circle"></i>
+                        <p>Thanh toán thành công!</p>
+                    </div>
+                    <div *ngIf="paymentStatus === 'failed'" class="status-failed">
+                        <i class="fa fa-times-circle"></i>
+                        <p>Thanh toán thất bại!</p>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary" (click)="confirmPayment()">Đã thanh toán</button>
+            <div class="payment-info">
+                <div class="info-row">
+                    <span class="info-label">Tổng tiền:</span>
+                    <span class="info-value">{{ getTotalAmount() | currency:'VND':'symbol':'1.0-0' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Mã đơn hàng:</span>
+                    <span class="info-value">{{ orderId }}</span>
+                </div>
+                <div class="payment-instructions">
+                    <p>1. Mở ứng dụng ngân hàng trên điện thoại</p>
+                    <p>2. Quét mã QR bên trên</p>
+                    <p>3. Xác nhận thanh toán</p>
+                </div>
             </div>
+        </div>
+        <div class="modal-footer">
+            <button class="cancel-btn" (click)="hideQRCode()">Đóng</button>
+            <button class="print-btn" *ngIf="paymentStatus === 'success'" (click)="printReceipt()">
+                <i class="fa fa-print"></i> In hóa đơn
+            </button>
         </div>
     </div>
 </div>
