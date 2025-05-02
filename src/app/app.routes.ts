@@ -7,8 +7,7 @@ import { PhimSapChieuComponent } from './Component/ticket/phim-sap-chieu/phim-sa
 import { SettingComponent } from './Component/setting/setting.component';
 import { BongNuocComponent } from './Component/bong-nuoc/bong-nuoc.component';
 import { QRcodeComponent } from './Component/qrcode/qrcode.component';
-import { QrPaymentComponent } from './qr-payment/qr-payment.component';
-import { QrPaymentTestComponent } from './qr-payment-test/qr-payment-test.component';
+import { QrPaymentComponent } from './Component/qr-payment/qr-payment.component';
 import { AuthGuard } from './guards/auth.guard';
 import { SeatMapComponent } from './Component/ticket/seat-map/seat-map.component';
 import { FoodSelectionComponent } from './Component/ticket/food-selection/food-selection.component';
@@ -34,8 +33,8 @@ export const routes: Routes = [
       { path: 'seat-map/:showtimeId', component: SeatMapComponent },
       { path: 'ticket/food/:showtimeId', component: FoodSelectionComponent },
       { path: '', redirectTo: 'ticket', pathMatch: 'full' },
-      { 
-        path: 'caidat', 
+      {
+        path: 'caidat',
         component: SettingComponent,
         canActivate: [AuthGuard],
         data: { permission: 'caidat' }
@@ -52,11 +51,6 @@ export const routes: Routes = [
   {
     path: 'qr-payment',
     component: QrPaymentComponent,
-    data: { ssr: false }
-  },
-  {
-    path: 'qr-payment-test',
-    component: QrPaymentTestComponent,
     data: { ssr: false }
   },
 
