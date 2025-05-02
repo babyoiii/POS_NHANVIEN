@@ -24,6 +24,11 @@ export class LoginComponent implements OnInit {
   selectedProvince: Province | null = null;
   selectedCinema: Cinema | null = null;
   loginVisible = false;
+  noCinemasFound = false;
+  selectedProvinceId: number | null = null;
+  errorMessage: string = '';
+  showCinemaError: boolean = false;
+  isLoading: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -33,8 +38,8 @@ export class LoginComponent implements OnInit {
     @Inject(PLATFORM_ID) private platformId: Object // Inject PLATFORM_ID
   ) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]]
+      userName: ['', [Validators.required]],
+      passWord: ['', [Validators.required]]
     });
   }
 
@@ -50,16 +55,41 @@ export class LoginComponent implements OnInit {
   }
 
   showCinemas(province: Province): void {
+    console.log('showCinemas được gọi với province:', province);
+    this.selectedProvinceId = province.id;
     this.selectedProvince = province;
-    this.cinemaService.getCinemasByProvinceId(province.id).subscribe(cinemas => {
-      this.cinemas = cinemas;
-      this.showProvinceSelection = false;
-      this.showCinemaListSelection = true;
-    });
+    this.noCinemasFound = false;
+    this.showProvinceSelection = false;
+    this.showCinemaListSelection = true;
+
+    this.cinemaService.getCinemasByProvince(province.id).subscribe(
+      (cinemas) => {
+        console.log(`Danh sách rạp (${cinemas.length} rạp):`, cinemas);
+        this.cinemas = cinemas;
+        
+        // Hiển thị thông báo nếu không có rạp cho tỉnh đã chọn
+        if (cinemas.length === 0) {
+          console.log('Không tìm thấy rạp cho tỉnh:', province.name);
+          this.noCinemasFound = true;
+        } else {
+          this.noCinemasFound = false;
+        }
+      },
+      (error) => {
+        console.error('Lỗi khi lấy danh sách rạp:', error);
+        this.cinemas = [];
+        this.noCinemasFound = true;
+      }
+    );
   }
 
   selectCinema(cinema: Cinema): void {
+    console.log('Đã chọn rạp:', cinema);
     this.selectedCinema = cinema;
+    
+    // Lưu thông tin rạp đã chọn vào localStorage
+    this.cinemaService.saveSelectedCinema(cinema);
+    
     this.showCinemaSelection = false;
     this.loginVisible = true;
   }
@@ -80,11 +110,21 @@ export class LoginComponent implements OnInit {
   }
 
   onSubmit(): void {
+    this.showCinemaError = false;
     if (this.loginForm.valid && this.selectedCinema) {
-      const { email, password } = this.loginForm.value;
+      this.isLoading = true;
+      this.errorMessage = '';
+      const { userName, passWord } = this.loginForm.value;
       
-      this.authService.login(email, password).subscribe({
+      console.log('Login form submitted with:', { userName });
+      
+      this.authService.login(userName, passWord).subscribe({
         next: (user) => {
+          this.isLoading = false;
+          // Lưu thông tin user đã đăng nhập
+          console.log('Đăng nhập thành công với người dùng:', user);
+          console.log('Rạp đã chọn:', this.selectedCinema);
+          
           // Thêm animation fade-out
           const container = document.querySelector('.login-container') as HTMLElement;
           if (container) {
@@ -92,21 +132,21 @@ export class LoginComponent implements OnInit {
           }
           
           setTimeout(() => {
-            // Chuyển hướng dựa trên vai trò
-            if (user.role === 'manager') {
-              this.router.navigate(['/manager/dashboard']);
-            } else if (user.role === 'staff') {
-              this.router.navigate(['/staff/dashboard']);
-            } else {
-              this.router.navigate(['/home']);
-            }
+            // Điều hướng đến trang chủ sau khi đăng nhập thành công
+            this.router.navigate(['/trangchu']);
           }, 500);
         },
         error: (error) => {
+          this.isLoading = false;
           console.error('Đăng nhập thất bại', error);
-          alert('Tài khoản hoặc mật khẩu không chính xác!');
+          console.error('Error type:', typeof error);
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+          this.errorMessage = 'Tài khoản hoặc mật khẩu không chính xác!';
         }
       });
+    } else if (this.loginForm.valid && !this.selectedCinema) {
+      this.showCinemaError = true;
     }
   }
 

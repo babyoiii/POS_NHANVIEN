@@ -4,16 +4,42 @@ export interface Province {
   }
   
   export interface Cinema {
-    id: number;
-    provinceId: number;
+    id: string;
+    provinceId?: number;
     name: string;
     address: string;
+    phoneNumber?: string;
+    totalRooms?: number;
+    status?: number;
   }
   
   export interface User {
-    id: number;
-    email: string;
-    name: string;
-    role: 'staff' | 'manager' ;
+    id: string;
+    email?: string;
+    userName: string;
+    displayName: string;
+    role?: string;
+    roles?: string[];
+    accessToken?: string;
+    refreshToken?: string;
+  }
+  
+  export interface LoginRequest {
+    userName: string;
+    passWord: string;
+  }
+  
+  export interface LoginResponse {
+    responseCode: number;
+    message: string;
+    data: {
+      accessToken: string;
+      refreshToken: string;
+      roles: string[];
+      userId: string;
+      userName: string;
+      displayName: string;
+      email: string | null;
+    }
   }
   

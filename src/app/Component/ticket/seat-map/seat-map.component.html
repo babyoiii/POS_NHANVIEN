@@ -1,0 +1,138 @@
+<div class="seat-map-container">
+    <div class="seat-map-header">
+        <button class="back-button" (click)="goBack()">
+            <span>&#8592;</span> Quay lại
+        </button>
+        <h2 class="seat-map-title">Chọn Ghế</h2>
+    </div>
+
+    <div class="screen-container">
+        <div class="screen">MÀN HÌNH</div>
+    </div>
+
+    <div class="scroll-hint">
+        <i class="fa fa-arrows-alt"></i> Giữ và kéo để xem toàn bộ sơ đồ ghế
+    </div>
+
+    <!-- Di chuyển legend lên trên sau màn hình -->
+    <div class="seat-legend">
+        <div class="legend-item">
+            <div class="seat seat-legend-example"></div>
+            <span>Ghế trống</span>
+        </div>
+        <div class="legend-item">
+            <div class="seat seat-legend-example selected"></div>
+            <span>Ghế đang chọn</span>
+        </div>
+        <div class="legend-item">
+            <div class="seat seat-legend-example booked"></div>
+            <span>Ghế đã đặt</span>
+        </div>
+        <div class="legend-item">
+            <div class="seat seat-legend-example reserved"></div>
+            <span>Ghế đang được giữ</span>
+        </div>
+        <div class="legend-item">
+            <div class="seat seat-legend-example unavailable"></div>
+            <span>Ghế không khả dụng</span>
+        </div>
+        <div class="legend-item">
+            <div class="seat seat-legend-example vip-seat"></div>
+            <span>Ghế VIP</span>
+        </div>
+        <div class="legend-item">
+            <div class="couple-seat-container seat-legend-example">
+                <div class="couple-seat-label">C1-C2</div>
+            </div>
+            <span>Ghế đôi</span>
+        </div>
+    </div>
+
+    <div *ngIf="!seats || seats.length === 0" class="loading-seats">
+        <div class="loading-animation"></div>
+        <p>Đang tải sơ đồ ghế...</p>
+    </div>
+
+    <div class="seating-plan" *ngIf="seats && seats.length > 0">
+        <!-- Hiển thị số cột -->
+        <div class="column-indicators">
+            <div class="column-spacer"></div>
+            <div class="column-number" *ngFor="let col of [].constructor(maxCols); let i = index">
+                {{ i + 1 }}
+            </div>
+        </div>
+
+        <!-- Hiển thị hàng ghế -->
+        <div class="seating-row" *ngFor="let row of seatingRows">
+            <div class="row-name">{{ row.rowName }}</div>
+
+            <div class="seats-container">
+                <!-- Tạo ghế trống ở đầu hàng nếu cần -->
+                <div class="empty-seat"
+                    *ngFor="let empty of [].constructor(row.seats[0]?.ColNumber ? row.seats[0].ColNumber - 1 : 0)">
+                </div>
+
+                <!-- Hiển thị ghế thực tế -->
+                <ng-container *ngFor="let seat of row.seats; let i = index">
+                    <!-- Tạo ghế trống giữa các ghế nếu cần -->
+                    <div class="empty-seat"
+                        *ngFor="let empty of [].constructor(seat.ColNumber - (row.seats[i-1]?.ColNumber || 0) - 1)">
+                    </div>
+
+                    <!-- Chỉ hiển thị ghế nếu thỏa mãn điều kiện -->
+                    <ng-container *ngIf="shouldDisplaySeat(seat)">
+                    <!-- Xử lý hiển thị ghế đôi -->
+                        <div *ngIf="seat.PairId" [class]="getSeatClass(seat)"
+                            [class.disabled]="!isSeatSelectable(seat)" (click)="toggleSeat(seat)"
+                            class="couple-seat-container">
+                            <div class="couple-seat-label">{{ getCoupleSeatName(seat) }}</div>
+                        </div>
+
+                        <!-- Hiển thị ghế đơn -->
+                        <div *ngIf="!seat.PairId" [class]="getSeatClass(seat)"
+                        [class.disabled]="!isSeatSelectable(seat)"
+                        [title]="'Ghế ' + seat.SeatName + ' - Trạng thái: ' + seat.Status" (click)="toggleSeat(seat)">
+                        {{ seat.SeatName }}
+                    </div>
+                    </ng-container>
+                </ng-container>
+
+                <!-- Tạo ghế trống ở cuối hàng nếu cần -->
+                <div class="empty-seat"
+                    *ngFor="let empty of [].constructor(maxCols - (row.seats[row.seats.length-1]?.ColNumber || 0))">
+                </div>
+            </div>
+
+            <div class="row-name">{{ row.rowName }}</div>
+        </div>
+    </div>
+
+    <!-- Hiển thị thông báo lỗi validation -->
+    <div class="validation-error" *ngIf="validationMessage">
+        {{ validationMessage }}
+    </div>
+
+    <!-- Thông tin ghế và nút điều hướng -->
+    <div class="seat-summary">
+        <div class="summary-content">
+            <div class="selected-seats">
+                <h3>Ghế đã chọn:</h3>
+                <div class="selected-seat-list">
+                    <span *ngIf="selectedSeats.length === 0">Chưa chọn ghế nào</span>
+                    <span *ngFor="let seat of selectedSeats; let i = index">
+                        {{ seat.SeatName }}{{ i < selectedSeats.length - 1 ? ', ' : '' }} </span>
+                </div>
+            </div>
+            <div class="total-price">
+                <h3>Tổng tiền:</h3>
+                <div class="price">{{ totalPrice | number: '1.0-0' }} VNĐ</div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn-continue" [disabled]="selectedSeats.length === 0" (click)="continueToFoodSelection()">
+                Tiếp tục <i class="fa fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+</div>

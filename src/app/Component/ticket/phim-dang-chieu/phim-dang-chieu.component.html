@@ -11,16 +11,34 @@
 <div class="movie-section">
     <h2>Phim đang chiếu</h2>
 
+    <!-- Hiển thị loading -->
+    <div *ngIf="isLoading" class="loading">
+        Đang tải dữ liệu...
+    </div>
+
+    <!-- Hiển thị lỗi -->
+    <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+    </div>
+
+    <!-- Thông báo không có phim -->
+    <div *ngIf="!isLoading && movies.length === 0 && !errorMessage" class="no-movies">
+        Không có phim nào chiếu vào ngày này
+    </div>
+
     <!-- Nội dung phần phim đang chiếu -->
-    <div class="movies-grid">
+    <div class="movies-grid" *ngIf="!isLoading && movies.length > 0">
         <div class="movie-card" *ngFor="let movie of movies">
-            <img [src]="movie.posterUrl" [alt]="movie.title + ' Poster'">
+            <img [src]="movie.thumbnail" [alt]="movie.movieName + ' Poster'">
             <div class="movie-info">
-                <div class="movie-title">{{ movie.title }}</div>
-                <div class="movie-details">{{ movie.duration }} phút | {{ movie.genre }}</div>
+                <div class="movie-title">{{ movie.movieName }}</div>
+                <div class="movie-details">{{ movie.duration }} phút | {{ getGenresString(movie) }}</div>
                 <div class="showtimes">
-                    <div class="showtime" *ngFor="let time of movie.showtimes">
-                        {{ time }}
+                    <div class="showtime-container" *ngFor="let time of movie.showtimes">
+                        <div class="showtime" (click)="navigateToSeatMap(time.showtimeId)">
+                            {{ formatShowtime(time.startTime) }}
+                        </div>
+                        <button class="book-button" (click)="navigateToSeatMap(time.showtimeId)">Đặt vé</button>
                     </div>
                 </div>
             </div>

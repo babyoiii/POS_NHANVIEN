@@ -1,0 +1,132 @@
+<div class="refund-container">
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-undo-alt"></i> Hoàn vé</h2>
+    </div>
+    
+    <div class="card-body">
+      <div class="refund-instructions" *ngIf="!refundResult">
+        <p class="mb-4">
+          <i class="fas fa-info-circle"></i> 
+          Nhập mã đơn hàng cần hoàn vé. Sau khi nhập, hệ thống sẽ kiểm tra và tiến hành hoàn vé theo quy định.
+        </p>
+      </div>
+
+      <form [formGroup]="refundForm" (ngSubmit)="onSubmit()" class="mb-4" *ngIf="!refundResult">
+        <div class="mb-3">
+          <label for="orderCode" class="form-label">Mã đơn hàng</label>
+          <div class="input-group mb-3">
+            <input 
+              type="text" 
+              class="form-control" 
+              id="orderCode" 
+              formControlName="orderCode"
+              placeholder="Nhập mã đơn hàng (ví dụ: TKT2025...)"
+              [ngClass]="{'is-invalid': refundForm.get('orderCode')?.invalid && refundForm.get('orderCode')?.touched}"
+              autocomplete="off"
+            >
+          </div>
+          
+          <div *ngIf="refundForm.get('orderCode')?.invalid && refundForm.get('orderCode')?.touched" class="invalid-feedback d-block text-danger mb-3">
+            <div *ngIf="refundForm.get('orderCode')?.errors?.['required']">
+              <i class="fas fa-exclamation-circle"></i> Vui lòng nhập mã đơn hàng
+            </div>
+            <div *ngIf="refundForm.get('orderCode')?.errors?.['minlength']">
+              <i class="fas fa-exclamation-circle"></i> Mã đơn hàng phải có ít nhất 6 ký tự
+            </div>
+          </div>
+          
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary w-100" [disabled]="refundForm.invalid || isLoading">
+              <span><i class="fas fa-undo-alt me-2"></i> Kiểm tra & Hoàn vé</span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Loading indicator -->
+      <div *ngIf="isLoading" class="text-center my-4">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Đang xử lý...</span>
+        </div>
+        <p class="mt-3 fw-bold">Đang kiểm tra và xử lý hoàn vé...</p>
+      </div>
+
+      <!-- Error message -->
+      <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
+        <i class="fas fa-exclamation-circle fa-lg me-2"></i> {{ errorMessage }}
+      </div>
+
+      <!-- Success message -->
+      <div *ngIf="successMessage" class="alert alert-success" role="alert">
+        <i class="fas fa-check-circle fa-lg me-2"></i> {{ successMessage }}
+      </div>
+
+      <!-- Refund result details -->
+      <div *ngIf="refundResult" class="refund-details" id="refund-receipt">
+        <div class="card receipt-card">
+          <div class="card-header">
+            <h3><i class="fas fa-receipt me-2"></i> Biên lai hoàn vé</h3>
+          </div>
+          <div class="card-body">
+            <div class="receipt-header text-center mb-4">
+              <h4 class="mb-1">CINEX CINEMA</h4>
+              <p class="mb-1">Biên lai hoàn vé - {{ currentDateFormatted }}</p>
+              <p>Mã GD: {{ refundResult.orderCode }}</p>
+            </div>
+
+            <div class="divider"></div>
+            
+            <div class="receipt-body">
+              <div class="receipt-row">
+                <div class="receipt-label">Mã đơn hàng:</div>
+                <div class="receipt-value">{{ refundResult.orderCode }}</div>
+              </div>
+              
+              <div class="receipt-row" *ngIf="refundResult.email">
+                <div class="receipt-label">Khách hàng:</div>
+                <div class="receipt-value">{{ refundResult.email }}</div>
+              </div>
+              
+              <div class="receipt-row highlight">
+                <div class="receipt-label">Số tiền hoàn:</div>
+                <div class="receipt-value">{{ refundResult.refundAmount | currency:'VND':'symbol':'1.0-0' }}</div>
+              </div>
+              
+              <div class="divider"></div>
+              
+              <h5 class="mb-3">Thông tin vé đã hoàn</h5>
+              
+              <div class="ticket-details">
+                <p class="mb-2"><i class="fas fa-film me-2"></i> Suất chiếu: {{ formatDateTime(getShowtime(refundResult.showTimeId)) }}</p>
+                
+                <p class="mb-2"><i class="fas fa-couch me-2"></i> Số lượng ghế đã hoàn: <b>{{ refundResult.seatStatusByShowTimeIds?.length || 0 }}</b></p>
+              </div>
+              
+              <div class="divider"></div>
+              
+              <div class="receipt-footer text-center">
+                <p>Thời gian hoàn vé: {{ currentDateFormatted }}</p>
+                <p class="mb-0">Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-buttons text-center mt-4">
+          <button class="btn btn-print" (click)="printReceipt()">
+            <i class="fas fa-print me-2"></i> In biên lai
+          </button>
+          
+          <button class="btn btn-secondary ms-3" (click)="resetForm()">
+            <i class="fas fa-redo me-2"></i> Hoàn vé khác
+          </button>
+          
+          <a class="btn btn-primary ms-3" [routerLink]="['/trangchu/ticket']">
+            <i class="fas fa-arrow-left me-2"></i> Quay lại bán vé
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

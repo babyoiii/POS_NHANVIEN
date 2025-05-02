@@ -1,157 +1,425 @@
-<div class="products-section">
-    <div class="header">
-        <div class="page-title">Bắp Nước & Đồ Ăn</div>
+<div class="container">
+    <!-- Search Bar -->
+    <div class="search-container">
         <div class="search-bar">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Tìm kiếm sản phẩm...">
+            <i class="fa fa-search"></i>
+            <input type="text" placeholder="Tìm kiếm tên hoặc mô tả sản phẩm..." [(ngModel)]="searchText" (keyup)="search()">
+            <i *ngIf="searchText" class="fa fa-times" (click)="clearSearch()"></i>
         </div>
     </div>
 
-    <div class="categories">
-        <div class="category active">Tất cả</div>
-        <div class="category">Combo</div>
-        <div class="category">Bắp rang</div>
-        <div class="category">Đồ uống</div>
-        <div class="category">Snack</div>
-        <div class="category">Đồ ngọt</div>
-        <div class="category">Khuyến mãi</div>
+    <!-- Category Filter -->
+    <div class="category-filter">
+        <button class="filter-button" [class.active]="selectedCategory === 0" (click)="selectCategory(0)">
+            <i class="fa fa-th-large"></i> Tất cả
+        </button>
+        <button class="filter-button" [class.active]="selectedCategory === 1" (click)="selectCategory(1)">
+            <i class="fa fa-film"></i> Bắp
+        </button>
+        <button class="filter-button" [class.active]="selectedCategory === 2" (click)="selectCategory(2)">
+            <i class="fa fa-glass"></i> Nước
+        </button>
+        <button class="filter-button" [class.active]="selectedCategory === 3" (click)="selectCategory(3)">
+            <i class="fa fa-cutlery"></i> Combo
+        </button>
     </div>
 
-    <div class="quick-add-section">
-        <div class="section-title">Thêm nhanh</div>
-        <div class="quick-add-grid">
-            <div class="quick-add-item">
-                <div>Bắp ngọt nhỏ</div>
-                <div class="quick-add-price">45.000đ</div>
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Products Area -->
+        <div class="products-area">
+            <!-- Loading Indicator -->
+            <div *ngIf="loading" class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Đang tải sản phẩm...</p>
             </div>
-            <div class="quick-add-item">
-                <div>Coca nhỏ</div>
-                <div class="quick-add-price">30.000đ</div>
+
+            <!-- Error Message -->
+            <div *ngIf="errorMessage" class="error-container">
+                <i class="fa fa-exclamation-circle"></i>
+                <h3>Đã xảy ra lỗi</h3>
+                <p>{{ errorMessage }}</p>
+                <button (click)="getServices()">Thử lại</button>
             </div>
-            <div class="quick-add-item">
-                <div>Combo 1</div>
-                <div class="quick-add-price">85.000đ</div>
+
+            <!-- No Products Message -->
+            <div *ngIf="!loading && !errorMessage && filteredServices && filteredServices.length === 0" class="empty-container">
+                <i class="fa fa-search"></i>
+                <h3>Không tìm thấy sản phẩm</h3>
+                <p>Vui lòng thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác.</p>
             </div>
-            <div class="quick-add-item">
-                <div>Combo 2</div>
-                <div class="quick-add-price">105.000đ</div>
+
+            <!-- Products Grid -->
+            <div *ngIf="!loading && !errorMessage && filteredServices && filteredServices.length > 0">
+                <div class="category-section">
+                    <h2>{{ getCategoryName() }}</h2>
+                    <div class="products-grid">
+                        <div class="product-card" *ngFor="let service of filteredServices">
+                            <div class="product-image">
+                                <img [src]="service.imageUrl || 'assets/images/default-product.jpg'" [alt]="service.serviceName">
+                            </div>
+                            <div class="product-details">
+                                <h3>{{ service.serviceName }}</h3>
+                                <p class="product-description">{{ service.description }}</p>
+                                <div class="product-price">{{ service.price | currency:'VND':'symbol':'1.0-0' }}</div>
+                                <button class="add-to-cart" (click)="addToCart(service)">
+                                    <i class="fa fa-shopping-cart"></i> Thêm vào giỏ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="quick-add-item">
-                <div>Nước suối</div>
-                <div class="quick-add-price">20.000đ</div>
+        </div>
+
+        <!-- Cart Sidebar -->
+        <div class="cart-sidebar">
+            <div class="cart-sidebar-header">
+                <h3><i class="fa fa-shopping-cart"></i> Giỏ hàng của bạn</h3>
+                <div class="cart-count-badge">{{ cartItems.length }}</div>
             </div>
-            <div class="quick-add-item">
-                <div>Snack mix</div>
-                <div class="quick-add-price">35.000đ</div>
+            <div class="cart-sidebar-content">
+                <!-- Empty Cart Message -->
+                <div *ngIf="cartItems.length === 0" class="empty-cart-message">
+                    <i class="fa fa-shopping-cart"></i>
+                    <p>Giỏ hàng của bạn đang trống</p>
+                    <p class="empty-cart-hint">Hãy chọn sản phẩm bạn muốn mua</p>
+                </div>
+
+                <!-- Cart Items List -->
+                <div *ngIf="cartItems.length > 0" class="cart-items-list">
+                    <div class="cart-sidebar-item" *ngFor="let item of cartItems; let i = index">
+                        <div class="cart-item-info">
+                            <h4>{{ item.serviceName }}</h4>
+                            <div class="item-details">
+                                <div class="quantity-controls">
+                                    <button class="quantity-btn" (click)="decreaseQuantity(i)">-</button>
+                                    <span class="quantity-value">{{ item.quantity || 1 }}</span>
+                                    <button class="quantity-btn" (click)="increaseQuantity(i)">+</button>
+                                </div>
+                                <span class="item-price">{{ item.price * (item.quantity || 1) | currency:'VND':'symbol':'1.0-0' }}</span>
+                            </div>
+                        </div>
+                        <button class="remove-item-btn" (click)="removeFromCart(i)">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cart Total -->
+                <div *ngIf="cartItems.length > 0" class="cart-sidebar-total">
+                    <div class="total-row">
+                        <span>Tổng tiền:</span>
+                        <span class="total-amount">{{ getTotalAmount() | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                </div>
+
+                <!-- Phần nhập email khách hàng -->
+                <div *ngIf="cartItems.length > 0" class="customer-email-section">
+                    <h4><i class="fas fa-user"></i> Thông tin khách hàng</h4>
+
+                    <div class="email-options">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="emailOption" id="useDefaultEmail"
+                                   [(ngModel)]="useDefaultEmail" [value]="true" checked>
+                            <label class="form-check-label" for="useDefaultEmail">
+                                Dùng email mặc định ({{ defaultEmail }})
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="emailOption" id="useCustomerEmail"
+                                   [(ngModel)]="useDefaultEmail" [value]="false">
+                            <label class="form-check-label" for="useCustomerEmail">
+                                Sử dụng email khách hàng
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="customer-email-input" *ngIf="!useDefaultEmail">
+                        <div class="input-group">
+                            <input type="email" class="form-control" placeholder="Nhập email khách hàng..."
+                                   [(ngModel)]="customerEmail" (blur)="checkCustomerEmail(customerEmail)"
+                                   [disabled]="isCheckingEmail">
+                            <button class="btn btn-outline-primary" type="button"
+                                    (click)="checkCustomerEmail(customerEmail)"
+                                    [disabled]="isCheckingEmail">
+                                <i class="fa" [ngClass]="isCheckingEmail ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                            </button>
+                        </div>
+                        <div *ngIf="emailError" class="email-error mt-2">
+                            <i class="fa fa-exclamation-circle"></i> {{ emailError }}
+                        </div>
+                        <div *ngIf="emailSuccess" class="email-success mt-2">
+                            <i class="fa fa-check-circle"></i> {{ emailSuccess }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Actions -->
+                <div *ngIf="cartItems.length > 0" class="cart-sidebar-actions">
+                    <button class="clear-cart-btn" (click)="clearCart()">
+                        <i class="fa fa-trash"></i> Xóa
+                    </button>
+                    <button class="checkout-btn" (click)="checkout()" aria-label="Thanh toán">
+                        <i class="fa fa-check"></i> Thanh toán
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="combo-section">
-        <div class="section-title">Combo phổ biến</div>
-        <div class="products-grid">
-            <div class="product-card">
-                <span class="promo-badge">Tiết kiệm 15%</span>
-                <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_fill,w_84,h_84,g_auto/f_auto/q_auto/v1710944652/amc-cdn/production/2/product-categories/9901802/164175.jpg" alt="Combo 1" class="product-image">
-                <div class="product-info">
-                    <div class="product-name">Combo 1</div>
-                    <div class="product-description">1 bắp ngọt lớn + 2 nước ngọt vừa</div>
-                    <div class="product-price">85.000đ</div>
-                    <button class="add-to-cart">Thêm vào giỏ</button>
+<!-- QR Payment Modal -->
+<div class="qr-payment-modal" *ngIf="showQRCode">
+    <div class="modal-overlay" (click)="hideQRCode()"></div>
+    <div class="qr-payment-content">
+        <div class="modal-header">
+            <h3>Thanh toán bằng QR Code</h3>
+            <button class="close-button" (click)="hideQRCode()">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="qr-code-container">
+                <img [src]="qrImageUrl" alt="QR Payment Code" class="qr-code-image">
+                <div class="payment-status" [ngClass]="paymentStatus">
+                    <div *ngIf="paymentStatus === 'pending'" class="status-pending">
+                        <div class="spinner"></div>
+                        <p>Đang chờ thanh toán...</p>
+                    </div>
+                    <div *ngIf="paymentStatus === 'success'" class="status-success">
+                        <i class="fa fa-check-circle"></i>
+                        <p>Thanh toán thành công!</p>
+                    </div>
+                    <div *ngIf="paymentStatus === 'failed'" class="status-failed">
+                        <i class="fa fa-times-circle"></i>
+                        <p>Thanh toán thất bại!</p>
+                    </div>
                 </div>
             </div>
-
-            <div class="product-card">
-                <span class="promo-badge">Tiết kiệm 20%</span>
-                <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_fill,w_84,h_84,g_auto/f_auto/q_auto/v1710944652/amc-cdn/production/2/product-categories/9901802/164175.jpg" alt="Combo 2" class="product-image">
-                <div class="product-info">
-                    <div class="product-name">Combo 2</div>
-                    <div class="product-description">1 bắp ngọt lớn + 2 nước ngọt lớn + 1 snack</div>
-                    <div class="product-price">105.000đ</div>
-                    <button class="add-to-cart">Thêm vào giỏ</button>
+            <div class="payment-info">
+                <div class="info-row">
+                    <span class="info-label">Tổng tiền:</span>
+                    <span class="info-value">{{ getTotalAmount() | currency:'VND':'symbol':'1.0-0' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Mã đơn hàng:</span>
+                    <span class="info-value">{{ orderId }}</span>
+                </div>
+                <div class="payment-instructions">
+                    <p>1. Mở ứng dụng ngân hàng trên điện thoại</p>
+                    <p>2. Quét mã QR bên trên</p>
+                    <p>3. Xác nhận thanh toán</p>
                 </div>
             </div>
+        </div>
+        <div class="modal-footer">
+            <button class="cancel-btn" (click)="hideQRCode()">Đóng</button>
+            <button class="print-btn" *ngIf="paymentStatus === 'success'" (click)="printReceipt()">
+                <i class="fa fa-print"></i> In hóa đơn
+            </button>
+        </div>
+    </div>
+</div>
 
-            <div class="product-card">
-                <span class="promo-badge">Tiết kiệm 25%</span>
-                <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_fill,w_84,h_84,g_auto/f_auto/q_auto/v1710944652/amc-cdn/production/2/product-categories/9901802/164175.jpg" alt="Combo Gia Đình"
-                    class="product-image">
-                <div class="product-info">
-                    <div class="product-name">Combo Gia Đình</div>
-                    <div class="product-description">2 bắp lớn + 4 nước + 2 snack</div>
-                    <div class="product-price">180.000đ</div>
-                    <button class="add-to-cart">Thêm vào giỏ</button>
+<!-- Payment Method Modal -->
+<div class="modal fade" id="paymentMethodModal" tabindex="-1" role="dialog" aria-labelledby="paymentMethodModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentMethodModalLabel">Chọn phương thức thanh toán</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="list-group">
+                    <a href="javascript:void(0)" class="list-group-item list-group-item-action" (click)="selectPaymentMethod('cash')">
+                        <i class="fa fa-money mr-2"></i> Tiền mặt
+                    </a>
+                    <a href="javascript:void(0)" class="list-group-item list-group-item-action" (click)="selectPaymentMethod('card')">
+                        <i class="fa fa-credit-card mr-2"></i> Thẻ tín dụng/ghi nợ
+                    </a>
+                    <a href="javascript:void(0)" class="list-group-item list-group-item-action" (click)="selectPaymentMethod('qr')">
+                        <i class="fa fa-qrcode mr-2"></i> Quét mã QR
+                    </a>
                 </div>
             </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-            <div class="product-card">
-                <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_fill,w_84,h_84,g_auto/f_auto/q_auto/v1710944652/amc-cdn/production/2/product-categories/9901802/164175.jpg" alt="Combo Đôi" class="product-image">
-                <div class="product-info">
-                    <div class="product-name">Combo Đôi</div>
-                    <div class="product-description">1 bắp caramel + 2 nước + 1 snack</div>
-                    <div class="product-price">95.000đ</div>
-                    <button class="add-to-cart">Thêm vào giỏ</button>
+<!-- Payment Method Modal (Custom) -->
+<div class="payment-method-modal" *ngIf="showPaymentModal">
+    <div class="payment-method-overlay" (click)="closePaymentModal()"></div>
+    <div class="payment-method-content">
+        <div class="payment-method-header">
+            <h3>Chọn phương thức thanh toán</h3>
+            <button class="close-button" (click)="closePaymentModal()">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div class="payment-method-list">
+            <div class="payment-method-item" *ngFor="let method of paymentMethods" (click)="selectPaymentMethod(method)">
+                <i class="fa" [ngClass]="method.icon"></i>
+                <div class="payment-method-info">
+                    <h4>{{ method.name }}</h4>
+                    <p>{{ method.description }}</p>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="section-title">Bắp rang</div>
-    <div class="products-grid">
-        <div class="product-card">
-            <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_fill,w_84,h_84,g_auto/f_auto/q_auto/v1710944652/amc-cdn/production/2/product-categories/9901802/164175.jpg" alt="Bắp Ngọt" class="product-image">
-            <div class="product-info">
-                <div class="product-name">Bắp Ngọt</div>
-                <div class="size-options">
-                    <div class="size-option active">Nhỏ</div>
-                    <div class="size-option">Vừa</div>
-                    <div class="size-option">Lớn</div>
+<!-- Printing Overlay -->
+<div class="printing-overlay" *ngIf="showPrintingOverlay">
+    <div class="printing-content">
+        <h2>Đang xử lý thanh toán</h2>
+        <div class="spinner"></div>
+        <p>Vui lòng đợi trong giây lát...</p>
+        <button class="close-overlay-btn" (click)="closePrintingOverlay()">Hủy</button>
+    </div>
+</div>
+
+<!-- Custom Notification -->
+<div class="custom-notification" *ngIf="showCustomNotification" [ngClass]="notificationType">
+    <div class="notification-content">
+        <div class="notification-icon">
+            <i class="fa" [ngClass]="{
+                'fa-check-circle': notificationType === 'success',
+                'fa-exclamation-circle': notificationType === 'error',
+                'fa-exclamation-triangle': notificationType === 'warning',
+                'fa-info-circle': notificationType === 'info'
+            }"></i>
+        </div>
+        <div class="notification-message">
+            <h4 class="notification-title">{{ notificationTitle }}</h4>
+            <p class="notification-text">{{ notificationMessage }}</p>
+        </div>
+        <button class="notification-close" (click)="closeNotification()">
+            <i class="fa fa-times"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Modal nhập tiền khách thanh toán -->
+<div class="cash-payment-modal" *ngIf="showCashPaymentModal">
+    <div class="modal-overlay" (click)="closeCashPaymentModal()"></div>
+    <div class="cash-payment-content">
+        <div class="modal-header">
+            <h3>Thanh toán tiền mặt</h3>
+            <button class="close-button" (click)="closeCashPaymentModal()">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="payment-info">
+                <div class="info-row">
+                    <span class="info-label">Tổng tiền:</span>
+                    <span class="info-value">{{ getTotalAmount() | currency:'VND':'symbol':'1.0-0' }}</span>
                 </div>
-                <div class="product-price">45.000đ</div>
-                <button class="add-to-cart">Thêm vào giỏ</button>
+                <div class="info-row">
+                    <span class="info-label">Tiền khách đưa:</span>
+                    <div class="input-with-buttons">
+                        <input type="number" [(ngModel)]="cashReceived" (ngModelChange)="calculateChange()" placeholder="Nhập số tiền">
+                        <div class="quick-buttons">
+                            <button (click)="setQuickAmount(100000)">100K</button>
+                            <button (click)="setQuickAmount(200000)">200K</button>
+                            <button (click)="setQuickAmount(500000)">500K</button>
+                            <button (click)="setQuickAmount(getTotalAmount())">Đủ</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-row change-amount" [class.positive]="changeAmount >= 0">
+                    <span class="info-label">Tiền thừa:</span>
+                    <span class="info-value">{{ changeAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                </div>
             </div>
         </div>
+        <div class="modal-footer">
+            <button class="cancel-btn" (click)="closeCashPaymentModal()">Hủy</button>
+            <button class="confirm-btn" [disabled]="cashReceived < getTotalAmount()" (click)="processCashPayment()">
+                Xác nhận
+            </button>
+        </div>
+    </div>
+</div>
 
-        <div class="product-card">
-            <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_fill,w_84,h_84,g_auto/f_auto/q_auto/v1710944652/amc-cdn/production/2/product-categories/9901802/164175.jpg" alt="Bắp Caramel" class="product-image">
-            <div class="product-info">
-                <div class="product-name">Bắp Caramel</div>
-                <div class="size-options">
-                    <div class="size-option active">Nhỏ</div>
-                    <div class="size-option">Vừa</div>
-                    <div class="size-option">Lớn</div>
+<!-- Modal in hóa đơn -->
+<div class="receipt-modal" *ngIf="showReceiptModal">
+    <div class="modal-overlay" (click)="closeReceiptModal()"></div>
+    <div class="receipt-modal-content">
+        <div class="modal-header">
+            <h3>Hóa đơn thanh toán</h3>
+            <button class="close-button" (click)="closeReceiptModal()">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="receipt-content receipt-for-pdf" id="receipt-content">
+                <div class="cinema-logo">
+                    <img src="assets/Image/cinexLogo.png" alt="Cinema Logo">
                 </div>
-                <div class="product-price">55.000đ</div>
-                <button class="add-to-cart">Thêm vào giỏ</button>
+                <div class="receipt-header">
+                    <h2>HÓA ĐƠN THANH TOÁN</h2>
+                    <p>Mã đơn hàng: {{ orderId }}</p>
+                    <p>Ngày: {{ formatLocalDate(today) }}</p>
+                    <p>Nhân viên: {{ getStaffName() }}</p>
+                </div>
+                <div class="receipt-items">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>SL</th>
+                                <th>Đơn giá</th>
+                                <th class="amount">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let item of receiptItems">
+                                <td>{{ item.serviceName }}</td>
+                                <td>{{ item.count || 1 }}</td>
+                                <td>{{ item.price | currency:'VND':'symbol':'1.0-0' }}</td>
+                                <td class="amount">{{ item.price * (item.count || 1) | currency:'VND':'symbol':'1.0-0' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="receipt-summary">
+                    <div class="summary-row total-row">
+                        <span>Tổng cộng:</span>
+                        <span>{{ receiptTotalAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row" *ngIf="cashReceived > 0">
+                        <span>Tiền khách đưa:</span>
+                        <span>{{ cashReceived | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row" *ngIf="changeAmount >= 0 && cashReceived > 0">
+                        <span>Tiền thừa:</span>
+                        <span>{{ changeAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                </div>
+                <div class="receipt-barcode">
+                    * {{ orderId }} *
+                </div>
+                <div class="receipt-footer">
+                    <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+                    <p>Chúc quý khách xem phim vui vẻ</p>
+                </div>
             </div>
         </div>
-
-        <div class="product-card">
-            <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_fill,w_84,h_84,g_auto/f_auto/q_auto/v1710944652/amc-cdn/production/2/product-categories/9901802/164175.jpg" alt="Bắp Phô Mai" class="product-image">
-            <div class="product-info">
-                <div class="product-name">Bắp Phô Mai</div>
-                <div class="size-options">
-                    <div class="size-option active">Nhỏ</div>
-                    <div class="size-option">Vừa</div>
-                    <div class="size-option">Lớn</div>
-                </div>
-                <div class="product-price">60.000đ</div>
-                <button class="add-to-cart">Thêm vào giỏ</button>
-            </div>
-        </div>
-
-        <div class="product-card">
-            <img src="https://amc-theatres-res.cloudinary.com/image/upload/c_fill,w_84,h_84,g_auto/f_auto/q_auto/v1710944652/amc-cdn/production/2/product-categories/9901802/164175.jpg" alt="Bắp Mix" class="product-image">
-            <div class="product-info">
-                <div class="product-name">Bắp Mix (Caramel + Phô Mai)</div>
-                <div class="size-options">
-                    <div class="size-option active">Nhỏ</div>
-                    <div class="size-option">Vừa</div>
-                    <div class="size-option">Lớn</div>
-                </div>
-                <div class="product-price">65.000đ</div>
-                <button class="add-to-cart">Thêm vào giỏ</button>
-            </div>
+        <div class="modal-footer">
+            <button class="cancel-btn" (click)="closeReceiptModal()">Đóng</button>
+            <button class="print-btn" (click)="printReceipt()">
+                <i class="fa fa-print"></i> In hóa đơn
+            </button>
+            <button class="export-btn" (click)="exportToPdf()">
+                <i class="fa fa-file-pdf-o"></i> Xuất PDF
+            </button>
         </div>
     </div>
 </div>

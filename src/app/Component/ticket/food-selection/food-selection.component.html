@@ -1,0 +1,449 @@
+<div class="food-selection-container">
+    <!-- Thanh tiêu đề và thông tin -->
+    <div class="header-section">
+        <div class="back-button" (click)="goBack()">
+            <i class="fas fa-arrow-left"></i>
+            <span>Quay lại</span>
+        </div>
+        <div class="page-title">
+            <h1>Chọn đồ ăn & thức uống</h1>
+            <p>Hoàn tất việc đặt vé bằng cách chọn thức ăn và đồ uống yêu thích của bạn</p>
+        </div>
+    </div>
+
+    <!-- Phần chọn ghế và thông tin đã chọn -->
+    <div class="selected-info-section">
+        <div class="selected-seats-info">
+            <h2>Ghế đã chọn</h2>
+            <div class="seat-chips">
+                <div class="seat-chip" *ngFor="let seat of selectedSeats">
+                    {{seat.SeatName}}
+                </div>
+                <div class="seat-total">
+                    <span>Tổng tiền ghế:</span>
+                    <strong>{{formatPrice(seatsTotalPrice)}}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- LEFT COLUMN: Danh sách dịch vụ -->
+        <div class="services-area">
+            <!-- Tìm kiếm -->
+            <div class="search-container">
+                <div class="search-bar">
+                    <input type="text" placeholder="Tìm kiếm sản phẩm..." (input)="search($event)">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+
+            <!-- Bộ lọc danh mục -->
+            <div class="category-filter">
+                <div class="filter-button" [class.active]="selectedType === null" (click)="selectType(null)">
+                    Tất cả
+                </div>
+                <div class="filter-button" *ngFor="let type of serviceTypes" [class.active]="selectedType === type.id"
+                    (click)="selectType(type.id)">
+                    {{ type.name }}
+                </div>
+            </div>
+
+            <!-- Loading indicator -->
+            <div class="loading-container" *ngIf="loading">
+                <div class="loading-spinner"></div>
+                <p>Đang tải dữ liệu...</p>
+            </div>
+
+            <!-- Error Message -->
+            <div class="error-container" *ngIf="error">
+                <i class="fas fa-exclamation-circle"></i>
+                <h3>Đã xảy ra lỗi</h3>
+                <p>{{ error }}</p>
+                <button (click)="loadServiceTypes()">Thử lại</button>
+            </div>
+
+            <!-- Empty Results -->
+            <div class="empty-container" *ngIf="!loading && !error && filteredServices.length === 0">
+                <i class="fas fa-search"></i>
+                <h3>Không tìm thấy kết quả</h3>
+                <p>Vui lòng thử lại với từ khóa khác hoặc bỏ bộ lọc</p>
+            </div>
+
+            <!-- Danh sách dịch vụ -->
+            <div class="services-container" *ngIf="!loading && !error && filteredServices.length > 0">
+                <div class="category-section">
+                    <h2 *ngIf="selectedType !== null">{{ getSelectedTypeName() }}</h2>
+                    <h2 *ngIf="selectedType === null">Tất cả sản phẩm</h2>
+                    
+                    <!-- Thêm hướng dẫn sử dụng -->
+                    <div class="usage-guide">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Nhấp vào sản phẩm để thêm vào giỏ hàng hoặc sử dụng nút <strong>Thêm vào giỏ</strong></span>
+                    </div>
+
+                    <div class="service-card-container">
+                        <div class="service-card" *ngFor="let service of filteredServices" (click)="addToCart(service)" 
+                             style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; cursor: pointer; position: relative; margin-bottom: 15px; border: 1px solid #e0e0e0;"
+                             onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';" 
+                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
+                            <div class="add-icon" style="position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2; transition: all 0.3s;">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <div class="service-image" style="position: relative; width: 100%; height: 150px; overflow: hidden; border-radius: 8px; margin-bottom: 12px;">
+                                <img [src]="service.imageUrl && service.imageUrl.length > 0 ? 
+                                    (service.imageUrl.startsWith('http') || service.imageUrl.startsWith('assets/') ? 
+                                        service.imageUrl : 'https://localhost:7263/' + service.imageUrl) : 
+                                    'assets/Image/cinexLogo.png'" 
+                                    (error)="handleImageError($event)"
+                                    alt="{{ service.serviceName }}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;">
+                            </div>
+                            <div class="service-details" style="padding: 5px 0;">
+                                <h3 class="service-name" style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px;">{{service.serviceName}}</h3>
+                                <p class="service-description" style="color: #666; font-size: 14px; margin-bottom: 12px; height: 40px; overflow: hidden;">{{service.description || 'Không có mô tả'}}</p>
+                                <div class="service-price" style="font-size: 16px; font-weight: bold; color: #e91e63; margin-bottom: 12px;">{{formatPrice(service.price)}}</div>
+                                <button class="add-to-cart-btn" (click)="addToCart(service); $event.stopPropagation()" 
+                                        style="background-color: #e91e63; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; display: block; width: 100%; text-transform: uppercase; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                    <i class="fas fa-shopping-cart"></i> THÊM VÀO GIỎ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Giỏ hàng -->
+        <div class="cart-sidebar">
+            <div class="cart-sidebar-header">
+                <h3>Giỏ hàng của bạn</h3>
+                <span class="cart-badge">
+                    <span class="cart-count">{{ cartItems.length }}</span> sản phẩm
+                </span>
+            </div>
+
+            <div class="cart-items-section" *ngIf="cartItems.length > 0">
+                <div class="cart-items-list">
+                    <div class="cart-item" *ngFor="let item of cartItems; let i = index">
+                        <div class="cart-item-info">
+                            <h4>{{ item.serviceName }}</h4>
+                            <div class="item-price">{{ formatPrice(item.price) }}</div>
+                        </div>
+                        <div class="cart-item-actions">
+                            <div class="quantity-control">
+                                <button class="quantity-btn" (click)="removeFromCart(i)">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span class="quantity">{{ item.count || 1 }}</span>
+                                <button class="quantity-btn" (click)="addToCart(item)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div class="item-total">
+                                {{ formatPrice(item.price * (item.count || 1)) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cart-actions">
+                    <button class="clear-cart-btn" (click)="clearCart()">
+                        <i class="fas fa-trash-alt"></i> Xóa tất cả
+                    </button>
+                </div>
+            </div>
+
+            <div class="empty-cart-message" *ngIf="cartItems.length === 0">
+                <i class="fas fa-shopping-cart"></i>
+                <p>Giỏ hàng của bạn đang trống</p>
+                <p class="empty-cart-hint">Hãy thêm sản phẩm vào giỏ hàng</p>
+            </div>
+
+            <!-- Phần nhập email khách hàng -->
+            <div class="customer-email-section">
+                <h4><i class="fas fa-user"></i> Thông tin khách hàng</h4>
+                
+                <div class="email-options">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="emailOption" id="useDefaultEmail" 
+                               [(ngModel)]="useDefaultEmail" [value]="true" checked>
+                        <label class="form-check-label" for="useDefaultEmail">
+                            Dùng email mặc định ({{ defaultEmail }})
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="emailOption" id="useCustomerEmail" 
+                               [(ngModel)]="useDefaultEmail" [value]="false">
+                        <label class="form-check-label" for="useCustomerEmail">
+                            Sử dụng email khách hàng
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="customer-email-input" *ngIf="!useDefaultEmail">
+                    <div class="input-group">
+                        <input type="email" class="form-control" placeholder="Nhập email khách hàng..." 
+                               [(ngModel)]="customerEmail" (blur)="checkCustomerEmail(customerEmail)"
+                               [disabled]="isCheckingEmail">
+                        <button class="btn btn-outline-primary" type="button" 
+                                (click)="checkCustomerEmail(customerEmail)"
+                                [disabled]="isCheckingEmail">
+                            <i class="fas fa-search" *ngIf="!isCheckingEmail"></i>
+                            <i class="fas fa-spinner fa-spin" *ngIf="isCheckingEmail"></i>
+                            Kiểm tra
+                        </button>
+                    </div>
+                    
+                    <div class="email-feedback error" *ngIf="emailError">
+                        <i class="fas fa-exclamation-circle"></i> {{ emailError }}
+                    </div>
+                    
+                    <div class="email-feedback success" *ngIf="emailSuccess">
+                        <i class="fas fa-check-circle"></i> {{ emailSuccess }}
+                    </div>
+                    
+                    <div class="customer-info" *ngIf="customerInfo">
+                        <p><strong>Tên:</strong> {{ customerInfo.name }}</p>
+                        <p><strong>SĐT:</strong> {{ customerInfo.phoneNumber }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Tổng tiền ghế:</span>
+                    <span class="summary-value">{{ formatPrice(seatsTotalPrice) }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Tổng tiền dịch vụ:</span>
+                    <span class="summary-value">{{ formatPrice(getServicesTotalPrice()) }}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Tổng thanh toán:</span>
+                    <span class="summary-value total-amount">{{ formatPrice(getTotalPrice()) }}</span>
+                </div>
+            </div>
+
+            <button class="checkout-btn" (click)="openPaymentModal()">
+                <i class="fas fa-shopping-bag"></i> Tiến hành thanh toán
+            </button>
+        </div>
+    </div>
+
+    <!-- Payment Method Modal -->
+    <div class="modal-overlay" *ngIf="showPaymentModal" (click)="closePaymentModal()"></div>
+    <div class="payment-modal" *ngIf="showPaymentModal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Chọn phương thức thanh toán</h3>
+            <button class="close-btn" (click)="closePaymentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="payment-methods">
+                <div class="payment-method" *ngFor="let method of paymentMethods" (click)="selectPaymentMethod(method)">
+                    <div class="method-icon">
+                        <i class="fas" [ngClass]="method.icon"></i>
+                    </div>
+                    <div class="method-info">
+                        <h4>{{ method.name }}</h4>
+                        <p>{{ method.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Payment Modal -->
+    <div class="modal-overlay" *ngIf="showQRCode" (click)="showQRCode = false"></div>
+    <div class="qr-modal" *ngIf="showQRCode" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Quét mã QR để thanh toán</h3>
+            <button class="close-btn" (click)="showQRCode = false">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="qr-image">
+                <img [src]="qrImageUrl" alt="QR Code">
+            </div>
+            <div class="payment-details">
+                <div class="payment-detail-row">
+                    <span>Số tiền:</span>
+                    <span class="payment-value">{{ formatPrice(getTotalPrice()) }}</span>
+                </div>
+                <div class="payment-detail-row">
+                    <span>Mã đơn hàng:</span>
+                    <span class="payment-value">{{ orderId }}</span>
+                </div>
+            </div>
+            <div class="payment-instructions">
+                <p>1. Mở ứng dụng ngân hàng và quét mã QR</p>
+                <p>2. Kiểm tra thông tin và xác nhận thanh toán</p>
+                <p>3. Sau khi thanh toán thành công, nhấn "Xác nhận đã thanh toán"</p>
+            </div>
+            <button class="confirm-payment-btn" (click)="confirmPayment()" [disabled]="isLoading">
+                <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+                <i class="fas fa-check-circle" *ngIf="!isLoading"></i>
+                {{ isLoading ? 'Đang xử lý...' : 'Xác nhận đã thanh toán' }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" *ngIf="isLoading">
+        <div class="loader">
+            <div class="spinner"></div>
+            <p>Đang xử lý thanh toán...</p>
+        </div>
+    </div>
+
+    <!-- Modal nhập tiền khách thanh toán -->
+    <div class="cash-payment-modal" *ngIf="showCashPaymentModal">
+        <div class="modal-overlay" (click)="closeCashPaymentModal()"></div>
+        <div class="cash-payment-content" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Thanh toán tiền mặt</h3>
+                <button class="close-button" (click)="closeCashPaymentModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="payment-info">
+                    <div class="info-row">
+                        <span class="info-label">Tổng tiền:</span>
+                        <span class="info-value">{{ getTotalPrice() | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Tiền khách đưa:</span>
+                        <div class="input-with-buttons">
+                            <input type="number" [(ngModel)]="cashReceived" (ngModelChange)="calculateChange()" placeholder="Nhập số tiền">
+                            <div class="quick-buttons">
+                                <button (click)="setQuickAmount(100000)">100K</button>
+                                <button (click)="setQuickAmount(200000)">200K</button>
+                                <button (click)="setQuickAmount(500000)">500K</button>
+                                <button (click)="setQuickAmount(getTotalPrice())">Đủ</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-row change-amount" [class.positive]="changeAmount >= 0">
+                        <span class="info-label">Tiền thừa:</span>
+                        <span class="info-value">{{ changeAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" (click)="closeCashPaymentModal()">Hủy</button>
+                <button class="confirm-btn" [disabled]="cashReceived < getTotalPrice()" (click)="processCashPayment()">
+                    Xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal in hóa đơn -->
+    <div class="receipt-modal" *ngIf="showReceiptModal">
+        <div class="modal-overlay" (click)="closeReceiptModal()"></div>
+        <div class="receipt-modal-content" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Hóa đơn thanh toán</h3>
+                <button class="close-button" (click)="closeReceiptModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="receipt-content" id="receipt-content">
+                <div class="cinema-logo">
+                    <img src="assets/Image/cinexLogo.png" alt="Cinema Logo">
+                </div>
+                <div class="receipt-header">
+                    <h2>HÓA ĐƠN THANH TOÁN</h2>
+                    <p>Mã đơn hàng: {{ orderId }}</p>
+                    <p>Ngày: {{ formatLocalDate(today) }}</p>
+                    <p>Nhân viên: {{ getStaffName() }}</p>
+                </div>
+                
+                <!-- Thông tin ghế đã chọn -->
+                <div class="receipt-section">
+                    <h3 class="section-title">THÔNG TIN VÉ</h3>
+                    <div class="seat-list">
+                        <div class="seat-item" *ngFor="let seat of selectedSeats">
+                            <span>Ghế: {{ seat.SeatName }}</span>
+                            <span>{{ seat.SeatPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                        </div>
+                        <div class="seat-item seat-total">
+                            <span>Tổng tiền ghế:</span>
+                            <span>{{ seatsTotalPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Thông tin dịch vụ -->
+                <div class="receipt-section">
+                    <h3 class="section-title">THÔNG TIN DỊCH VỤ</h3>
+                    <div class="receipt-items">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>SL</th>
+                                    <th>Đơn giá</th>
+                                    <th class="amount">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngIf="receiptItems.length === 0">
+                                    <td colspan="4" style="text-align: center;">Không có dịch vụ</td>
+                                </tr>
+                                <tr *ngFor="let item of receiptItems">
+                                    <td>{{ item.serviceName }}</td>
+                                    <td>{{ item.count || 1 }}</td>
+                                    <td>{{ item.price | currency:'VND':'symbol':'1.0-0' }}</td>
+                                    <td class="amount">{{ item.price * (item.count || 1) | currency:'VND':'symbol':'1.0-0' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="receipt-summary">
+                    <div class="summary-row">
+                        <span>Tổng tiền ghế:</span>
+                        <span>{{ seatsTotalPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Tổng tiền dịch vụ:</span>
+                        <span>{{ receiptTotalAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row total-row">
+                        <span>Tổng cộng:</span>
+                        <span>{{ (receiptTotalAmount + seatsTotalPrice) | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row" *ngIf="cashReceived > 0">
+                        <span>Tiền khách đưa:</span>
+                        <span>{{ cashReceived | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                    <div class="summary-row" *ngIf="changeAmount >= 0 && cashReceived > 0">
+                        <span>Tiền thừa:</span>
+                        <span>{{ changeAmount | currency:'VND':'symbol':'1.0-0' }}</span>
+                    </div>
+                </div>
+                <div class="receipt-barcode">
+                    * {{ orderId }} *
+                </div>
+                <div class="receipt-footer">
+                    <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+                    <p>Chúc quý khách xem phim vui vẻ</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="cancel-btn" (click)="closeReceiptModal()">Đóng</button>
+                <button class="print-btn" (click)="printReceipt()">
+                    <i class="fas fa-print"></i> In hóa đơn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

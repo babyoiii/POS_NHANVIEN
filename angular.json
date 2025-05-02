@@ -26,10 +26,15 @@
                 "input": "src/assets/",
                 "output": "assets/"
               },
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "./node_modules/ngx-scanner-qrcode/wasm/",
+                "output": "./assets/wasm/"
+              }
             ],
             "styles": [
-              
+
               "src/styles.css"
             ],
             "scripts": [],
@@ -65,6 +70,9 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.js"
+          },
           "configurations": {
             "production": {
               "buildTarget": "POS_NHANVIEN:build:production"
@@ -95,7 +103,7 @@
               "src/assets"
             ],
             "styles": [
-              
+
               "src/styles.css"
             ],
             "scripts": []
@@ -103,5 +111,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "327bb045-ee5b-4b27-be66-262d877c118d"
   }
 }

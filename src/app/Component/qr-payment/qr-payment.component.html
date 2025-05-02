@@ -1,0 +1,112 @@
+<div class="qr-payment-fullscreen">
+    <div class="qr-payment-container">
+        <div class="qr-payment-header">
+            <h1>Quét mã QR để thanh toán</h1>
+            <button type="button" class="close-button" (click)="closeWindow()" title="Đóng cửa sổ">
+                <i class="fas fa-times"></i> Đóng
+            </button>
+        </div>
+
+        <!-- Payment confirmation success message -->
+        <div *ngIf="paymentConfirmed" class="payment-confirmed">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Thanh toán thành công!</h2>
+            <div class="payment-success-details">
+                <div class="success-detail" *ngIf="orderId">
+                    <span class="detail-label">Mã đơn hàng:</span>
+                    <span class="detail-value">{{ orderId }}</span>
+                </div>
+                <div class="success-detail" *ngIf="amount">
+                    <span class="detail-label">Số tiền:</span>
+                    <span class="detail-value">{{ formatPrice(amount) }}</span>
+                </div>
+                <div class="success-detail" *ngIf="transactionId">
+                    <span class="detail-label">Mã giao dịch:</span>
+                    <span class="detail-value">{{ transactionId }}</span>
+                </div>
+            </div>
+            <p>Cảm ơn bạn đã thanh toán. Cửa sổ này sẽ tự động đóng sau vài giây.</p>
+            <button class="close-window-btn" (click)="closeWindow()">
+                <i class="fas fa-times-circle"></i> Đóng cửa sổ
+            </button>
+        </div>
+
+        <!-- Main content when not confirmed -->
+        <div *ngIf="!paymentConfirmed">
+            <!-- Timer display -->
+            <div class="timer-container" [ngClass]="{'warning': timeLeft < 60, 'expired': timerExpired}">
+                <div class="timer-info">
+                    <span class="timer-label">Thời gian còn lại:</span>
+                    <span class="timer-value">{{ timerDisplay }}</span>
+                </div>
+                <div class="timer-progress-container">
+                    <div class="timer-progress-bar" [style.width.%]="timerProgress"></div>
+                </div>
+                <div *ngIf="timerExpired" class="timer-expired-message">
+                    <p>Thời gian thanh toán đã hết!</p>
+                    <button class="restart-timer-btn" (click)="restartTimer()">
+                        <i class="fas fa-redo"></i> Làm mới
+                    </button>
+                </div>
+            </div>
+
+            <div class="qr-payment-content" [class.blurred]="timerExpired">
+                <div class="qr-code-display">
+                    <img [src]="qrImageUrl" alt="QR Payment Code" *ngIf="qrImageUrl && !isLoading" />
+                    <!-- <div *ngIf="!qrImageUrl || isLoading" class="qr-loading">
+                        <div class="spinner"></div>
+                        <p>Đang tải mã QR...</p>
+                    </div> -->
+                </div>
+
+                <div class="payment-info">
+                    <div class="payment-detail" *ngIf="amount > 0">
+                        <span class="detail-label">Số tiền:</span>
+                        <span class="detail-value">{{ formatPrice(amount) }}</span>
+                    </div>
+                    <div class="payment-detail" *ngIf="paymentCode">
+                        <span class="detail-label">Nội dung CK:</span>
+                        <span class="detail-value payment-code">{{ paymentCode }}</span>
+                    </div>
+                    <div class="payment-detail" *ngIf="orderId">
+                        <span class="detail-label">Mã đơn hàng:</span>
+                        <span class="detail-value">{{ orderId }}</span>
+                    </div>
+
+                    <!-- Confirm payment button -->
+                    <div class="payment-actions">
+                        <div *ngIf="isConfirming" class="auto-checking-status">
+                            <i class="fas fa-sync fa-spin"></i> Đang kiểm tra thanh toán ...
+                        </div>
+                        <div class="payment-buttons">
+                            <!-- Nút kiểm tra lại -->
+                            <button class="manual-confirm-btn" [disabled]="isConfirming || isCheckingPayment || paymentConfirmed"
+                                (click)="confirmPaymentManually()"
+                                [class.loading]="isConfirming || isCheckingPayment"
+                                [class.confirmed]="paymentConfirmed">
+                                <i class="fas" [ngClass]="{'fa-sync': !paymentConfirmed, 'fa-check-circle': paymentConfirmed}"></i>
+                                {{ isConfirming ? 'Đang xác nhận...' : (paymentConfirmed ? 'Đã xác nhận thanh toán' : 'Xác nhận giao dịch') }}
+                            </button>
+                        </div>
+                        <div *ngIf="paymentError" class="payment-error">
+                            {{ paymentError }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="payment-instructions" [class.blurred]="timerExpired">
+                <h3>Hướng dẫn thanh toán</h3>
+                <ol>
+                    <li>Mở ứng dụng ngân hàng trên điện thoại của bạn</li>
+                    <li>Quét mã QR hiển thị ở trên</li>
+                    <li>Kiểm tra thông tin và xác nhận thanh toán</li>
+                    <li>Nhập đúng nội dung chuyển khoản: <strong>{{ paymentCode }}</strong></li>
+                    <li>Sau khi thanh toán thành công, nhấn nút <strong>"Xác nhận giao dịch"</strong> để xác nhận</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>

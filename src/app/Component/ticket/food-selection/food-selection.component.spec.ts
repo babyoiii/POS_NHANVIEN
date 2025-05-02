@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { QRcodeComponent } from './qrcode.component';
+import { FoodSelectionComponent } from './food-selection.component';
 
-describe('QRcodeComponent', () => {
-  let component: QRcodeComponent;
-  let fixture: ComponentFixture<QRcodeComponent>;
+describe('FoodSelectionComponent', () => {
+  let component: FoodSelectionComponent;
+  let fixture: ComponentFixture<FoodSelectionComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [QRcodeComponent]
+      imports: [FoodSelectionComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(QRcodeComponent);
+    fixture = TestBed.createComponent(FoodSelectionComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

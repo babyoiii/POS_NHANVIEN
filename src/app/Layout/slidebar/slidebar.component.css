@@ -1,0 +1,27 @@
+/* Đảm bảo menu item active luôn giữ màu đen */
+.menu li.active {
+    background-color: #000000 !important;
+    color: white !important;
+    transform: translateZ(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Hiệu ứng hover cho các item không active */
+.menu li:not(.active):hover {
+    background-color: #000000;
+    color: white;
+    transform: translateZ(0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Điều chỉnh z-index để đảm bảo CSS không bị ghi đè */
+.menu li {
+    position: relative;
+    z-index: 1;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 5px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    will-change: transform, background-color, color, box-shadow;
+    overflow: hidden;
+}
