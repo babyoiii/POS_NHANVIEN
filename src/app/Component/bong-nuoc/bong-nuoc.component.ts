@@ -209,6 +209,20 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         // Xử lý thanh toán thành công
         this.processSuccessfulPayment();
       }
+
+      // Kiểm tra xem có cần mở modal hóa đơn không
+      const openReceiptModal = localStorage.getItem('open_receipt_modal');
+      if (openReceiptModal === 'true') {
+        console.log('Phát hiện yêu cầu mở modal hóa đơn khi khởi tạo component');
+
+        // Mở modal hóa đơn
+        setTimeout(() => {
+          this.openReceiptModal();
+
+          // Xóa cờ để tránh mở lại modal khi refresh
+          localStorage.removeItem('open_receipt_modal');
+        }, 500); // Đợi một chút để đảm bảo component đã được khởi tạo đầy đủ
+      }
     } catch (e) {
       console.error('Lỗi khi kiểm tra thanh toán QR:', e);
     }
@@ -1163,6 +1177,9 @@ export class BongNuocComponent implements OnInit, OnDestroy {
                 response.formattedTotalAmount || this.formatPrice(parseFloat(amount || '0'))
               );
 
+              // Mở modal hóa đơn
+              this.openReceiptModal();
+
               // Xóa dữ liệu tạm trong localStorage
               localStorage.removeItem('pendingServiceListJson');
               localStorage.removeItem('pendingUserEmail');
@@ -1206,6 +1223,17 @@ export class BongNuocComponent implements OnInit, OnDestroy {
 
       // Xử lý thanh toán thành công
       this.processSuccessfulPayment();
+    }
+
+    // Kiểm tra xem có phải là sự kiện mở modal hóa đơn không
+    if (event.key === 'open_receipt_modal' && event.newValue === 'true') {
+      console.log('Phát hiện yêu cầu mở modal hóa đơn từ tab QR payment');
+
+      // Mở modal hóa đơn
+      this.openReceiptModal();
+
+      // Xóa cờ để tránh mở lại modal khi refresh
+      localStorage.removeItem('open_receipt_modal');
     }
   }
 

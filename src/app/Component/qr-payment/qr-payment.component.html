@@ -70,10 +70,10 @@
                         <span class="detail-label">Nội dung CK:</span>
                         <span class="detail-value payment-code">{{ paymentCode }}</span>
                     </div>
-                    <div class="payment-detail" *ngIf="orderId">
+                    <!-- <div class="payment-detail" *ngIf="orderId">
                         <span class="detail-label">Mã đơn hàng:</span>
                         <span class="detail-value">{{ orderId }}</span>
-                    </div>
+                    </div> -->
 
                     <!-- Confirm payment button -->
                     <div class="payment-actions">
@@ -82,12 +82,14 @@
                         </div>
                         <div class="payment-buttons">
                             <!-- Nút kiểm tra lại -->
-                            <button class="manual-confirm-btn" [disabled]="isConfirming || isCheckingPayment || paymentConfirmed"
-                                (click)="confirmPaymentManually()"
-                                [class.loading]="isConfirming || isCheckingPayment"
+                            <button class="manual-confirm-btn"
+                                [disabled]="isConfirming || isCheckingPayment || paymentConfirmed"
+                                (click)="confirmPaymentManually()" [class.loading]="isConfirming || isCheckingPayment"
                                 [class.confirmed]="paymentConfirmed">
-                                <i class="fas" [ngClass]="{'fa-sync': !paymentConfirmed, 'fa-check-circle': paymentConfirmed}"></i>
-                                {{ isConfirming ? 'Đang xác nhận...' : (paymentConfirmed ? 'Đã xác nhận thanh toán' : 'Xác nhận giao dịch') }}
+                                <i class="fas"
+                                    [ngClass]="{'fa-sync': !paymentConfirmed, 'fa-check-circle': paymentConfirmed}"></i>
+                                {{ isConfirming ? 'Đang xác nhận...' : (paymentConfirmed ? 'Đã xác nhận thanh toán' :
+                                'Xác nhận giao dịch') }}
                             </button>
                         </div>
                         <div *ngIf="paymentError" class="payment-error">
