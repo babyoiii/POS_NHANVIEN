@@ -76,35 +76,44 @@
                 <div class="category-section">
                     <h2 *ngIf="selectedType !== null">{{ getSelectedTypeName() }}</h2>
                     <h2 *ngIf="selectedType === null">Tất cả sản phẩm</h2>
-                    
+
                     <!-- Thêm hướng dẫn sử dụng -->
                     <div class="usage-guide">
                         <i class="fas fa-info-circle"></i>
-                        <span>Nhấp vào sản phẩm để thêm vào giỏ hàng hoặc sử dụng nút <strong>Thêm vào giỏ</strong></span>
+                        <span>Nhấp vào sản phẩm để thêm vào giỏ hàng hoặc sử dụng nút <strong>Thêm vào
+                                giỏ</strong></span>
                     </div>
 
                     <div class="service-card-container">
-                        <div class="service-card" *ngFor="let service of filteredServices" (click)="addToCart(service)" 
-                             style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; cursor: pointer; position: relative; margin-bottom: 15px; border: 1px solid #e0e0e0;"
-                             onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';" 
-                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
-                            <div class="add-icon" style="position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2; transition: all 0.3s;">
+                        <div class="service-card" *ngFor="let service of filteredServices" (click)="addToCart(service)"
+                            style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; cursor: pointer; position: relative; margin-bottom: 15px; border: 1px solid #e0e0e0;"
+                            onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
+                            <div class="add-icon"
+                                style="position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2; transition: all 0.3s;">
                                 <i class="fas fa-plus-circle"></i>
                             </div>
-                            <div class="service-image" style="position: relative; width: 100%; height: 150px; overflow: hidden; border-radius: 8px; margin-bottom: 12px;">
+                            <div class="service-image"
+                                style="position: relative; width: 100%; height: 150px; overflow: hidden; border-radius: 8px; margin-bottom: 12px;">
                                 <img [src]="service.imageUrl && service.imageUrl.length > 0 ? 
                                     (service.imageUrl.startsWith('http') || service.imageUrl.startsWith('assets/') ? 
                                         service.imageUrl : 'https://localhost:7263/' + service.imageUrl) : 
-                                    'assets/Image/cinexLogo.png'" 
-                                    (error)="handleImageError($event)"
-                                    alt="{{ service.serviceName }}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;">
+                                    'assets/Image/cinexLogo.png'" (error)="handleImageError($event)"
+                                    alt="{{ service.serviceName }}"
+                                    style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;">
                             </div>
                             <div class="service-details" style="padding: 5px 0;">
-                                <h3 class="service-name" style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px;">{{service.serviceName}}</h3>
-                                <p class="service-description" style="color: #666; font-size: 14px; margin-bottom: 12px; height: 40px; overflow: hidden;">{{service.description || 'Không có mô tả'}}</p>
-                                <div class="service-price" style="font-size: 16px; font-weight: bold; color: #e91e63; margin-bottom: 12px;">{{formatPrice(service.price)}}</div>
-                                <button class="add-to-cart-btn" (click)="addToCart(service); $event.stopPropagation()" 
-                                        style="background-color: #e91e63; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; display: block; width: 100%; text-transform: uppercase; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                <h3 class="service-name"
+                                    style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px;">
+                                    {{service.serviceName}}</h3>
+                                <p class="service-description"
+                                    style="color: #666; font-size: 14px; margin-bottom: 12px; height: 40px; overflow: hidden;">
+                                    {{service.description || 'Không có mô tả'}}</p>
+                                <div class="service-price"
+                                    style="font-size: 16px; font-weight: bold; color: #e91e63; margin-bottom: 12px;">
+                                    {{formatPrice(service.price)}}</div>
+                                <button class="add-to-cart-btn" (click)="addToCart(service); $event.stopPropagation()"
+                                    style="background-color: #e91e63; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; display: block; width: 100%; text-transform: uppercase; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                                     <i class="fas fa-shopping-cart"></i> THÊM VÀO GIỎ
                                 </button>
                             </div>
@@ -163,46 +172,45 @@
             <!-- Phần nhập email khách hàng -->
             <div class="customer-email-section">
                 <h4><i class="fas fa-user"></i> Thông tin khách hàng</h4>
-                
+
                 <div class="email-options">
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="emailOption" id="useDefaultEmail" 
-                               [(ngModel)]="useDefaultEmail" [value]="true" checked>
+                        <input class="form-check-input" type="radio" name="emailOption" id="useDefaultEmail"
+                            [(ngModel)]="useDefaultEmail" [value]="true" checked>
                         <label class="form-check-label" for="useDefaultEmail">
                             Dùng email mặc định ({{ defaultEmail }})
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="emailOption" id="useCustomerEmail" 
-                               [(ngModel)]="useDefaultEmail" [value]="false">
+                        <input class="form-check-input" type="radio" name="emailOption" id="useCustomerEmail"
+                            [(ngModel)]="useDefaultEmail" [value]="false">
                         <label class="form-check-label" for="useCustomerEmail">
                             Sử dụng email khách hàng
                         </label>
                     </div>
                 </div>
-                
+
                 <div class="customer-email-input" *ngIf="!useDefaultEmail">
                     <div class="input-group">
-                        <input type="email" class="form-control" placeholder="Nhập email khách hàng..." 
-                               [(ngModel)]="customerEmail" (blur)="checkCustomerEmail(customerEmail)"
-                               [disabled]="isCheckingEmail">
-                        <button class="btn btn-outline-primary" type="button" 
-                                (click)="checkCustomerEmail(customerEmail)"
-                                [disabled]="isCheckingEmail">
+                        <input type="email" class="form-control" placeholder="Nhập email khách hàng..."
+                            [(ngModel)]="customerEmail" (blur)="checkCustomerEmail(customerEmail)"
+                            [disabled]="isCheckingEmail">
+                        <button class="btn btn-outline-primary" type="button"
+                            (click)="checkCustomerEmail(customerEmail)" [disabled]="isCheckingEmail">
                             <i class="fas fa-search" *ngIf="!isCheckingEmail"></i>
                             <i class="fas fa-spinner fa-spin" *ngIf="isCheckingEmail"></i>
                             Kiểm tra
                         </button>
                     </div>
-                    
+
                     <div class="email-feedback error" *ngIf="emailError">
                         <i class="fas fa-exclamation-circle"></i> {{ emailError }}
                     </div>
-                    
+
                     <div class="email-feedback success" *ngIf="emailSuccess">
                         <i class="fas fa-check-circle"></i> {{ emailSuccess }}
                     </div>
-                    
+
                     <div class="customer-info" *ngIf="customerInfo">
                         <p><strong>Tên:</strong> {{ customerInfo.name }}</p>
                         <p><strong>SĐT:</strong> {{ customerInfo.phoneNumber }}</p>
@@ -318,7 +326,8 @@
                     <div class="info-row">
                         <span class="info-label">Tiền khách đưa:</span>
                         <div class="input-with-buttons">
-                            <input type="number" [(ngModel)]="cashReceived" (ngModelChange)="calculateChange()" placeholder="Nhập số tiền">
+                            <input type="number" [(ngModel)]="cashReceived" (ngModelChange)="calculateChange()"
+                                placeholder="Nhập số tiền">
                             <div class="quick-buttons">
                                 <button (click)="setQuickAmount(100000)">100K</button>
                                 <button (click)="setQuickAmount(200000)">200K</button>
@@ -352,7 +361,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <div class="receipt-content" id="receipt-content">
                 <div class="cinema-logo">
                     <img src="assets/Image/cinexLogo.png" alt="Cinema Logo">
@@ -363,7 +372,7 @@
                     <p>Ngày: {{ formatLocalDate(today) }}</p>
                     <p>Nhân viên: {{ getStaffName() }}</p>
                 </div>
-                
+
                 <!-- Thông tin ghế đã chọn -->
                 <div class="receipt-section">
                     <h3 class="section-title">THÔNG TIN VÉ</h3>
@@ -378,7 +387,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Thông tin dịch vụ -->
                 <div class="receipt-section">
                     <h3 class="section-title">THÔNG TIN DỊCH VỤ</h3>
@@ -400,13 +409,14 @@
                                     <td>{{ item.serviceName }}</td>
                                     <td>{{ item.count || 1 }}</td>
                                     <td>{{ item.price | currency:'VND':'symbol':'1.0-0' }}</td>
-                                    <td class="amount">{{ item.price * (item.count || 1) | currency:'VND':'symbol':'1.0-0' }}</td>
+                                    <td class="amount">{{ item.price * (item.count || 1) |
+                                        currency:'VND':'symbol':'1.0-0' }}</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-                
+
                 <div class="receipt-summary">
                     <div class="summary-row">
                         <span>Tổng tiền ghế:</span>
@@ -437,7 +447,7 @@
                     <p>Chúc quý khách xem phim vui vẻ</p>
                 </div>
             </div>
-            
+
             <div class="modal-footer">
                 <button class="cancel-btn" (click)="closeReceiptModal()">Đóng</button>
                 <button class="print-btn" (click)="printReceipt()">

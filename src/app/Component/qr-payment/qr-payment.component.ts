@@ -500,6 +500,24 @@ export class QrPaymentComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  // Hàm để mở modal hóa đơn ở cửa sổ chính
+  openReceiptModalInParentWindow(): void {
+    if (this.isBrowser() && window.opener) {
+      try {
+        // Đặt cờ để mở modal hóa đơn ở cửa sổ chính
+        localStorage.setItem('open_receipt_modal', 'true');
+
+        // Đảm bảo cờ được đặt trước khi đóng cửa sổ
+        localStorage.setItem('payment_success', 'true');
+        console.log('Đã đặt cờ mở modal hóa đơn ở cửa sổ chính');
+      } catch (e) {
+        console.error('Lỗi khi đặt cờ mở modal hóa đơn:', e);
+      }
+    } else {
+      console.warn('Không thể truy cập cửa sổ chính để mở modal hóa đơn');
+    }
+  }
+
   // Confirm payment
   confirmPayment(): void {
     console.log('Bắt đầu xác nhận thanh toán với orderId:', this.orderId);
@@ -547,11 +565,23 @@ export class QrPaymentComponent implements OnInit, OnDestroy {
         localStorage.setItem('payment_order_id', this.orderId);
         localStorage.setItem('payment_amount', this.amount.toString());
         localStorage.setItem('payment_transaction_id', this.transactionId);
+        localStorage.setItem('payment_code', this.paymentCode); // Lưu thêm mã tham chiếu thanh toán
 
-        console.log('Đã lưu thông tin thanh toán thành công vào localStorage');
+        // Đặt cờ để mở modal hóa đơn ở cửa sổ chính
+        localStorage.setItem('open_receipt_modal', 'true');
+
+        console.log('Đã lưu thông tin thanh toán thành công vào localStorage:', {
+          orderId: this.orderId,
+          amount: this.amount,
+          transactionId: this.transactionId,
+          paymentCode: this.paymentCode
+        });
       } catch (e) {
         console.error('Lỗi khi lưu thông tin thanh toán vào localStorage:', e);
       }
+
+      // Đặt cờ để mở modal hóa đơn ở cửa sổ chính
+      this.openReceiptModalInParentWindow();
 
       // Tự động đóng cửa sổ sau 3 giây để người dùng có thể thấy thông báo thành công
       setTimeout(() => {
