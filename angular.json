@@ -34,7 +34,6 @@
               }
             ],
             "styles": [
-              
               "src/styles.css"
             ],
             "scripts": [],
@@ -70,6 +69,9 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "port": 4202
+          },
           "configurations": {
             "production": {
               "buildTarget": "POS_NHANVIEN:build:production"
@@ -100,7 +102,6 @@
               "src/assets"
             ],
             "styles": [
-              
               "src/styles.css"
             ],
             "scripts": []
