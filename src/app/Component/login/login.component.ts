@@ -5,6 +5,7 @@ import { CinemaService } from '../../services/cinema.service';
 import { AuthService } from '../../services/auth.service';
 import { Province, Cinema, User } from '../../models/cinema.model';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { log } from 'node:console';
 
 @Component({
   selector: 'app-login',
@@ -25,6 +26,7 @@ export class LoginComponent implements OnInit {
   selectedCinema: Cinema | null = null;
   loginVisible = false;
   noCinemasFound = false;
+  cinemaId: string = '';
   selectedProvinceId: number | null = null;
   errorMessage: string = '';
   showCinemaError: boolean = false;
@@ -86,7 +88,7 @@ export class LoginComponent implements OnInit {
   selectCinema(cinema: Cinema): void {
     console.log('Đã chọn rạp:', cinema);
     this.selectedCinema = cinema;
-    
+    this.cinemaId = cinema.id;
     // Lưu thông tin rạp đã chọn vào localStorage
     this.cinemaService.saveSelectedCinema(cinema);
     
@@ -108,48 +110,80 @@ export class LoginComponent implements OnInit {
     this.showProvinceSelection = true;
     this.showCinemaListSelection = false;
   }
-
-  onSubmit(): void {
+onSubmit(): void {
     this.showCinemaError = false;
-    if (this.loginForm.valid && this.selectedCinema) {
-      this.isLoading = true;
-      this.errorMessage = '';
-      const { userName, passWord } = this.loginForm.value;
-      
-      console.log('Login form submitted with:', { userName });
-      
-      this.authService.login(userName, passWord).subscribe({
-        next: (user) => {
-          this.isLoading = false;
-          // Lưu thông tin user đã đăng nhập
-          console.log('Đăng nhập thành công với người dùng:', user);
-          console.log('Rạp đã chọn:', this.selectedCinema);
-          
-          // Thêm animation fade-out
-          const container = document.querySelector('.login-container') as HTMLElement;
-          if (container) {
-            container.classList.add('fade-out');
-          }
-          
-          setTimeout(() => {
-            // Điều hướng đến trang chủ sau khi đăng nhập thành công
-            this.router.navigate(['/trangchu']);
-          }, 500);
-        },
-        error: (error) => {
-          this.isLoading = false;
-          console.error('Đăng nhập thất bại', error);
-          console.error('Error type:', typeof error);
-          console.error('Error message:', error.message);
-          console.error('Error stack:', error.stack);
-          this.errorMessage = 'Tài khoản hoặc mật khẩu không chính xác!';
-        }
-      });
-    } else if (this.loginForm.valid && !this.selectedCinema) {
-      this.showCinemaError = true;
-    }
-  }
 
+    if (this.loginForm.valid && this.selectedCinema) {
+        this.isLoading = true;
+        this.errorMessage = '';
+
+        const { userName, passWord } = this.loginForm.value;
+        const cinemaId = this.selectedCinema.id;
+
+        console.log('Login form submitted with:', { userName, cinemaId });
+
+        this.authService.login(userName, passWord, cinemaId).subscribe({
+            next: (res: any) => {
+                this.isLoading = false;
+
+                // Kiểm tra responseCode
+                if (res.responseCode !== 200) {
+                    this.errorMessage = res.message || 'Đăng nhập thất bại!';
+                    console.error('Login failed with responseCode:', res.responseCode);
+                    return;
+                }
+
+                // Tạo đối tượng người dùng
+                const user = res.data;
+                const roles = user.roles || [];
+                const userData: User = {
+                    id: user.id,
+                    userName: user.userName,
+                    displayName: user.displayName,
+                    email: user.email || undefined,
+                    roles: roles,
+                    role: roles.length > 0 ? roles[0] : '',
+                    accessToken: user.accessToken,
+                    refreshToken: user.refreshToken
+                };
+
+                console.log('User data created:', userData);
+
+                // Lưu thông tin vào localStorage
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                if (userData.accessToken) {
+                    localStorage.setItem('token', userData.accessToken);
+                }
+                if (userData.refreshToken) {
+                    localStorage.setItem('refreshToken', userData.refreshToken);
+                }
+
+                // Thêm hiệu ứng fade-out
+                const container = document.querySelector('.login-container') as HTMLElement;
+                if (container) {
+                    container.classList.add('fade-out');
+                }
+
+                // Điều hướng đến trang chủ
+                setTimeout(() => {
+                    this.router.navigate(['/trangchu']);
+                }, 500);
+            },
+            error: (error) => {
+                this.isLoading = false;
+                console.error('Đăng nhập thất bại:', error);
+                this.errorMessage = error.message || 'Tài khoản hoặc mật khẩu không chính xác!';
+            }
+        });
+    } else if (this.loginForm.valid && !this.selectedCinema) {
+        this.showCinemaError = true;
+        this.errorMessage = 'Vui lòng chọn rạp trước khi đăng nhập.';
+        console.warn(this.errorMessage);
+    } else {
+        this.errorMessage = 'Form không hợp lệ. Vui lòng kiểm tra lại.';
+        console.warn(this.errorMessage);
+    }
+}
   createFloatingElements(): void {
     // Kiểm tra nếu đang chạy trong trình duyệt
     if (!isPlatformBrowser(this.platformId)) {

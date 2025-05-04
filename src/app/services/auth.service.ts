@@ -23,74 +23,9 @@ export class AuthService {
     this.getCurrentUser();
   }
 
-  login(userName: string, passWord: string): Observable<User> {
-    const loginData: LoginRequest = { userName, passWord };
-    
-    console.log('Attempting login with:', loginData);
-    
-    return this.http.post<any>(`${this.API_URL}/Account/Login`, loginData)
-      .pipe(
-        tap(response => console.log('Raw API response:', response)),
-        map(response => {
-          console.log('Login response code:', response?.responseCode);
-          console.log('Login response data:', response?.data);
-          
-          // Check for different response formats
-          if (response && 
-             (response.responseCode === 200 || response.ResponseCode === 200) && 
-             (response.data || response.Data)) {
-             
-            const data = response.data || response.Data;
-            
-            // Make sure access token and roles exist
-            if (!data.accessToken && !data.AccessToken) {
-              console.error('Access token missing in response');
-              throw new Error('Đăng nhập không thành công: thiếu token');
-            }
-            
-            if (!data.roles && !data.Roles) {
-              console.error('Roles missing in response');
-              throw new Error('Đăng nhập không thành công: thiếu quyền');
-            }
-            
-            const roles = data.roles || data.Roles || [];
-            
-            const userData: User = {
-              id: data.userId || data.UserId,
-              userName: data.userName || data.UserName,
-              displayName: data.displayName || data.DisplayName,
-              email: (data.email || data.Email) || undefined,
-              roles: roles,
-              role: roles.length > 0 ? roles[0] : '',
-              accessToken: data.accessToken || data.AccessToken,
-              refreshToken: data.refreshToken || data.RefreshToken
-            };
-            
-            console.log('User data created:', userData);
-            
-            this.currentUser = userData;
-            if (this.isBrowser) {
-              localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-              if (userData.accessToken) {
-                localStorage.setItem('token', userData.accessToken);
-              }
-              if (userData.refreshToken) {
-                localStorage.setItem('refreshToken', userData.refreshToken);
-              }
-            }
-            
-            return userData;
-          }
-          
-          console.log('Login conditions not met, throwing error');
-          throw new Error('Đăng nhập không thành công');
-        }),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Lỗi đăng nhập:', error);
-          return throwError(() => new Error('Tài khoản hoặc mật khẩu không chính xác'));
-        })
-      );
-  }
+  login(userName: string, passWord: string,cinemaId : string): Observable<User> {
+    const loginData: LoginRequest = { userName, passWord, cinemaId };
+    return this.http.post<any>(`${this.API_URL}/Account/LoginByEmployee`, loginData)}
 
   logout(): Observable<boolean> {
     this.currentUser = null;
