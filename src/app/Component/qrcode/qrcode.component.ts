@@ -59,7 +59,6 @@ interface TicketResponse {
   orderInfo: OrderInfo;
   tickets: Ticket[];
   services: Service[];
-  serviceData?: any[]; // Thêm trường chứa dữ liệu dịch vụ từ localStorage
 }
 
 @Component({
@@ -321,133 +320,56 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   confirmTicket(orderCode: string): void {
-    if (!this.isPlatformBrowser() || this.isLoading) {
-      return;
-    }
-    
-    // Reset messages
+    this.isLoading = true;
     this.confirmSuccess = false;
     this.confirmMessage = '';
-    this.error = '';
     
-    // Set loading state
-    this.isLoading = true;
-    console.log(`Đang xác nhận vé với mã đơn hàng: ${orderCode}`);
+    // Dừng scanner ngay lập tức để đảm bảo không có quét mới trong quá trình xác nhận
+    if (this.html5QrCode && this.html5QrCode.isScanning) {
+      this.stopScanner();
+    }
     
-    this.http.post<any>(`${this.API_URL}/ConfirmOrder?orderCode=${orderCode}`, {})
+    this.http.post<any>(`${this.API_URL}/ConfirmTicket/${orderCode}`, {})
       .subscribe({
         next: (response) => {
-          this.ngZone.run(() => {
-            this.isLoading = false;
+          // Cập nhật trạng thái xác nhận
+          this.confirmSuccess = response.success;
+          this.confirmMessage = response.message;
+          this.isLoading = false;
+          
+          // Nếu xác nhận thành công
+          if (response.success && this.ticketData) {
+            console.log('Xác nhận vé thành công, chuẩn bị in vé...');
             
-            if (response && response.responseCode === 1) {
-              // Cập nhật trạng thái xác nhận thành công
-              this.confirmSuccess = true;
-              this.confirmMessage = response.message || 'Xác nhận vé thành công!';
-              console.log('Xác nhận vé thành công:', response);
-              
-              // Lấy thông tin vé để hiển thị và in
-              this.getTicketInfo(orderCode);
-              
-              // QUAN TRỌNG: Lưu dấu hiệu là đang trong luồng thanh toán QR
-              localStorage.setItem('isQRPaymentFlow', 'true');
-              
-              // Kiểm tra xem trong localStorage có dữ liệu dịch vụ không
-              const serviceDataStr = localStorage.getItem('current_service_data');
-              
-              // Lưu thông tin vé vào localStorage trước khi reset
-              if (this.ticketData) {
-                // Tích hợp dữ liệu dịch vụ vào ticketData nếu có
-                if (serviceDataStr) {
-                  try {
-                    // Đảm bảo parse đúng định dạng
-                    const rawServiceData = JSON.parse(serviceDataStr);
-                    console.log('Đã tìm thấy dữ liệu dịch vụ trong localStorage:', rawServiceData);
-                    
-                    // Chuyển đổi dữ liệu dịch vụ sang định dạng phù hợp với TicketResponse
-                    const formattedServices = rawServiceData.map((service: any) => {
-                      const unitPrice = service.price || 0;
-                      const quantity = service.Quantity || service.quantity || 1;
-                      const totalPrice = unitPrice * quantity;
-                      
-                      return {
-                        orderServiceId: service.ServiceId || service.id || '',
-                        serviceName: service.serviceName || 'Dịch vụ',
-                        serviceType: service.serviceType || '',
-                        quantity: quantity,
-                        unitPrice: unitPrice,
-                        formattedUnitPrice: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
-                          .format(unitPrice)
-                          .replace('₫', 'VND'),
-                        totalPrice: totalPrice,
-                        formattedTotalPrice: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
-                          .format(totalPrice)
-                          .replace('₫', 'VND'),
-                        imageUrl: service.imageUrl || ''
-                      };
-                    });
-                    
-                    // Thiết lập services trực tiếp, không sử dụng serviceData nữa
-                    this.ticketData.services = this.ticketData.services || [];
-                    this.ticketData.services = [...this.ticketData.services, ...formattedServices];
-                    console.log('Đã chuyển đổi dữ liệu dịch vụ thành định dạng chuẩn:', formattedServices);
-                    
-                    // Xóa dữ liệu dịch vụ khỏi localStorage sau khi đã xử lý thành công
-                    localStorage.removeItem('current_service_data');
-                    localStorage.removeItem('current_service_email');
-                    localStorage.removeItem('service_timestamp');
-                    console.log('Đã xóa dữ liệu dịch vụ khỏi localStorage sau khi xử lý thành công');
-                  } catch (e) {
-                    console.error('Lỗi khi xử lý dữ liệu dịch vụ:', e);
-                  }
-                }
-                
-                // Lưu dữ liệu đã tích hợp vào localStorage
-                localStorage.setItem('lastTicketData', JSON.stringify(this.ticketData));
-                
-                // Tự động in vé sau 1 giây
-                setTimeout(() => {
-                  if (this.ticketData) {
-                    this.printTicketsWithData(this.ticketData);
-                    
-                    // Hiển thị thông báo thành công
-                    this.showSuccessMessage('Đã in vé thành công!');
-                    console.log('Dữ liệu vé đã được lưu và in tự động');
-                    
-                    // Hiển thị tùy chọn in sau khi hoàn tất
-                    this.showPrintOptions = true;
-                    
-                    // Sau khi in xong, chờ thêm 8 giây trước khi reset scanner
-                    // để đảm bảo người dùng có đủ thời gian xem và in lại nếu cần
-                    setTimeout(() => {
-                      this.resetScanner();
-                    }, 8000);
-                  }
-                }, 1000);
-              }
-            } else {
-              // Xác nhận thất bại
-              this.error = response?.message || 'Không thể xác nhận vé. Vui lòng thử lại.';
-              console.error('Xác nhận vé thất bại:', response);
-              
-              // Bắt đầu đếm ngược để reset scanner
-              this.startCountdown();
+            // Tạo bản sao của dữ liệu vé để in (tránh mất dữ liệu nếu reset quá nhanh)
+            const ticketDataCopy = JSON.parse(JSON.stringify(this.ticketData));
+            
+            // In vé ngay lập tức
+            try {
+              // Thực hiện in vé với bản sao dữ liệu
+              this.printTicketsWithData(ticketDataCopy);
+              console.log('In vé thành công');
+            } catch (err) {
+              console.error('Lỗi khi in vé:', err);
             }
-          });
+            
+            // Reset máy quét và dữ liệu ngay sau khi in
+            this.ngZone.run(() => {
+              console.log('Reset camera và dữ liệu...');
+              this.resetScanner();
+            });
+          }
         },
         error: (error) => {
-          this.ngZone.run(() => {
-            this.isLoading = false;
-            this.error = 'Lỗi kết nối khi xác nhận vé. Vui lòng thử lại.';
-            console.error('Lỗi khi xác nhận vé:', error);
-            
-            // Bắt đầu đếm ngược để reset scanner
-            this.startCountdown();
-          });
+          this.error = `Lỗi khi xác nhận vé: ${error.message}`;
+          this.isLoading = false;
+          
+          // Khởi động lại quét sau lỗi
+          this.startScanner();
         }
       });
   }
-
+  
   // Phương thức mới để in vé với dữ liệu được cung cấp từ bên ngoài
   printTicketsWithData(ticketData: TicketResponse): void {
     if (!ticketData || !ticketData.tickets || ticketData.tickets.length === 0) {
@@ -532,37 +454,14 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
       currentY += lineHeight;
       
       doc.text(`Thoi luong: ${ticket.formattedDuration}`, 15, currentY);
-      currentY += lineHeight;
-      
-      // Thêm thông tin dịch vụ vào vé nếu có
-      if (ticketData.services && ticketData.services.length > 0) {
-        // Tiêu đề phần dịch vụ
-        currentY += lineHeight/2;
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(52, 152, 219);
-        doc.text('DICH VU DI KEM', 15, currentY);
-        currentY += lineHeight;
-        
-        // Reset font cho thông tin dịch vụ
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        
-        // Hiển thị từng dịch vụ
-        ticketData.services.forEach(service => {
-          doc.text(`- ${service.serviceName} (${service.quantity}) x ${service.formattedUnitPrice}`, 15, currentY);
-          currentY += lineHeight - 2; // Giảm khoảng cách giữa các dịch vụ
-        });
-        
-        currentY += lineHeight/2; // Khoảng cách sau phần dịch vụ
-      }
-      
-      currentY += lineHeight;
-      
+      currentY += lineHeight * 2;
+
       // Thông tin chung - đặt trước QR code để tránh bị đè
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
+      
+      // Tăng khoảng cách giữa dòng cuối cùng và phần thông tin phía dưới
+      currentY += 8;
       
       // Từ đồi sang 2 cột
       // Cột 1: QR code
@@ -581,135 +480,6 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
       doc.text(`Ma don hang: ${ticketData.orderInfo.orderCode || ''}`, infoX, currentY + 20, { align: 'left', maxWidth: textWidth });
     });
     
-    // Tạo trang hóa đơn dịch vụ riêng nếu có dịch vụ hoặc dữ liệu dịch vụ từ localStorage
-    if ((ticketData.services && ticketData.services.length > 0) || (ticketData.serviceData && ticketData.serviceData.length > 0)) {
-      // Thêm trang mới cho hóa đơn dịch vụ
-      doc.addPage('a6', 'portrait');
-      
-      // Tiêu đề hóa đơn
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text('HOA DON THANH TOAN', 75, 15, { align: 'center' });
-      
-      // Thông tin đơn hàng
-      doc.setFontSize(11);
-      doc.setTextColor(0, 0, 0);
-      let currentY = 25;
-      const lineHeight = 8;
-      
-      doc.text(`Ma don hang: ${ticketData.orderInfo.orderCode}`, 15, currentY);
-      currentY += lineHeight;
-      doc.text(`Ngay: ${ticketData.orderInfo.formattedOrderDate}`, 15, currentY);
-      currentY += lineHeight;
-      doc.text(`Nhan vien: ${ticketData.orderInfo.email || 'Counter Staff'}`, 15, currentY);
-      currentY += lineHeight * 2;
-      
-      // Vẽ đường kẻ phân cách
-      doc.setDrawColor(200, 200, 200);
-      doc.line(15, currentY - 4, 90, currentY - 4);
-      
-      // Tiêu đề phần dịch vụ
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(52, 152, 219);
-      doc.text('THONG TIN DICH VU', 15, currentY);
-      currentY += lineHeight * 1.5;
-      
-      // Header table dịch vụ
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      doc.text('San pham', 15, currentY);
-      doc.text('SL', 60, currentY, { align: 'center' });
-      doc.text('Don gia', 75, currentY, { align: 'center' });
-      doc.text('Thanh tien', 95, currentY, { align: 'right' });
-      currentY += lineHeight;
-      
-      // Vẽ đường kẻ phân cách
-      doc.line(15, currentY - 4, 100, currentY - 4);
-      
-      // Hiển thị từng dịch vụ từ services
-      if (ticketData.services && ticketData.services.length > 0) {
-        ticketData.services.forEach(service => {
-          // Thông tin dịch vụ
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'normal');
-          doc.text(service.serviceName, 15, currentY, { maxWidth: 40 });
-          doc.text(service.quantity.toString(), 60, currentY, { align: 'center' });
-          doc.text(service.formattedUnitPrice, 75, currentY, { align: 'center' });
-          doc.text(service.formattedTotalPrice, 95, currentY, { align: 'right' });
-          currentY += lineHeight;
-        });
-      }
-      
-      // Hiển thị dịch vụ từ dữ liệu serviceData (lấy từ localStorage)
-      if (ticketData.serviceData && ticketData.serviceData.length > 0) {
-        ticketData.serviceData.forEach(service => {
-          // Thông tin dịch vụ
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'normal');
-          
-          // Lấy tên dịch vụ và số lượng
-          const serviceName = service.ServiceId ? (service.serviceName || 'Dịch vụ') : 'Dịch vụ';
-          const quantity = service.Quantity || service.quantity || 1;
-          
-          // Định dạng giá (nếu có)
-          const unitPrice = service.price || 0;
-          const totalPrice = unitPrice * quantity;
-          
-          const formattedUnitPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
-            .format(unitPrice)
-            .replace('₫', 'VND');
-            
-          const formattedTotalPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
-            .format(totalPrice)
-            .replace('₫', 'VND');
-          
-          // Hiển thị dịch vụ
-          doc.text(serviceName, 15, currentY, { maxWidth: 40 });
-          doc.text(quantity.toString(), 60, currentY, { align: 'center' });
-          doc.text(formattedUnitPrice, 75, currentY, { align: 'center' });
-          doc.text(formattedTotalPrice, 95, currentY, { align: 'right' });
-          currentY += lineHeight;
-        });
-      }
-      
-      // Vẽ đường kẻ phân cách
-      doc.line(15, currentY, 100, currentY);
-      currentY += lineHeight;
-      
-      // Tổng tiền dịch vụ
-      doc.setFont('helvetica', 'bold');
-      doc.text('Tong tien dich vu:', 15, currentY);
-      
-      // Tính tổng tiền dịch vụ
-      const totalServiceAmount = ticketData.services.reduce((total, service) => total + service.totalPrice, 0);
-      const formattedTotalService = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
-        .format(totalServiceAmount)
-        .replace('₫', 'VND');
-      
-      doc.text(formattedTotalService, 95, currentY, { align: 'right' });
-      currentY += lineHeight * 1.5;
-      
-      // Vẽ đường kẻ phân cách
-      doc.line(15, currentY - 4, 100, currentY - 4);
-      
-      // Tổng cộng 
-      doc.setFontSize(12);
-      doc.text('Tong cong:', 15, currentY);
-      doc.text(ticketData.orderInfo.formattedTotalPrice, 95, currentY, { align: 'right' });
-      
-      // Thêm mã đơn hàng vào cuối trang
-      currentY = 120;
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`* ${ticketData.orderInfo.orderCode} *`, 57, currentY, { align: 'center' });
-      currentY += lineHeight;
-      doc.text('Cam on quy khach da su dung dich vu', 57, currentY, { align: 'center' });
-      currentY += lineHeight;
-      doc.text('Chuc quy khach xem phim vui ve', 57, currentY, { align: 'center' });
-    }
-    
     // Tạo tên file
     const filename = `ve_${ticketData.orderInfo.orderCode}.pdf`;
     
@@ -722,43 +492,26 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   resetScanner(): void {
-    if (!this.isPlatformBrowser()) {
-      return;
-    }
-    
-    console.log('Bắt đầu reset máy quét và dữ liệu...');
-    
-    // Kiểm tra xem có phải đang trong luồng thanh toán QR không
-    const isQRPaymentFlow = localStorage.getItem('isQRPaymentFlow') === 'true';
-    
-    // Lấy dữ liệu vé từ localStorage nếu có
-    const lastTicketDataStr = localStorage.getItem('lastTicketData');
-    let lastTicketData: TicketResponse | null = null;
-    
-    if (lastTicketDataStr && isQRPaymentFlow) {
-      try {
-        lastTicketData = JSON.parse(lastTicketDataStr);
-        console.log('Đã lấy dữ liệu vé từ localStorage:', lastTicketData?.orderInfo?.orderCode);
-      } catch (e) {
-        console.error('Lỗi khi lấy dữ liệu vé từ localStorage:', e);
-      }
-    }
-    
     // Xóa timers
     this.clearTimers();
     
+    // Tạo biến để theo dõi trạng thái scanner
+    let wasScanning = false;
+    
     // Dừng scanner hiện tại nếu đang quét
     if (this.html5QrCode) {
-      if (this.html5QrCode.isScanning) {
+      wasScanning = this.html5QrCode.isScanning;
+      if (wasScanning) {
         try {
           this.stopScanner();
           console.log('Scanner dừng thành công');
         } catch (err) {
           console.error('Lỗi khi dừng scanner:', err);
+          // Tiếp tục tiến trình ngay cả khi có lỗi
         }
       }
       
-      // Giải phóng bộ nhớ để khởi tạo lại
+      // Giải phóng bộ nhớ để khởi tạo lại hoàn toàn
       try {
         this.html5QrCode = null;
       } catch (err) {
@@ -766,74 +519,44 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
     
-    // Nếu đang trong luồng thanh toán QR và có dữ liệu trong localStorage
-    if (isQRPaymentFlow && lastTicketData) {
-      // Giữ lại dữ liệu dịch vụ
-      this.scanResult = '';
-      this.error = '';
-      this.confirmSuccess = true;
-      this.confirmMessage = 'Xác nhận vé thành công!';
-      this.ticketData = lastTicketData;
-      this.showPrintOptions = true;
-      console.log('Giữ lại dữ liệu vé và dịch vụ từ luồng thanh toán QR');
-      
-      // Xóa cờ luồng thanh toán QR sau khi hoàn tất
-      localStorage.removeItem('isQRPaymentFlow');
-    } else {
-      // Reset tất cả dữ liệu nếu không phải luồng QR hoặc không có dữ liệu
-      this.scanResult = '';
-      this.error = '';
-      this.confirmSuccess = false;
-      this.confirmMessage = '';
-      this.ticketData = null;
-      this.isScanning = true;
-      this.showPrintOptions = false;
-      
-      // Xóa dữ liệu cũ trong localStorage nếu có
-      localStorage.removeItem('lastTicketData');
-    }
+    // Reset tất cả dữ liệu
+    this.resetAllData();
     
-    // Đặt tiêu đề ngẫu nhiên mới
+    // Xóa kết quả quét trước đó
+    this.scanResult = '';
+    
+    // Đặt tiêu đề ngẫu nhiên mỗi khi reset scanner
     this.setRandomTitle();
     
-    // Khởi tạo lại quá trình quét
-    setTimeout(() => {
+    // Đặt trạng thái đang quét là true để cho phép khởi tạo mới
+    this.isScanning = true;
+    
+    // Công khai log reset để tiện theo dõi
+    console.log('Scanner và dữ liệu đã được reset hoàn toàn');
+    
+    if (isPlatformBrowser(this.platformId)) {
+      // Khởi động lại scanner với thời gian chờ ngắn để tránh xung đột
+      const timeout = wasScanning ? 800 : 300; // Chờ lâu hơn nếu scanner vừa bị dừng
+      
       this.ngZone.run(() => {
-        if (this.qrReaderRef && this.qrReaderRef.nativeElement) {
-          // Tạo một container mới
-          const oldContainer = this.qrReaderRef.nativeElement;
-          const parent = oldContainer.parentNode;
-          
-          if (parent) {
-            // Tạo element mới với cùng ID
-            const newContainer = document.createElement('div');
-            newContainer.id = oldContainer.id || 'qr-reader';
-            newContainer.className = oldContainer.className || '';
-            newContainer.style.width = '100%';
-            newContainer.style.minHeight = '300px';
-            
-            // Thay thế element cũ
-            parent.replaceChild(newContainer, oldContainer);
-            this.qrReaderRef.nativeElement = newContainer;
-            
-            // Khởi tạo lại scanner
-            try {
-              if (!this.html5QrCode) {
-                console.log('Khởi tạo lại scanner...');
-                this.initQrScanner();
-              } else if (!this.html5QrCode.isScanning) {
-                console.log('Khởi động lại quét...');
-                this.startScanner();
-              }
-            } catch (err) {
-              console.error('Lỗi khi khởi tạo lại scanner:', err);
-              // Nếu có lỗi, thử lại sau 2 giây
-              setTimeout(() => this.initQrScanner(), 2000);
+        setTimeout(() => {
+          try {
+            // Tạo mới instance của scanner
+            if (!this.html5QrCode) {
+              console.log('Khởi tạo lại scanner...');
+              this.initQrScanner();
+            } else if (!this.html5QrCode.isScanning) {
+              console.log('Khởi động lại quét...');
+              this.startScanner();
             }
+          } catch (err) {
+            console.error('Lỗi khi khởi tạo lại scanner:', err);
+            // Nếu có lỗi, thử lại sau 2 giây
+            setTimeout(() => this.initQrScanner(), 2000);
           }
-        }
+        }, timeout);
       });
-    }, 300); // Chờ một khoảng thời gian ngắn trước khi khởi tạo lại
+    }
   }
 
   reloadComponent(): void {
@@ -1192,88 +915,42 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Phương thức bắt đầu đếm ngược
   startCountdown(): void {
-    // Xoá bất kỳ đếm ngược nào đang chạy
-    this.clearTimers();
+    if (!isPlatformBrowser(this.platformId)) return;
     
-    // Thiết lập lại thời gian đếm ngược
+    // Khởi tạo thời gian đếm ngược
     this.countdownTime = 5;
     
-    // Bắt đầu đếm ngược
+    // Xóa interval cũ nếu có
+    this.clearTimers();
+    
+    // Cập nhật countdown mỗi giây
     this.countdownInterval = setInterval(() => {
       this.ngZone.run(() => {
         this.countdownTime--;
         
-        // Cập nhật hiển thị đếm ngược trong giao diện
+        // Cập nhật hiển thị cho người dùng
         const countdownElement = document.querySelector('.countdown');
         if (countdownElement) {
           countdownElement.textContent = this.countdownTime.toString();
         }
         
-        // Khi đếm ngược đến 0, reset scanner
+        // Dừng đếm ngược khi đếm đến 0
         if (this.countdownTime <= 0) {
           this.clearTimers();
-          this.resetScanner();
         }
       });
     }, 1000);
     
-    // Đặt thời gian hẹn auto reset sau 5 giây (phòng trường hợp interval bị hỏng)
+    // Thiết lập timeout để reset scanner
     this.autoResetTimeout = setTimeout(() => {
-      this.clearTimers();
-      if (this.isScanning === false) {
-        this.resetScanner();
-      }
-    }, 6000);
+      this.ngZone.run(() => {
+        if (this.error) {
+          this.resetScanner();
+        }
+      });
+    }, 5000);
   }
   
-  // Phương thức hiển thị thông báo thành công
-  showSuccessMessage(message: string, duration: number = 3000): void {
-    // Tạo một phần tử thông báo mới
-    const messageElement = document.createElement('div');
-    messageElement.className = 'success-message';
-    messageElement.innerHTML = `
-      <div class="success-icon">
-        <i class="fas fa-check-circle"></i>
-      </div>
-      <div class="message-content">${message}</div>
-    `;
-    
-    // Style cho thông báo
-    messageElement.style.position = 'fixed';
-    messageElement.style.bottom = '20px';
-    messageElement.style.left = '50%';
-    messageElement.style.transform = 'translateX(-50%)';
-    messageElement.style.background = 'rgba(76, 175, 80, 0.9)';
-    messageElement.style.color = 'white';
-    messageElement.style.padding = '15px 25px';
-    messageElement.style.borderRadius = '5px';
-    messageElement.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-    messageElement.style.zIndex = '1000';
-    messageElement.style.display = 'flex';
-    messageElement.style.alignItems = 'center';
-    messageElement.style.gap = '10px';
-    messageElement.style.transition = 'all 0.3s ease';
-    messageElement.style.opacity = '0';
-    
-    // Thêm vào body
-    document.body.appendChild(messageElement);
-    
-    // Hiện dần
-    setTimeout(() => {
-      messageElement.style.opacity = '1';
-    }, 10);
-    
-    // Tự động ẩn sau khoảng thời gian xác định
-    setTimeout(() => {
-      messageElement.style.opacity = '0';
-      setTimeout(() => {
-        if (document.body.contains(messageElement)) {
-          document.body.removeChild(messageElement);
-        }
-      }, 300);
-    }, duration);
-  }
-
   // Xóa interval và timeout đếm ngược
   clearTimers(): void {
     if (this.countdownInterval) {

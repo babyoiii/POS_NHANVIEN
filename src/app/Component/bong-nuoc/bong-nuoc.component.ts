@@ -408,8 +408,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         quantity: 1,
         count: 1
       };
-serviceToAdd      
-      this.cartItems.push();
+      this.cartItems.push(serviceToAdd);
       this.saveCartToLocalStorage();
       
       // Hiển thị thông báo
@@ -1415,7 +1414,7 @@ serviceToAdd
   }
 
   // Tính tiền thừa
-   calculateChange(): void {
+  calculateChange(): void {
     this.changeAmount = this.cashReceived - this.getTotalAmount();
   }
 
