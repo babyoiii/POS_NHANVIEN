@@ -119,7 +119,7 @@ onSubmit(): void {
 
         const { userName, passWord } = this.loginForm.value;
         const cinemaId = this.selectedCinema.id;
-
+        localStorage.setItem('selectedCinemaId', cinemaId); 
         console.log('Login form submitted with:', { userName, cinemaId });
 
         this.authService.login(userName, passWord, cinemaId).subscribe({

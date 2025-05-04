@@ -97,7 +97,7 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     
     // ID của rạp - lấy từ localStorage hoặc service
-    const cinemaId = localStorage.getItem('selectedCinemaId') || 'e2131050-d219-4523-b480-2f517d8bafd0';
+    const cinemaId = localStorage.getItem('selectedCinemaId') || '';
     
     // Lấy tất cả phim
     this.movieService.getNowPlayingMovies(1, 50, undefined, cinemaId).subscribe({
