@@ -33,7 +33,25 @@ export class ServiceApiService {
 
   // API xác nhận thanh toán
   confirmServicePayment(orderCode: string, userId: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/api/Counter/Service/ManageOrder?action=2&orderCode=${orderCode}`, { userId });
+    console.log(`Gọi API xác nhận thanh toán với orderCode: "${orderCode}", userId: "${userId}"`);
+
+    // Kiểm tra orderCode có hợp lệ không
+    if (!orderCode || orderCode.trim() === '') {
+      console.error('Lỗi: orderCode không hợp lệ trong confirmServicePayment');
+      throw new Error('Mã đơn hàng không hợp lệ');
+    }
+
+    // Đảm bảo orderCode được truyền đúng cách trong URL và body
+    const url = `${this.apiUrl}/api/Counter/Service/ManageOrder?action=2&orderCode=${encodeURIComponent(orderCode)}`;
+    const body = {
+      userId,
+      orderCode // Thêm orderCode vào body để đảm bảo API nhận được
+    };
+
+    console.log('URL API xác nhận thanh toán:', url);
+    console.log('Body gửi đi:', body);
+
+    return this.http.post(url, body);
   }
 
   // API kiểm tra trạng thái đơn hàng

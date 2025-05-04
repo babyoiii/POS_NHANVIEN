@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
@@ -8,8 +8,8 @@ import { ServiceApiService } from '../../../services/service-api.service';
 import { TicketService } from '../../../services/ticket.service';
 import { AuthService } from '../../../services/auth.service';
 import { WebsocketService, SeatStatusUpdateRequest } from '../../../services/websocket.service';
-import { PdfGenerationService } from '../../../services/pdf-generation.service';
 import { TicketPdfComponent } from '../../common/ticket-pdf/ticket-pdf.component';
+import { PdfGenerationService } from '../../../services/pdf-generation.service';
 
 // Định nghĩa interface cho thông tin ghế
 interface SeatInfo {
@@ -71,36 +71,36 @@ interface OrderData {
 export class FoodSelectionComponent implements OnInit, OnDestroy {
   // Lưu trữ thông tin ghế để in vé sau khi thanh toán
   seatsToPrint: any[] = [];
-  
+
   // Chế độ test
   isTestMode = false;
-  
+
   // Biến điều khiển tiến trình
   currentStep = 1; // Bước hiện tại (1: chọn dịch vụ, 2: nhập thông tin, 3: thanh toán)
-  
+
   // Thông tin từ bước chọn ghế
   showtimeId: string = '';
   selectedSeats: SeatInfo[] = [];
   seatsTotalPrice: number = 0;
-  
+
   // Thông tin dịch vụ
   services: Service[] = [];
   filteredServices: Service[] = [];
   serviceTypes: ServiceType[] = [];
   selectedType: string | null = null;
   searchText: string = '';
-  
+
   // Giỏ hàng
   cartItems: Service[] = [];
   selectedServices: Service[] = [];
-  
+
   // Thông tin UI
   loading: boolean = false;
   error: string | null = null;
   currentPage: number = 1;
   recordsPerPage: number = 20;
   totalRecords: number = 0;
-  
+
   // Payment modal
   showPaymentModal: boolean = false;
   paymentMethods: any[] = [
@@ -118,26 +118,26 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     }
   ];
   selectedPaymentMethod: any = null;
-  
+
   // QR code
   showQRCode: boolean = false;
   qrImageUrl: string = 'assets/Image/sample-qr.png';
   orderId: string = '';
   paymentStatus: string = 'pending';
-  
+
   // Receipt
   showPrintingOverlay: boolean = false;
   isPrinting: boolean = false;
   isLoading: boolean = false;
   today: Date = new Date();
   showtimeDetail: any = null;
-  
+
   // PDF related properties
   showtimeInfoForPdf: any = {};
   orderInfoForPdf: any = {};
   apiResponseData: any = null; // Lưu trữ dữ liệu API nguyên bản
   orderDetail: any = {}; // Thông tin chi tiết về đơn hàng
-  
+
   // Email khách hàng
   customerEmail: string = '';
   useDefaultEmail: boolean = true; // Mặc định dùng email guest
@@ -146,7 +146,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   emailError: string = '';
   emailSuccess: string = '';
   customerInfo: any = null; // Lưu thông tin khách hàng nếu tìm thấy
-  
+
   // Thêm thuộc tính cho thanh toán tiền mặt
   showCashPaymentModal: boolean = false;
   showReceiptModal: boolean = false;
@@ -155,19 +155,19 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   receiptItems: any[] = []; // Lưu danh sách mặt hàng cho hóa đơn
   receiptTotalAmount: number = 0; // Lưu tổng tiền cho hóa đơn
   receiptContent: string = '';
-  
+
   // Lưu trữ logo dạng base64 cho in hóa đơn
   logoBase64: string = '';
-  
+
   // Custom notification properties
   showCustomNotification = false;
   notificationType = '';
   notificationTitle = '';
   notificationMessage = '';
   notificationTimeout: any = null;
-  
+
   private subscriptions: Subscription = new Subscription();
-  
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -176,7 +176,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     private ticketService: TicketService,
     private authService: AuthService,
     private pdfService: PdfGenerationService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -184,20 +184,74 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       this.loadSelectedSeats();
       this.loadServiceTypes();
     });
-    
+
     // Chuyển đổi logo thành base64 cho việc in hóa đơn
     this.convertLogoToBase64();
-    
+
     // Cập nhật thởi gian mỗi phút
     setInterval(() => {
       this.today = new Date();
     }, 60000);
+
+    // Cập nhật thời gian hiện tại mỗi phút
+    // setInterval(() => {
+    //   this.today = new Date();
+    // }, 60000);
+
+    // Kiểm tra thanh toán QR thành công
+    this.checkQRPaymentSuccess();
+
+    // Lắng nghe sự kiện storage để phát hiện thanh toán QR thành công
+    window.addEventListener('storage', this.handleStorageChange.bind(this));
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+
+    // Hủy đăng ký sự kiện storage
+    window.removeEventListener('storage', this.handleStorageChange.bind(this));
   }
-  
+
+  // Kiểm tra thanh toán QR thành công
+  checkQRPaymentSuccess(): void {
+    try {
+      const paymentSuccess = localStorage.getItem('payment_success');
+      if (paymentSuccess === 'true') {
+        console.log('Phát hiện thanh toán QR thành công khi khởi tạo component');
+
+        // Lấy thông tin thanh toán từ localStorage
+        const paymentOrderId = localStorage.getItem('payment_order_id');
+        this.orderId = paymentOrderId || '';
+
+        // Xử lý thanh toán thành công
+        this.processSuccessfulPayment();
+
+        // Xóa dữ liệu thanh toán khỏi localStorage
+        localStorage.removeItem('payment_success');
+        localStorage.removeItem('payment_order_id');
+        localStorage.removeItem('payment_amount');
+        localStorage.removeItem('payment_transaction_id');
+        localStorage.removeItem('payment_code'); // Xóa thêm mã tham chiếu thanh toán
+      }
+
+      // Kiểm tra xem có cần mở modal hóa đơn không
+      const openReceiptModal = localStorage.getItem('open_receipt_modal');
+      if (openReceiptModal === 'true') {
+        console.log('Phát hiện yêu cầu mở modal hóa đơn khi khởi tạo component');
+
+        // Mở modal hóa đơn
+        setTimeout(() => {
+          this.openReceiptModal();
+
+          // Xóa cờ để tránh mở lại modal khi refresh
+          localStorage.removeItem('open_receipt_modal');
+        }, 500); // Đợi một chút để đảm bảo component đã được khởi tạo đầy đủ
+      }
+    } catch (e) {
+      console.error('Lỗi khi kiểm tra thanh toán QR:', e);
+    }
+  }
+
   // Lấy thông tin ghế đã chọn từ localStorage
   private loadSelectedSeats(): void {
     const savedSeats = localStorage.getItem('selectedSeats');
@@ -212,26 +266,26 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       }
     }
   }
-  
+
   // Tính tổng tiền ghế
   private calculateSeatsTotalPrice(): void {
     this.seatsTotalPrice = this.selectedSeats.reduce((total, seat) => total + seat.SeatPrice, 0);
   }
-  
+
   // Tải danh sách loại dịch vụ
   loadServiceTypes(): void {
     this.loading = true;
     this.error = null;
-    
+
     const apiUrl = 'https://localhost:7263';
-    
+
     this.http.get<ApiResponse<ServiceType[]>>(`${apiUrl}/api/Service/GetServiceTypeList?currentPage=${this.currentPage}&recordPerPage=${this.recordsPerPage}`)
       .subscribe({
         next: (response) => {
           if (response.responseCode === 200) {
             this.serviceTypes = response.data;
             this.totalRecords = response.totalRecord || 0;
-            
+
             // Lấy tất cả dịch vụ từ tất cả danh mục
             this.services = [];
             response.data.forEach(type => {
@@ -239,7 +293,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
                 this.services = [...this.services, ...type.serviceList];
               }
             });
-            
+
             this.applyFilters();
           } else {
             this.error = response.message || 'Đã xảy ra lỗi khi tải dữ liệu';
@@ -256,7 +310,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         }
       });
   }
-  
+
   // Chuyển đổi logo thành base64
   private convertLogoToBase64(): void {
     // Đặt logo mặc định là base64 cố định để đảm bảo luôn có logo
@@ -265,11 +319,11 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
 
     const img = new Image();
     img.crossOrigin = 'Anonymous';
-    
+
     // Sử dụng đường dẫn tuyệt đối
     const baseUrl = window.location.origin;
     const logoUrl = baseUrl + '/assets/Image/cinexLogo.png';
-    
+
     img.onload = () => {
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
@@ -283,28 +337,28 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         console.error('Không thể tạo context cho canvas');
       }
     };
-    
+
     img.onerror = (e) => {
       console.error('Lỗi khi tải logo:', e);
       // Đã có logo mặc định, không làm gì thêm
     };
-    
+
     img.src = logoUrl;
     console.log('Đang tải logo từ:', logoUrl);
   }
-  
+
   // Kiểm tra email khách hàng
   checkCustomerEmail(email: string): void {
     if (!email || email.trim() === '') {
       this.emailError = 'Vui lòng nhập email';
       return;
     }
-    
+
     this.isCheckingEmail = true;
     this.emailError = '';
     this.emailSuccess = '';
     this.customerInfo = null;
-    
+
     // Sử dụng phương thức đã tạo trong ticketService
     this.ticketService.getUserByEmail(email)
       .subscribe({
@@ -324,13 +378,13 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         }
       });
   }
-  
+
   // Xử lý khi nhập email
   handleEmailInput(email: string): void {
     this.customerEmail = email;
     this.checkCustomerEmail(email);
   }
-  
+
   // Áp dụng bộ lọc
   applyFilters(): void {
     let result = [...this.services];
@@ -343,27 +397,27 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     // Lọc theo tìm kiếm
     if (this.searchText.trim()) {
       const term = this.searchText.toLowerCase().trim();
-      result = result.filter(service => 
-        service.serviceName.toLowerCase().includes(term) || 
+      result = result.filter(service =>
+        service.serviceName.toLowerCase().includes(term) ||
         service.description?.toLowerCase().includes(term)
       );
     }
 
     this.filteredServices = result;
   }
-  
+
   // Chọn loại dịch vụ
   selectType(typeId: string | null): void {
     this.selectedType = typeId;
     this.applyFilters();
   }
-  
+
   // Tìm kiếm
   search(event: any): void {
     this.searchText = event.target.value;
     this.applyFilters();
   }
-  
+
   // Lấy tên loại dịch vụ đã chọn
   getSelectedTypeName(): string {
     if (this.selectedType) {
@@ -372,12 +426,12 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     }
     return '';
   }
-  
+
   // Thêm dịch vụ vào giỏ hàng
   addToCart(service: Service): void {
     // Kiểm tra xem dịch vụ đã có trong giỏ hàng chưa
     const existingItem = this.cartItems.find(item => item.id === service.id);
-    
+
     if (existingItem) {
       // Nếu đã có, tăng số lượng
       existingItem.count = (existingItem.count || 1) + 1;
@@ -386,13 +440,13 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       const serviceToAdd = { ...service, count: 1 };
       this.cartItems.push(serviceToAdd);
     }
-    
+
     // Hiển thị thông báo bằng alert
     console.log(`Đã thêm ${service.serviceName} vào giỏ hàng!`);
     // Có thể hiển thị thông báo bằng alert nếu cần
     // alert(`Đã thêm ${service.serviceName} vào giỏ hàng!`);
   }
-  
+
   // Xóa dịch vụ khỏi giỏ hàng
   removeFromCart(index: number): void {
     if (index >= 0 && index < this.cartItems.length) {
@@ -406,22 +460,22 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       }
     }
   }
-  
+
   // Xóa tất cả dịch vụ khỏi giỏ hàng
   clearCart(): void {
     this.cartItems = [];
   }
-  
+
   // Tính tổng tiền dịch vụ
   getServicesTotalPrice(): number {
     return this.cartItems.reduce((total, item) => total + item.price * (item.count || 1), 0);
   }
-  
+
   // Tính tổng tiền (ghế + dịch vụ)
   getTotalPrice(): number {
     return this.seatsTotalPrice + this.getServicesTotalPrice();
   }
-  
+
   // Format giá tiền
   formatPrice(price: number): string {
     return new Intl.NumberFormat('vi-VN', {
@@ -429,14 +483,14 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       currency: 'VND'
     }).format(price);
   }
-  
+
   // Quay lại bước chọn ghế
   goBack(): void {
     // We don't want to clear selected seats when going back to seat selection
     // The seats should still be selected in the seat map
     this.router.navigate(['/trangchu/seat-map', this.showtimeId]);
   }
-  
+
   // Mở modal thanh toán
   openPaymentModal(): void {
     // Kiểm tra đã chọn ghế chưa
@@ -444,7 +498,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       this.showNotification('Bạn chưa chọn ghế nào!', 'warning');
       return;
     }
-    
+
     // Kiểm tra email khách hàng nếu không sử dụng email mặc định
     if (!this.useDefaultEmail) {
       // Nếu không có email hoặc email trống
@@ -452,28 +506,28 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         this.showNotification('Vui lòng nhập email khách hàng!', 'warning');
         return;
       }
-      
+
       // Nếu có lỗi email hoặc chưa xác thực thành công (customerInfo null)
       if (this.emailError || !this.customerInfo) {
         this.showNotification('Email không hợp lệ hoặc chưa được xác thực. Vui lòng kiểm tra lại email trước khi tiếp tục!', 'error');
         return;
       }
     }
-    
+
     // Nếu mọi điều kiện đều thỏa mãn, hiển thị modal thanh toán
     this.showPaymentModal = true;
   }
-  
+
   // Đóng modal thanh toán
   closePaymentModal(): void {
     this.showPaymentModal = false;
   }
-  
+
   // Chọn phương thức thanh toán
   selectPaymentMethod(method: any): void {
     this.selectedPaymentMethod = method;
     this.showPaymentModal = false;
-    
+
     if (method.id === 1) {
       // Thanh toán tiền mặt - Mở modal nhập tiền
       this.openCashPaymentModal();
@@ -482,59 +536,59 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       this.processPaymentQR();
     }
   }
-  
+
   // Mở modal nhập tiền khách thanh toán
   openCashPaymentModal(): void {
     this.showCashPaymentModal = true;
     this.cashReceived = 0;
     this.calculateChange();
   }
-  
+
   // Đóng modal nhập tiền
   closeCashPaymentModal(): void {
     this.showCashPaymentModal = false;
   }
-  
+
   // Tính tiền thừa
   calculateChange(): void {
     const previousChange = this.changeAmount;
     this.changeAmount = this.cashReceived - this.getTotalPrice();
-    
+
     // Chỉ hiển thị thông báo nếu số tiền thay đổi từ âm -> dương (không đủ -> đủ/thừa)
     if (previousChange < 0 && this.changeAmount >= 0) {
       this.showNotification(`Số tiền hợp lệ. Tiền thừa: ${this.formatPrice(this.changeAmount)}`, 'success');
     }
   }
-  
+
   // Đặt số tiền nhanh
   setQuickAmount(amount: number): void {
     this.cashReceived = amount;
     this.calculateChange();
-    
+
     // Hiển thị thông báo thân thiện khi số tiền đã đủ/thừa
     const diff = this.cashReceived - this.getTotalPrice();
     if (diff >= 0) {
       this.showNotification(`Số tiền thừa: ${this.formatPrice(diff)}`, 'info');
     }
   }
-  
+
   // Xử lý thanh toán tiền mặt
   processCashPayment(): void {
     if (this.cashReceived < this.getTotalPrice()) {
       this.showNotification('Tiền khách đưa không đủ để thanh toán. Vui lòng kiểm tra lại số tiền.', 'error');
       return;
     }
-    
+
     // Đóng modal tiền mặt
     this.closeCashPaymentModal();
-    
+
     // Hiển thị loading trong khi xử lý
     this.isLoading = true;
-    
+
     // Lưu thông tin để hiển thị trên hóa đơn
     this.receiptItems = [...this.cartItems];
     this.receiptTotalAmount = this.getTotalPrice();
-    
+
     // Lấy thông tin người dùng đang đăng nhập
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
@@ -542,10 +596,10 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       this.isLoading = false;
       return;
     }
-    
+
     console.log('Current user for payment:', currentUser);
     console.log('Using showtimeId for payment:', this.showtimeId);
-    
+
     // Chuẩn bị dữ liệu để tạo đơn hàng theo đúng cấu trúc API yêu cầu
     const orderData = {
       email: this.useDefaultEmail ? this.defaultEmail : this.customerEmail, // Sử dụng email thực tế hoặc email mặc định
@@ -560,11 +614,11 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         quantity: service.count || 1
       }))
     };
-    
+
     // Log chi tiết dữ liệu
     console.log('Selected seats data:', this.selectedSeats);
     console.log('Order data to send:', orderData);
-    
+
     // Gọi API tạo đơn hàng
     this.ticketService.createTicketAndServiceOrder(orderData)
       .subscribe(
@@ -572,81 +626,76 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
           if (response.responseCode === 200 && response.orderCode) {
             console.log('Order created successfully with code:', response.orderCode);
             const orderCode = response.orderCode;
-            
+
             // Lưu showtimeId vào localStorage để tiến hành cập nhật trạng thái ghế sau này
             if (this.showtimeId) {
               console.log('Saving currentShowTimeId to localStorage:', this.showtimeId);
               localStorage.setItem('currentShowTimeId', this.showtimeId);
             }
-            
+
             // Sau khi tạo đơn hàng thành công, gọi API thanh toán
             this.ticketService.confirmTicketAndServicePayment(orderCode, currentUser.id)
               .subscribe(
                 paymentResponse => {
                   // Đảm bảo tắt loading trước khi hiển thị thông báo thành công
                   this.isLoading = false;
-                  
+
                   if (paymentResponse.responseCode === 200) {
                     console.log('Payment processed successfully');
-                    
+
                     // Lưu thông tin email đã sử dụng để hiển thị trên hóa đơn
                     localStorage.setItem('lastOrderEmail', this.useDefaultEmail ? this.defaultEmail : this.customerEmail);
-                    
+
                     // Lưu mã đơn hàng để hiển thị trên hóa đơn
                     this.orderId = orderCode;
-                    
+
                     // GỌI TRỰC TIẾP ACTION PAYMENT QUA WEBSOCKET
                     console.log('Directly calling Payment WebSocket action');
-                    
+
                     // Lấy websocketService từ ticketService
                     const websocketService = this.ticketService.getWebsocketService();
-                    
+
                     // Tạo danh sách ghế cần cập nhật status = 5 (BOOKED)
                     const seatUpdates: SeatStatusUpdateRequest[] = this.selectedSeats.map(seat => ({
                       SeatId: seat.SeatStatusByShowTimeId,
                       Status: 5 // BOOKED
                     }));
-                    
+
                     // Gọi trực tiếp action Payment
                     websocketService.payment(seatUpdates);
                     console.log('Payment WebSocket action called with data:', seatUpdates);
-                    
+
                     // Gọi thêm GetList để cập nhật lại UI
                     setTimeout(() => {
                       websocketService.getList();
                     }, 800);
-                    
-                    // Hiển thị thông báo thành công trước khi mở hóa đơn
-                    this.showNotification('Đặt vé thành công! Cảm ơn quý khách đã sử dụng dịch vụ.', 'success');
-                    
+
+
+                    // Hiển thị hóa đơn thay vì thông báo thành công
+                    this.openReceiptModal();
+
                     // Lưu thông tin ghế để in vé trước khi xóa
                     this.seatsToPrint = [...this.selectedSeats];
                     console.log('Đã lưu ghế để in vé:', this.seatsToPrint);
-                    
+
                     // Xoá giỏ hàng và thông tin ghế sau khi thanh toán thành công
                     this.clearCartAndSeats();
-                    
-                    // Hiển thị hóa đơn sau khi thông báo thành công ngắn
-                    setTimeout(() => {
-                      this.openReceiptModal();
-                    }, 1500); // Đợi 1.5 giây để người dùng thấy thông báo thành công
+
                   } else {
                     console.error('Payment failed with code:', paymentResponse.responseCode);
-                    const friendlyMessage = this.getFriendlyErrorMessage(paymentResponse.message);
-                    this.showNotification(`Thanh toán không thành công: ${friendlyMessage}`, 'error');
+                    alert('Lỗi khi thanh toán: ' + paymentResponse.message);
                   }
                 },
                 error => {
                   this.isLoading = false;
                   console.error('Payment API error:', error);
-                  this.showNotification('Không thể kết nối đến máy chủ thanh toán. Vui lòng thử lại sau.', 'error');
+                  alert('Lỗi kết nối: ' + error.message);
                 }
               );
           } else {
             this.isLoading = false;
             console.error('Order creation failed with code:', response.responseCode);
-            const friendlyMessage = this.getFriendlyErrorMessage(response.message);
-            this.showNotification(`Tạo đơn hàng không thành công: ${friendlyMessage}`, 'error');
+            alert('Lỗi khi tạo đơn hàng: ' + response.message);
           }
         },
         error => {
@@ -656,37 +705,37 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         }
       );
   }
-  
+
   // Mở modal hiển thị hóa đơn
   openReceiptModal(): void {
     this.showReceiptModal = true;
     this.prepareReceiptContent();
   }
-  
+
   // Đóng modal hóa đơn
   closeReceiptModal(): void {
     this.showReceiptModal = false;
-    
+
     // Chuyển hướng về trang chính sau khi đóng hóa đơn
     setTimeout(() => {
       this.router.navigate(['/trangchu/ticket/now']);
     }, 500);
   }
-  
+
   // Chuẩn bị nội dung hóa đơn
   prepareReceiptContent(): void {
     // Lấy thông tin cần thiết để tạo hóa đơn
     const currentUser = this.authService.getCurrentUser();
     const staffName = currentUser ? currentUser.userName : 'Nhân viên';
-    
+
     // Mã đơn hàng
     const orderCode = this.orderId || `ORD-${new Date().getTime()}`;
-    
+
     // Tính tổng tiền từ vé và dịch vụ
     const seatsTotalPrice = this.seatsTotalPrice;
     const serviceTotal = this.getServicesTotalPrice();
     const totalAmount = seatsTotalPrice + serviceTotal;
-    
+
     // Tạo nội dung hóa đơn
     this.receiptContent = `
       <html>
@@ -824,15 +873,15 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
             
             <div class="section-title">THÔNG TIN VÉ</div>
             <div class="seats-section">
-              ${this.selectedSeats.length > 0 ? 
-                this.selectedSeats.map(seat => `
+              ${this.selectedSeats.length > 0 ?
+        this.selectedSeats.map(seat => `
                   <div class="seat-info">
                     <span>Ghế: ${seat.SeatName}</span>
                     <span>${this.formatPrice(seat.SeatPrice)}</span>
                   </div>
-                `).join('') : 
-                '<p>Không có vé được chọn</p>'
-              }
+                `).join('') :
+        '<p>Không có vé được chọn</p>'
+      }
               <div class="seat-info" style="font-weight: bold;">
                 <span>Tổng tiền ghế:</span>
                 <span>${this.formatPrice(seatsTotalPrice)}</span>
@@ -889,20 +938,20 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       </html>
     `;
   }
-  
+
   // Tạo nội dung vé cho mỗi ghế
   prepareTicketContent(seat: SeatInfo): string {
     // Lấy thông tin cần thiết để tạo hóa đơn
     const currentUser = this.authService.getCurrentUser();
     const staffName = currentUser ? currentUser.userName : 'Nhân viên';
-    
+
     // Mã đơn hàng
     const orderCode = this.orderId || `ORD-${new Date().getTime()}-${seat.RowName}${seat.SeatName}`;
-    
+
     // Lấy thông tin phim và suất chiếu
     const showtime = this.showtimeDetail || { startTime: new Date().toISOString() };
     const movieTitle = showtime.movieTitle || 'Chưa xác định';
-    
+
     // Tạo nội dung vé
     return `
       <html>
@@ -1093,24 +1142,24 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       </html>
     `;
   }
-  
+
   // Tạo nội dung hóa đơn dịch vụ
   prepareServiceContent(): string {
     // Kiểm tra nếu không có dịch vụ nào
     if (!this.selectedServices || this.selectedServices.length === 0) {
       return '';
     }
-    
+
     // Lấy thông tin cần thiết để tạo hóa đơn
     const currentUser = this.authService.getCurrentUser();
     const staffName = currentUser ? currentUser.userName : 'Nhân viên';
-    
+
     // Mã đơn hàng
     const orderCode = this.orderId || `ORD-${new Date().getTime()}-SV`;
-    
+
     // Tính tổng tiền dịch vụ
     const serviceTotal = this.getServicesTotalPrice();
-    
+
     // Tạo nội dung dịch vụ
     const servicesHtml = this.selectedServices.map(service => `
       <tr>
@@ -1120,7 +1169,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         <td class="amount">${this.formatCurrency((service.price || 0) * (service.quantity || 1))} ₫</td>
       </tr>
     `).join('');
-    
+
     return `
       <html>
         <head>
@@ -1336,24 +1385,24 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       </html>
     `;
   }
-  
+
   // Định dạng tiền tệ
   formatCurrency(amount: number): string {
     return amount.toLocaleString('vi-VN');
   }
-  
+
   // Định dạng giờ
   formatTime(date: Date): string {
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   }
-  
+
   // Định dạng ngày
   formatLocalDate(date: Date): string {
     // Đảm bảo sử dụng thởi gian địa phương
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    
+
     return `${day}/${month}/${year}`;
   }
 
@@ -1365,52 +1414,48 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    
+
     return `${hours}:${minutes} ${day}/${month}/${year}`;
   }
-  
-  // Tham chiếu đến component PDF ticket
-  @ViewChild('ticketPdfContainer') ticketPdfContainer!: ElementRef;
-  
-  // Lấy tên nhân viên hiện tại để hiển thị trên hóa đơn
+
+  // Lấy tên nhân viên
   getStaffName(): string {
     const currentUser = this.authService.getCurrentUser();
+    // Sử dụng userName hoặc email nếu có, nếu không thì dùng giá trị mặc định
     return currentUser ? (currentUser.userName || currentUser.email || 'Nhân viên bán hàng') : 'Nhân viên bán hàng';
   }
-  
-  // Hàm này đã được thay thế bằng showSuccessNotification
-  // để tránh lỗi duplicate function implementation
-  
-  // Chuyển đổi thông báo lỗi kỹ thuật thành thông báo thân thiện
-  getFriendlyErrorMessage(technicalMessage: string): string {
-    // Ánh xạ thông báo kỹ thuật sang thông báo thân thiện
-    const errorMap: {[key: string]: string} = {
-      'Invalid payment method': 'Phương thức thanh toán không hợp lệ.',
-      'Order not found': 'Không tìm thấy thông tin đơn hàng.',
-      'Payment failed': 'Thanh toán không thành công.',
-      'Seat already booked': 'Ghế đã được đặt bởi người khác.',
-      'Invalid seats': 'Thông tin ghế không hợp lệ.',
-      'Invalid showtime': 'Suất chiếu không hợp lệ hoặc đã kết thúc.',
-      'Invalid user': 'Người dùng không hợp lệ.',
-      'Connection error': 'Lỗi kết nối mạng.',
-      'Service not available': 'Dịch vụ tạm thởi không khả dụng.'
-    };
-    
-    return errorMap[technicalMessage] || 'Có lỗi xảy ra. Vui lòng thử lại sau.';
+
+  // Tạo mã tham chiếu ngẫu nhiên cho thanh toán QR
+  generateRandomReference(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = 'cinex';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   }
-  
-  // Xử lý thanh toán QR
+
+  // Xử lý thanh toán QR - phiên bản mới mở tab riêng
   processPaymentQR(): void {
     this.isLoading = true;
-    
+    console.log('Bắt đầu xử lý thanh toán QR (phương thức mới)');
+
     // Lấy thông tin người dùng đang đăng nhập
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      alert('Lỗi xác thực: Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.');
+      alert('Vui lòng đăng nhập lại');
       this.isLoading = false;
       return;
     }
-    
+
+    // Tạo mã tham chiếu thanh toán ngẫu nhiên
+    const paymentReference = this.generateRandomReference();
+    console.log('Đã tạo mã tham chiếu thanh toán:', paymentReference);
+
+    // Tính tổng số tiền cần thanh toán
+    const amount = this.getTotalPrice();
+    console.log('Tổng số tiền cần thanh toán:', amount);
+
     // Chuẩn bị dữ liệu để tạo đơn hàng theo đúng cấu trúc API yêu cầu
     const orderData = {
       email: this.useDefaultEmail ? this.defaultEmail : this.customerEmail, // Sử dụng email thực tế hoặc email mặc định
@@ -1425,11 +1470,11 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         quantity: service.count || 1
       }))
     };
-    
+
     // Log chi tiết dữ liệu
     console.log('Selected seats data:', this.selectedSeats);
     console.log('Order data to send:', orderData);
-    
+
     // Gọi API tạo đơn hàng
     this.ticketService.createTicketAndServiceOrder(orderData)
       .subscribe(
@@ -1437,95 +1482,133 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
           this.isLoading = false;
           if (response.responseCode === 200 && response.orderCode) {
             this.orderId = response.orderCode;
-            this.showQRCode = true;
+            console.log('Đã tạo đơn hàng thành công với mã:', this.orderId);
+
+            // Mở tab mới với thông tin thanh toán QR
+            const qrPaymentUrl = `/qr-payment?orderId=${encodeURIComponent(this.orderId)}&amount=${encodeURIComponent(amount)}&paymentCode=${encodeURIComponent(paymentReference)}`;
+            console.log('URL thanh toán QR:', qrPaymentUrl);
+
+            // Mở tab mới với URL có tham số
+            window.open(qrPaymentUrl, '_blank');
+
+            // Lắng nghe sự kiện storage để biết khi nào thanh toán thành công
+            window.addEventListener('storage', this.handleStorageChange.bind(this));
+
+            // Hiển thị thông báo
+            // alert('Đã mở trang thanh toán QR trong tab mới. Vui lòng hoàn tất thanh toán.');
           } else {
-            const friendlyMessage = this.getFriendlyErrorMessage(response.message);
-            alert(`Tạo đơn hàng không thành công: ${friendlyMessage}`);
+            alert('Lỗi khi tạo đơn hàng: ' + response.message);
           }
         },
         error => {
           this.isLoading = false;
-          console.error('Order API error:', error);
-          alert('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.');
+          alert('Lỗi kết nối: ' + error.message);
         }
       );
   }
-  
-  // Xác nhận thanh toán QR
-  confirmPayment(): void {
-    if (!this.orderId) {
-      alert('Không tìm thấy mã đơn hàng');
-      return;
+
+  // Xử lý sự kiện storage change để phát hiện thanh toán thành công
+  handleStorageChange(event: StorageEvent): void {
+    console.log('Storage event detected:', event);
+
+    if (event.key === 'payment_success' && event.newValue === 'true') {
+      console.log('Phát hiện thanh toán thành công từ sự kiện storage');
+
+      // Lấy thông tin thanh toán từ localStorage
+      const paymentOrderId = localStorage.getItem('payment_order_id');
+      const paymentCode = localStorage.getItem('payment_code'); // Lấy thêm mã tham chiếu thanh toán
+
+      console.log('Thông tin thanh toán từ localStorage:', {
+        paymentOrderId,
+        orderId: this.orderId,
+        paymentCode
+      });
+
+      // Kiểm tra xem có phải đơn hàng hiện tại không (kiểm tra cả orderId và paymentCode)
+      if (paymentOrderId === this.orderId || (paymentCode && paymentCode === this.orderId)) {
+        console.log('Xác nhận thanh toán thành công cho đơn hàng:', this.orderId);
+
+        // Xử lý thanh toán thành công
+        this.processSuccessfulPayment();
+
+        // Xóa dữ liệu thanh toán khỏi localStorage
+        localStorage.removeItem('payment_success');
+        localStorage.removeItem('payment_order_id');
+        localStorage.removeItem('payment_amount');
+        localStorage.removeItem('payment_transaction_id');
+        localStorage.removeItem('payment_code');
+      }
     }
-    
-    this.isLoading = true;
-    this.paymentStatus = 'pending';
-    
+
+    // Kiểm tra xem có phải là sự kiện mở modal hóa đơn không
+    if (event.key === 'open_receipt_modal' && event.newValue === 'true') {
+      console.log('Phát hiện yêu cầu mở modal hóa đơn từ tab QR payment');
+
+      // Mở modal hóa đơn
+      this.openReceiptModal();
+
+      // Xóa cờ để tránh mở lại modal khi refresh
+      localStorage.removeItem('open_receipt_modal');
+    }
+  }
+
+  // Xử lý khi thanh toán thành công
+  processSuccessfulPayment(): void {
+    console.log('Xử lý thanh toán thành công');
+
     // Lấy thông tin người dùng đang đăng nhập
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      alert('Lỗi xác thực: Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.');
-      this.isLoading = false;
+      alert('Vui lòng đăng nhập lại');
       return;
     }
-    
-    console.log('Confirming payment for order:', this.orderId);
-    
-    // Gọi API thanh toán
+
+    // Gọi API xác nhận thanh toán
     this.ticketService.confirmTicketAndServicePayment(this.orderId, currentUser.id)
       .subscribe(
-        paymentResponse => {
-          // Đảm bảo tắt loading trước khi hiển thị thông báo thành công
-          this.isLoading = false;
-          
-          if (paymentResponse.responseCode === 200) {
-            console.log('Payment processed successfully');
-            this.paymentStatus = 'success';
-            this.showQRCode = false;
-            
+        response => {
+          if (response.responseCode === 200) {
+            console.log('Payment confirmed successfully');
+
             // GỌI TRỰC TIẾP ACTION PAYMENT QUA WEBSOCKET
             console.log('Directly calling Payment WebSocket action');
-            
+
             // Lấy websocketService từ ticketService
             const websocketService = this.ticketService.getWebsocketService();
-            
+
             // Tạo danh sách ghế cần cập nhật status = 5 (BOOKED)
             const seatUpdates: SeatStatusUpdateRequest[] = this.selectedSeats.map(seat => ({
               SeatId: seat.SeatStatusByShowTimeId,
               Status: 5 // BOOKED
             }));
-            
+
             // Gọi trực tiếp action Payment
             websocketService.payment(seatUpdates);
             console.log('Payment WebSocket action called with data:', seatUpdates);
-            
+
             // Gọi thêm GetList để cập nhật lại UI
             setTimeout(() => {
               websocketService.getList();
             }, 800);
-            
-            this.showSuccessNotification();
+
+            // Hiển thị hóa đơn
+            this.openReceiptModal();
+
+            // Xoá giỏ hàng và thông tin ghế sau khi thanh toán thành công
             this.clearCartAndSeats();
-            
-            // Chuyển hướng về trang chính
-            setTimeout(() => {
-              this.router.navigate(['/trangchu/ticket/now']);
-            }, 2000);
           } else {
-            console.error('Payment confirmation failed with code:', paymentResponse.responseCode);
-            const friendlyMessage = this.getFriendlyErrorMessage(paymentResponse.message);
-            alert(`Thanh toán không thành công: ${friendlyMessage}`);
+            console.error('Payment confirmation failed with code:', response.responseCode);
+            alert('Lỗi khi thanh toán: ' + response.message);
           }
         },
         error => {
-          this.isLoading = false;
-          this.paymentStatus = 'failed';
           console.error('Payment confirmation API error:', error);
-          alert('Lỗi kết nối: Không thể kết nối đến máy chủ thanh toán. Vui lòng thử lại sau.');
+          alert('Lỗi kết nối: ' + error.message);
         }
       );
   }
-  
+
+
   // Hiển thị thông báo thành công
   showSuccessNotification(): void {
     // Thay thế alert bằng thông báo đẹp hơn
@@ -1540,7 +1623,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         <p>Đơn hàng của bạn đã được xử lý.</p>
       </div>
     `;
-    
+
     // Style cho thông báo
     successElement.style.cssText = `
       position: fixed;
@@ -1556,7 +1639,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       z-index: 9999;
       animation: slideIn 0.5s ease-out;
     `;
-    
+
     // Thêm style cho icon
     const icon = successElement.querySelector('.success-icon') as HTMLElement;
     if (icon) {
@@ -1565,10 +1648,10 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         margin-right: 15px;
       `;
     }
-    
+
     // Thêm vào document
     document.body.appendChild(successElement);
-    
+
     // Tự động xóa sau 2 giây
     setTimeout(() => {
       if (successElement.parentNode) {
@@ -1582,7 +1665,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       }
     }, 2000);
   }
-  
+
   // Xóa giỏ hàng và thông tin ghế đã chọn
   clearCartAndSeats(): void {
     this.cartItems = [];
@@ -1598,7 +1681,27 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     // Khi người dùng nhấp vào card, gọi phương thức addToCart
     this.addToCart(service);
   }
-  
+
+  // Xử lý lỗi hình ảnh
+  handleImageError(event: any): void {
+    event.target.src = 'assets/Image/cinexLogo.png';
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Hiển thị thông báo
   showNotification(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title: string = ''): void {
     // Đặt tiêu đề thông báo dựa trên loại
@@ -1615,37 +1718,40 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       default:
         this.notificationTitle = title || 'Thông tin';
     }
-    
+
     // Đặt loại thông báo và nội dung
     this.notificationType = type;
     this.notificationMessage = message;
-    
+
     // Hiển thị thông báo
     this.showCustomNotification = true;
-    
+
     // Xóa timeout cũ nếu có
     if (this.notificationTimeout) {
       clearTimeout(this.notificationTimeout);
     }
-    
+
     // Tự động đóng thông báo sau 5 giây
     this.notificationTimeout = setTimeout(() => {
       this.closeNotification();
     }, 5000);
-    
+
     console.log(`Hiển thị thông báo: ${message}, loại: ${type}, tiêu đề: ${this.notificationTitle}`);
-    
+
     // Gọi hàm thông báo trực tiếp để tương thích ngược
     this.showNotificationDirect(message, type, this.notificationTitle);
   }
-  
+
+
+
+
   // Đóng thông báo
   closeNotification(): void {
     // Thêm class fade-out để tạo hiệu ứng biến mất
     const notificationElement = document.querySelector('.custom-notification');
     if (notificationElement) {
       notificationElement.classList.add('fade-out');
-      
+
       // Đợi animation kết thúc rồi mới ẩn thông báo
       setTimeout(() => {
         this.showCustomNotification = false;
@@ -1655,7 +1761,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       this.showCustomNotification = false;
     }
   }
-  
+
   // Hàm hiển thị thông báo trực tiếp (giục đị ngoài)
   private showNotificationDirect(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title: string = ''): void {
     // Xóa thông báo cũ nếu có
@@ -1665,11 +1771,11 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         el.parentNode.removeChild(el);
       }
     });
-    
+
     // Tạo phần tử thông báo
     const notification = document.createElement('div');
     notification.className = `custom-notification ${type}-notification`;
-    
+
     // Thêm inline styles để đảm bảo hiển thị
     notification.style.position = 'fixed';
     notification.style.top = '20px';
@@ -1684,7 +1790,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     notification.style.alignItems = 'flex-start';
     notification.style.zIndex = '9999';
     notification.style.overflowX = 'hidden';
-    
+
     if (type === 'success') {
       notification.style.borderLeft = '4px solid #4caf50';
     } else if (type === 'error') {
@@ -1694,13 +1800,13 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     } else {
       notification.style.borderLeft = '4px solid #2196f3';
     }
-    
+
     // Chọn icon phù hợp với loại thông báo
     let icon = 'info-circle';
     if (type === 'success') icon = 'check-circle';
     if (type === 'error') icon = 'exclamation-circle';
     if (type === 'warning') icon = 'exclamation-triangle';
-    
+
     // Tạo nội dung HTML cho thông báo
     notification.innerHTML = `
       <div class="notification-icon" style="margin-right: 15px; font-size: 20px;">
@@ -1714,10 +1820,10 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         <i class="fas fa-times"></i>
       </div>
     `;
-    
+
     // Thêm thông báo vào body
     document.body.appendChild(notification);
-    
+
     // Thêm sự kiện click cho nút đóng
     const closeBtn = notification.querySelector('.notification-close');
     if (closeBtn) {
@@ -1725,20 +1831,32 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         this.removeNotification(notification);
       });
     }
-    
+
     // Hiển thị notification
     notification.style.opacity = '0';
     setTimeout(() => {
       notification.style.opacity = '1';
       notification.style.transition = 'opacity 0.3s ease-in-out';
     }, 10);
-    
+
     // Tự động ẩn sau 5 giây
     setTimeout(() => {
       this.removeNotification(notification);
     }, 5000);
   }
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Xóa thông báo
   removeNotification(notification: HTMLElement): void {
     notification.classList.remove('show');
@@ -1749,10 +1867,42 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     }, 300);
   }
 
+
+  // Chuyển đổi thông báo lỗi kỹ thuật thành thông báo thân thiện
+  getFriendlyErrorMessage(technicalMessage: string): string {
+    // Ánh xạ thông báo kỹ thuật sang thông báo thân thiện
+    const errorMap: { [key: string]: string } = {
+      'Invalid payment method': 'Phương thức thanh toán không hợp lệ.',
+      'Order not found': 'Không tìm thấy thông tin đơn hàng.',
+      'Payment failed': 'Thanh toán không thành công.',
+      'Seat already booked': 'Ghế đã được đặt bởi người khác.',
+      'Invalid seats': 'Thông tin ghế không hợp lệ.',
+      'Invalid showtime': 'Suất chiếu không hợp lệ hoặc đã kết thúc.',
+      'Invalid user': 'Người dùng không hợp lệ.',
+      'Connection error': 'Lỗi kết nối mạng.',
+      'Service not available': 'Dịch vụ tạm thởi không khả dụng.'
+    };
+
+    return errorMap[technicalMessage] || 'Có lỗi xảy ra. Vui lòng thử lại sau.';
+  }
+
+
+
+  // Xử lý khi PDF được tạo thành công
+  onPdfGenerated(): void {
+    this.showNotificationDirect('PDF đã được tạo thành công!', 'success', 'Xuất PDF');
+  }
+  // Lấy văn bản hiển thị trong quá trình loading
+  getLoadingText(): string {
+    return 'Đang xử lý dữ liệu, vui lòng đợi...';
+  }
+
+
+
   // In hóa đơn/vé dước dạng PDF
   printReceipt(): void {
     this.isLoading = true;
-    
+
     // Kiểm tra xem có mã đơn hàng chưa
     if (this.orderId) {
       // Sử dụng API mới để lấy thông tin đầy đủ về đơn hàng và vé
@@ -1760,10 +1910,10 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         (response) => {
           if (response && response.responseCode === 200) {
             console.log('Lấy thông tin chi tiết đơn hàng thành công:', response);
-            
+
             // Chuẩn bị dữ liệu từ API mới
             this.prepareDataFromApi(response);
-            
+
             // Tạo PDF với dữ liệu đã chuẩn bị
             this.createPDFWithData();
           } else {
@@ -1785,60 +1935,6 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       // Nếu không có cả showtimeId và orderId, tạo PDF với dữ liệu hiện có
       this.createPDFWithData();
     }
-  }
-
-  // Phương thức dự phòng sử dụng API cũ để lấy thông tin
-  private fallbackGetShowtimeDetails(): void {
-    // Lấy thông tin chi tiết về suất chiếu
-    this.http.get<any>(`https://localhost:7263/api/Counter/GetShowtimeDetails/${this.showtimeId}`).subscribe(
-      (response) => {
-        if (response && response.responseCode === 200) {
-          console.log('Lấy dữ liệu showtime chi tiết từ API cũ:', response.data);
-          this.showtimeDetail = {
-            ...this.showtimeDetail,
-            ...response.data,
-          };
-          
-          // Nếu có orderId, tiếp tục lấy thông tin order
-          if (this.orderId) {
-            this.http.get<any>(`https://localhost:7263/api/Counter/GetOrderDetails/${this.orderId}`).subscribe(
-              (orderResponse) => {
-                if (orderResponse && orderResponse.responseCode === 200) {
-                  console.log('Lấy dữ liệu đơn hàng chi tiết từ API cũ:', orderResponse.data);
-                  this.orderDetail = orderResponse.data;
-                  
-                  // Cập nhật thông tin suất chiếu nếu có
-                  if (orderResponse.data && orderResponse.data.showtime) {
-                    const showtime = orderResponse.data.showtime;
-                    this.showtimeDetail = {
-                      ...this.showtimeDetail,
-                      movie: showtime.data.movie || {},
-                      movieTitle: showtime.data.movie?.title,
-                      roomName: showtime.data.room?.name || showtime.data.roomName,
-                      cinemaName: showtime.data.cinema?.name || showtime.data.cinemaName,
-                      startTime: showtime.data.startTime || this.showtimeDetail?.startTime
-                    };
-                  }
-                  this.createPDFWithData();
-                }
-              },
-              (error) => {
-                console.error('Lỗi khi lấy dữ liệu suất chiếu từ API cũ:', error);
-                this.createPDFWithData();
-              }
-            );
-          } else {
-            this.createPDFWithData();
-          }
-        } else {
-          this.createPDFWithData();
-        }
-      },
-      (error) => {
-        console.error('Lỗi khi lấy thông tin đơn hàng từ API cũ:', error);
-        this.createPDFWithData();
-      }
-    );
   }
 
   // Chuẩn bị dữ liệu từ API mới
@@ -1938,32 +2034,32 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   private createPDFWithData(): void {
     // Kiểm tra và log dữ liệu showtimeDetail để debug
     console.log('Dữ liệu chi tiết suất chiếu trước khi tạo PDF:', this.showtimeDetail);
-    
+
     // Cập nhật thông tin cho PDF với dữ liệu hiện có - xử lý cẩn thận hơn các trường hợp null/undefined
     this.showtimeInfoForPdf = {
       // Sử dụng thứ tự ưu tiên rõ ràng khi lấy thông tin tên phim
-      movieTitle: this.showtimeDetail?.movie?.title || 
-                  this.showtimeDetail?.movieTitle || 
-                  this.showtimeDetail?.movie?.name ||
-                  'Thông tin đang cập nhật',
-      
+      movieTitle: this.showtimeDetail?.movie?.title ||
+        this.showtimeDetail?.movieTitle ||
+        this.showtimeDetail?.movie?.name ||
+        'Thông tin đang cập nhật',
+
       // Định dạng ngày tháng từ startTime hoặc showtime.startTime
       showDate: this.formatShowDate(),
-      
+
       // Định dạng thởi gian
       showTime: this.formatShowTime(),
-      
+
       // Lấy thông tin rạp
-      cinemaName: this.showtimeDetail?.cinema?.name || 
-                  this.showtimeDetail?.cinemaName || 
-                  'CINEX Cinema',
-      
+      cinemaName: this.showtimeDetail?.cinema?.name ||
+        this.showtimeDetail?.cinemaName ||
+        'CINEX Cinema',
+
       // Lấy thông tin phòng chiếu
-      roomName: this.showtimeDetail?.room?.name || 
-                this.showtimeDetail?.roomName || 
-                'Thông tin đang cập nhật'
+      roomName: this.showtimeDetail?.room?.name ||
+        this.showtimeDetail?.roomName ||
+        'Thông tin đang cập nhật'
     };
-    
+
     // Thông tin đơn hàng cập nhật
     this.orderInfoForPdf = {
       orderId: this.orderId || `ORD-${new Date().getTime()}`,
@@ -1972,7 +2068,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       // Thêm tổng tiền (nếu cần)
       totalAmount: this.getTotalPrice ? this.getTotalPrice() : 0
     };
-    
+
     // Log dữ liệu để debug
     console.log('Dữ liệu PDF đã chuẩn bị:', {
       showtimeInfoForPdf: this.showtimeInfoForPdf,
@@ -1981,16 +2077,16 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       seatsToPrint: this.seatsToPrint,
       selectedServices: this.selectedServices
     });
-    
+
     // Tạo tên file PDF dựa trên mã đơn hàng
     const pdfFilename = `ticket_${this.orderId || 'order'}_${this.formatLocalDate(this.today).replace(/\//g, '')}.pdf`;
-    
+
     // Sử dụng service để tạo PDF
     setTimeout(async () => {
       try {
         // Quyết định sử dụng ghế nào cho việc in - ưu tiên selectedSeats (ghế đang chọn) trước seatsToPrint (ghế đã lưu)
         const seatsToUse = this.selectedSeats.length > 0 ? this.selectedSeats : this.seatsToPrint;
-        
+
         // Kiểm tra tính hợp lệ của dữ liệu ghế
         if (!seatsToUse || seatsToUse.length === 0) {
           console.warn('Không có thông tin ghế để in vé!');
@@ -1998,15 +2094,15 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
           this.isLoading = false;
           return;
         }
-        
+
         console.log('In vé cho các ghế:', seatsToUse);
-        
+
         // Kiểm tra dữ liệu dịch vụ
         const servicesToUse = this.selectedServices || [];
         if (servicesToUse.length > 0) {
           console.log('Kèm theo các dịch vụ:', servicesToUse);
         }
-        
+
         // Gọi service tạo PDF và lưu kết quả trả về
         const pdfDoc = await this.pdfService.generateTicketPdf(
           seatsToUse,
@@ -2014,15 +2110,15 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
           this.showtimeInfoForPdf,
           this.orderInfoForPdf
         );
-        
+
         // Kiểm tra nếu PDF được tạo thành công
         if (pdfDoc) {
           // Lưu PDF xuống máy người dùng
           this.pdfService.downloadPdf(pdfDoc, pdfFilename);
-          
+
           // Mở PDF trong tab mới
           this.pdfService.openPdfInNewTab(pdfDoc);
-          
+
           this.showNotificationDirect('PDF đã được tạo và lưu thành công!', 'success', 'Xuất PDF');
         } else {
           this.showNotificationDirect('Không thể tạo PDF. Vui lòng thử lại sau.', 'error', 'Lỗi Xuất PDF');
@@ -2034,20 +2130,6 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       }
     }, 1000);
-  }
-
-  // Thêm các phương thức trợ giúp định dạng dữ liệu
-
-  // Định dạng ngày chiếu
-  private formatShowDate(): string {
-    // Kiểm tra cả startTime và showDate
-    if (this.showtimeDetail?.startTime) {
-      return this.formatLocalDate(new Date(this.showtimeDetail.startTime));
-    } else if (this.showtimeDetail?.showDate) {
-      return this.showtimeDetail.showDate;
-    } else {
-      return this.formatLocalDate(new Date()); // Sử dụng ngày hiện tại nếu không có dữ liệu
-    }
   }
 
   // Định dạng giờ chiếu
@@ -2064,24 +2146,159 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Xử lý khi PDF được tạo thành công
-  onPdfGenerated(): void {
-    this.showNotificationDirect('PDF đã được tạo thành công!', 'success', 'Xuất PDF');
+
+  private formatShowDate(): string {
+    // Kiểm tra cả startTime và showDate
+    if (this.showtimeDetail?.startTime) {
+      return this.formatLocalDate(new Date(this.showtimeDetail.startTime));
+    } else if (this.showtimeDetail?.showDate) {
+      return this.showtimeDetail.showDate;
+    } else {
+      return this.formatLocalDate(new Date()); // Sử dụng ngày hiện tại nếu không có dữ liệu
+    }
   }
-  
+  // Phương thức dự phòng sử dụng API cũ để lấy thông tin
+  private fallbackGetShowtimeDetails(): void {
+    // Lấy thông tin chi tiết về suất chiếu
+    this.http.get<any>(`https://localhost:7263/api/Counter/GetShowtimeDetails/${this.showtimeId}`).subscribe(
+      (response) => {
+        if (response && response.responseCode === 200) {
+          console.log('Lấy dữ liệu showtime chi tiết từ API cũ:', response.data);
+          this.showtimeDetail = {
+            ...this.showtimeDetail,
+            ...response.data,
+          };
+
+          // Nếu có orderId, tiếp tục lấy thông tin order
+          if (this.orderId) {
+            this.http.get<any>(`https://localhost:7263/api/Counter/GetOrderDetails/${this.orderId}`).subscribe(
+              (orderResponse) => {
+                if (orderResponse && orderResponse.responseCode === 200) {
+                  console.log('Lấy dữ liệu đơn hàng chi tiết từ API cũ:', orderResponse.data);
+                  this.orderDetail = orderResponse.data;
+
+                  // Cập nhật thông tin suất chiếu nếu có
+                  if (orderResponse.data && orderResponse.data.showtime) {
+                    const showtime = orderResponse.data.showtime;
+                    this.showtimeDetail = {
+                      ...this.showtimeDetail,
+                      movie: showtime.data.movie || {},
+                      movieTitle: showtime.data.movie?.title,
+                      roomName: showtime.data.room?.name || showtime.data.roomName,
+                      cinemaName: showtime.data.cinema?.name || showtime.data.cinemaName,
+                      startTime: showtime.data.startTime || this.showtimeDetail?.startTime
+                    };
+                  }
+                  this.createPDFWithData();
+                }
+              },
+              (error) => {
+                console.error('Lỗi khi lấy dữ liệu suất chiếu từ API cũ:', error);
+                this.createPDFWithData();
+              }
+            );
+          } else {
+            this.createPDFWithData();
+          }
+        } else {
+          this.createPDFWithData();
+        }
+      },
+      (error) => {
+        console.error('Lỗi khi lấy thông tin đơn hàng từ API cũ:', error);
+        this.createPDFWithData();
+      }
+    );
+  }
+
+
+
+
+
   // Xử lý khi có lỗi tạo PDF
   onPdfError(): void {
     this.showNotificationDirect('Lỗi khi tạo PDF. Vui lòng thử lại.', 'error', 'Lỗi xuất PDF');
   }
 
-  // Xử lý lỗi khi ảnh không tải được
-  handleImageError(event: Event): void {
-    const imgElement = event.target as HTMLImageElement;
-    imgElement.src = 'assets/Image/cinexLogo.png';
+  // Xác nhận thanh toán QR
+  confirmPayment(): void {
+    if (!this.orderId) {
+      alert('Không tìm thấy mã đơn hàng');
+      return;
+    }
+
+    this.isLoading = true;
+    this.paymentStatus = 'pending';
+
+    // Lấy thông tin người dùng đang đăng nhập
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      alert('Lỗi xác thực: Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.');
+      this.isLoading = false;
+      return;
+    }
+
+    console.log('Confirming payment for order:', this.orderId);
+
+    // Gọi API thanh toán
+    this.ticketService.confirmTicketAndServicePayment(this.orderId, currentUser.id)
+      .subscribe(
+        paymentResponse => {
+          // Đảm bảo tắt loading trước khi hiển thị thông báo thành công
+          this.isLoading = false;
+
+          if (paymentResponse.responseCode === 200) {
+            console.log('Payment processed successfully');
+            this.paymentStatus = 'success';
+            this.showQRCode = false;
+
+            // GỌI TRỰC TIẾP ACTION PAYMENT QUA WEBSOCKET
+            console.log('Directly calling Payment WebSocket action');
+
+            // Lấy websocketService từ ticketService
+            const websocketService = this.ticketService.getWebsocketService();
+
+            // Tạo danh sách ghế cần cập nhật status = 5 (BOOKED)
+            const seatUpdates: SeatStatusUpdateRequest[] = this.selectedSeats.map(seat => ({
+              SeatId: seat.SeatStatusByShowTimeId,
+              Status: 5 // BOOKED
+            }));
+
+            // Gọi trực tiếp action Payment
+            websocketService.payment(seatUpdates);
+            console.log('Payment WebSocket action called with data:', seatUpdates);
+
+            // Gọi thêm GetList để cập nhật lại UI
+            setTimeout(() => {
+              websocketService.getList();
+            }, 800);
+
+            this.showSuccessNotification();
+            this.clearCartAndSeats();
+
+            // Chuyển hướng về trang chính
+            setTimeout(() => {
+              this.router.navigate(['/trangchu/ticket/now']);
+            }, 2000);
+          } else {
+            console.error('Payment confirmation failed with code:', paymentResponse.responseCode);
+            const friendlyMessage = this.getFriendlyErrorMessage(paymentResponse.message);
+            alert(`Thanh toán không thành công: ${friendlyMessage}`);
+          }
+        },
+        error => {
+          this.isLoading = false;
+          this.paymentStatus = 'failed';
+          console.error('Payment confirmation API error:', error);
+          alert('Lỗi kết nối: Không thể kết nối đến máy chủ thanh toán. Vui lòng thử lại sau.');
+        }
+      );
   }
 
-  // Lấy văn bản hiển thị trong quá trình loading
-  getLoadingText(): string {
-    return 'Đang xử lý dữ liệu, vui lòng đợi...';
-  }
+
+
+
+
+
+
 }

@@ -11,6 +11,8 @@ import { SeatMapComponent } from './Component/ticket/seat-map/seat-map.component
 import { FoodSelectionComponent } from './Component/ticket/food-selection/food-selection.component';
 import { RefundTicketComponent } from './Component/refund-ticket/refund-ticket.component';
 import { QRcodeComponent } from './Component/qrcode/qrcode.component';
+import { QrPaymentComponent } from './Component/qr-payment/qr-payment.component';
+
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -41,9 +43,15 @@ export const routes: Routes = [
       { path: 'refund-ticket', component: RefundTicketComponent },
     ]
   },
-  { 
-    path: 'qr', 
+  {
+    path: 'qr',
     component: QRcodeComponent,
     data: { ssr: false }  // Vô hiệu hóa SSR cho trang QR scanner
   },
+  {
+    path: 'qr-payment',
+    component: QrPaymentComponent,
+    data: { ssr: false }
+  },
+
 ];

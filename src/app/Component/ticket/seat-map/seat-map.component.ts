@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { WebsocketService } from '../../../services/websocket.service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { WebsocketService, SeatStatus } from '../../../services/websocket.service';
 import { SeatInfo } from '../../../models/SeatModel';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
