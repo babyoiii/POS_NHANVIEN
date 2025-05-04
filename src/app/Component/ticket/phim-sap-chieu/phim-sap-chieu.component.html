@@ -43,32 +43,27 @@
     Không có phim nào phù hợp với bộ lọc
 </div>
 
-<div class="coming-soon-grid" *ngIf="!isLoading && filteredMovies.length > 0">
-    <div class="coming-soon-card" *ngFor="let movie of filteredMovies">
+<!-- Nội dung phần phim sắp chiếu - Cập nhật để hiển thị các suất chiếu -->
+<div class="movies-grid" *ngIf="!isLoading && filteredMovies.length > 0">
+    <div class="movie-card" *ngFor="let movie of filteredMovies">
         <img [src]="movie.thumbnail" [alt]="movie.movieName + ' Poster'">
-        <div *ngIf="canPreorder(movie)" class="preorder-badge">Đặt trước ngay</div>
-        <div *ngIf="!canPreorder(movie)" class="coming-soon-badge">Sắp mở đặt trước</div>
-        
         <div class="movie-info">
-            <div class="release-date">Ngày chiếu đầu tiên: {{ getTimeUntilFirstShowtime(movie) }}</div>
             <div class="movie-title">{{ movie.movieName }}</div>
             <div class="movie-details">{{ movie.duration }} phút | {{ getGenresString(movie) }}</div>
-            <div class="movie-description">
-                {{ movie.description }}
-            </div>
-            <div class="movie-stats">
-                <div class="movie-stat"><i class="fas fa-eye"></i> {{ movie.duration }} phút</div>
-                <div class="movie-stat">
-                    <i class="fas fa-ticket-alt"></i> 
-                    {{ canPreorder(movie) ? 'Đang mở đặt trước' : 'Sắp mở đặt trước' }}
+            <div class="showtimes">
+                <div class="showtime-container" *ngFor="let time of movie.showtimes">
+                    <div class="showtime" (click)="navigateToSeatMapById(time.showtimeId)">
+                        {{ formatShowtimeWithDate(time.startTime) }}
+                        <div class="room-name">{{ time.roomName }}</div>
+                    </div>
+                    <button class="book-button" (click)="navigateToSeatMapById(time.showtimeId)">
+                        {{ canPreorder(movie) ? 'Đặt vé' : 'Sắp mở' }}
+                    </button>
+                </div>
+                <div *ngIf="movie.showtimes.length === 0" class="no-showtimes">
+                    Chưa có lịch chiếu
                 </div>
             </div>
-            <button class="preorder-btn" 
-                    [style.background-color]="canPreorder(movie) ? '#e71a0f' : '#777'"
-                    [disabled]="!canPreorder(movie)"
-                    (click)="navigateToSeatMap(movie)">
-                {{ canPreorder(movie) ? 'Đặt vé trước' : 'Sắp mở đặt trước' }}
-            </button>
         </div>
     </div>
 </div>

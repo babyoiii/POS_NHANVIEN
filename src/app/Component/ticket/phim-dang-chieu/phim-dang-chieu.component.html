@@ -36,7 +36,8 @@
                 <div class="showtimes">
                     <div class="showtime-container" *ngFor="let time of movie.showtimes">
                         <div class="showtime" (click)="navigateToSeatMap(time.showtimeId)">
-                            {{ formatShowtime(time.startTime) }}
+                            {{ formatShowtimeWithDate(time.startTime) }}
+                            <div class="room-name">{{ time.roomName }}</div>
                         </div>
                         <button class="book-button" (click)="navigateToSeatMap(time.showtimeId)">Đặt vé</button>
                     </div>

@@ -135,7 +135,8 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   // PDF related properties
   showtimeInfoForPdf: any = {};
   orderInfoForPdf: any = {};
-
+  apiResponseData: any = null; // Lưu trữ dữ liệu API nguyên bản
+  orderDetail: any = {}; // Thông tin chi tiết về đơn hàng
   
   // Email khách hàng
   customerEmail: string = '';
@@ -259,7 +260,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   // Chuyển đổi logo thành base64
   private convertLogoToBase64(): void {
     // Đặt logo mặc định là base64 cố định để đảm bảo luôn có logo
-    this.logoBase64 = 'data:image/png;base64,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'
+    this.logoBase64 = 'data:image/png;base64,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'
 
 
     const img = new Image();
@@ -811,8 +812,9 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="data:image/png;base64,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" alt="Cinema Logo">
-            </div>
+              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAABDmSURBVHgB7Z1tiFxlFsfPnSTEFTaZFT/ETIwKmYwKK5kRQRBnVFAzKsrO+EFWGVE/7H7YD0ZxYUX3g6wfVHTVD86oDDujoKIzKuqK44uimBGFgJkR1JgZVDJJBJNst+fcPE1ud1d1V3XfvvfWvb8f3EzS6XTde+v8z3Oec55zLhERERERERERERERERERERERERERERERERER4WJGIpqOTmc0uVFOnUjr5TiZORE3yRkyRaaRzIqsyIzcnNyqTMun9zZGIhqNKIgmoy+JwnjxLDk50ZLVMwdpRk6XuZnz6d+H2lxAzpC/ZDVNIbkDfyRVj9/lWPKXzCc3mx6W+R3/LRK/J38k//Dvzb9FRPQSBVEgHeVwiSNUK5AOahw4rjqZOe58+rlW8i9ZlZXkGlmVw+mqqK/Yz8Xk0Gb6G1Y/H5f/7zpyQr4qn0vfWl+6EFEQlZlW5Pz6PqQUDiMQ/I5K5aFWA4NfJ7v9nW0Hnt/T9ffpL4/ID20FQh/Jh/C4JE6lQqhQOm6sElnKUzE8eEmrspgqxWe0qCiUZtL/O9g4+XjdrEqSrMiBxrXSM+nb6pPaRbTeZV2lfCPvT+5WvFQl8U/Rnz51j2efjvuF7FmH4gqaUbjj47P++Y02vFaKAm8zKkCg84y8JR9OGlQRVEZBUEnAZfLGmGdSVfkH7UruHfNMJ6+Mb5aP5YXkAVlO355vYj3KE1SQCW4l5xwHkzdbV3k3O+k9oJ6/XFnvCyoJrYxvoDflQ/mIyqECCqIxjqYTbk8OJR+PvRTWB0r36nKclnx1RwW8JJ9YCKoSLVlLjjWujcRpkwUaL2yrjyc/5qscLeT2L10lH2+lC80KgtZ8sfGgrCU9m0bLKkdLDib3Jw/J31QGFxRkwL8c3KTDT11K6UUekL9LfpVvlfzc/PnJj+XHksPlVRQU15b8DLHiZNSrlLxffpJ/bKRXlTBzBYngF+XF8pqsJfuS6Wvf0qB0p7y34spB/UOOaUq8Ui6Td8snloJa0pK1xk2eKwfA75XcJf8imXGFCDqonG9J3idvS26W9EpaL++Sf5Q2eBrp2bbA46uSl+X2ZCZ52XMFQcXA4I3kjdMbJAv4nXtSk7ckd6clp0HjvmQmmUsLB2Ylt6d34mW5WzJSTcU/QUGwzNRCcl/a0a8D7JJ/IG2n1xXnLsmuFwsF98iHklnJLgbvpHPbJ79Y/jO9RjmZ/jwv75ZWXJjcJS+Ue5JXJQsFwWCbsrMQPCX1Cg19VZZTWX2+INgEOO7zMbcP3GKVI9Cxyx8gUkO5k1eqf4r0RXJN2rmvGE4OLEqGAyT62JV0VrpHTq7LdL13ndzrQ9COwLw9KcLcMCAlF7uSf4dSkhUE+4rRsW9OGla0eVreMZYdieQlEwXBzr1ZyRXyJslaQXbJ2+VOXKU+uKcouUQOJ4N95+YQXJO8KdnO/X75jJyXXf5Xc7Vc0MV38M24U7KOC+pClUPU8qpcnswle5LnPQzac1eQVVkdpfLxr5HzJYuwdVoyVRWAL3VhVS6UbFPTl8inZ9gTQXAeBvFIEuOUHrQzMEjXJ3N5ZrlsK9XmEn+DdgMFAThxZPMNx0+GQXpLHQG7DyrIEzLbeErqBtZuD8h1lVUOgAZ5Vh5MHpK7k4/y/FyL9D6ov4GC3JrcLfmwuU7BvqIgeXWNepC3gjwtZyXnwYU/k9eHvStwcFQQuSn5O3lW8mBVlnO4dBbgRWvKq5LbDhRkVfILkLeE2IcH5YrGC1IG13ZjciOt6kDjvuTd5MGCvqtXBTH1kK71MOUb2gMtl5wtuZj5yQHgXXldDq0fl7+S+5MnyZ/kj3JA/VHJm8ZcPPXxQvlX0uOXDWaJbvE0HYqJeWP9iuSyvD+r/VmtK9UTvk3+MXkV/9i6l5nj5Q3K+fFHyDtKx4mHqXG+zqmGAPtJ4o+eRRtjMdUu3/Rj7M2qXrvZiPBk+KWcGpTzQJ67IMO+Pp0hKT5c3JMPpgcJOxAG9d5DrZLy8r1Fd+fJMzw8rCE6u9FFBXJ2DLMh7m1fmtwtevvpq45EqWJPXEZCf5/nIGkEh7yTb5VVJJWDBU5MKgt49XzJlvGzY/d1GZt6TzFTBAT2oiEJZoPcTMa/IuzI5g1YvQVyXHuW4LXlC8gPK8XBy69bKQc0qSGbj6/JqyY99o8a/kmdO9o7sBHu+vHlOLpL/1LxbcgRB+wLPe9tH6xpUWwrjZuV3yPX1q5NrMvA+cVbjr/JteeR4fR8TXeNj2XTfnxl5nQ3Z9d74WOZWDsCFAH60OUO5adxsAoI6nLm8F897xXxN7ufG9YqYdjDxAuYN9eSZjH5PXL9YP5S8WXmwHjvvWVWQp+RsynjZAC6lsrxn5Lc7GRoPgqXGK+VK8ow7Zg55Bf0sDKo8KwcfnjZ7ZVFBVhoXS4YYbGFrccnGh9M3zOQKslfeKLkXa/M4j3Iy0FbJl+U9MgCdYFdgsA9IvgyT5KOylvTL7w5j3pQ+IXdlVEFynvLalnyZHGwl/lf9WjkwyIZ5gJ/wYIPpWZifLJuSwDyTbg1T5JXkdXKzbILhTJHODDssY9gQE+6Z6hNWZX6H7pnGE3KbhMLIrJVkON2o7A26RsCQRH2j3+Vwq3JJzpevG2xfwI9znqK0XnLDTPcBhZPkfVQTW5VXyZnyQvkVTVmqKgTuFmE6vT3/nXeq11kE6SMz3VYiD2f65GvlLIbdgIUkWaqQQK3FnTKA1HvfnPuSTxoXJY9T1eTJFOROyS63Hjc3NifYHQ9FBRkmi1eWTUNSeTZ3Fl4mD7NJtZUEfmbnMB0Q0bNO+mL9DXmgLCUBLrBDzZ17v1oN2g+z1zAYljf+7tMgvR4KMuyU19I2/oaB+0JjgLDuAD5MkW/IJbnoUDeDdHd1kvrjlBUE/YqpICC2bM4p0nnlqvRc+xdLYZ0SfTidRO7FaH3QCWT5HRyHulAQrIpXSh5dW8JcIbMSLSydTIdJ8mzKdFqZyIpkJxVkf+MOMmXC+YgfTV5CBf11qNOeZTDMxHKdUhCcfhpufpLQoJIglcUoSfLSVJAn5YBk/GJQ1QQj18tLJBeG6ZTpN9gYeZv8JZMp0/3Jq2TK5PmvJbNJh5RbR3Ub9iKDOnnvtH/zL8m9aZxVX+tFNRqmQTt8TXU9PfRypKtHzFudQvXEQEGWko+pVJKwwZroR+S2Eo6mKQLEBFtH/7eZoGIiPd5L9DgoxL1yLu0kVmWT7p59ZddDdlgwdTddVbOTg0D/TIYHTOSiIK7jqaQkSGgubNw1rcYVP7dTzolZd0dFYRZZpMdXuipqrWedFQQRB4k+YqAkqG/0QQw8+X6eG05tBqxPfZDQYA41dHWxzSB9mIUEPXlYLh7NqJH5oQvyFtnHnBjOuqInRbJFScYCzZm55GZ3v9xGbTIUkW4Vz0z8Gl0/z5vDrk8GlBLjnpedwc6dP8P9ctmtXNjdY84KsrlnfYWxD70vTZmkZMSa1fULppvB7BnZ1iXp0mHPH4y2PyzEOBE97gq6FkdV1wLCj1ys68K+dTB0HxzkP3d+nXa3yXO064KXS76/1W2MZl0wzAJ7JNPk13tEPZD+OsK0qlNR59+M1k62ZDmX6nCl5L7aFmnjzArvzTN1HmH3DFcF4a1HYXcyYMmRY9QP93VX23TKXVPyTIeR6xoP0O47+y7txo+19yTzRSnj0aCuCnK/ZHxhwNm51IfnqJbspRujPqYgG3m79mWv99yH5SOdTvMhm9udTMZZQdYbt0iGVHHY+2n1MKL0F3eVxgPME0jqXyZfKjhrbzN9W73UxE2jTfgNKwiZpvXdMwx2GJ7zjQS0u+/zH/Oe3J7MJu/Km5g31LueycLrJsEd8qEezvvGQTqC/5uIY1DYdP8TaWZxQkHW1m+TK2RH9LM6RXQ8G78tG+kZKmSW0p8mfCvY2YdlLUH/bLSHrMhSoHtDqzSl3SMk6tWKOzrZrn8b/Q/hxcxHKQ8u4AAAAABJRU5ErkJggg=='
+
+
             <div class="header">
               <h1>HÓA ĐƠN THANH TOÁN</h1>
               <p>Mã đơn hàng: ${orderCode}</p>
@@ -868,7 +870,8 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
             </div>
             
             <div class="barcode">
-              * ${orderCode} *
+              <div style="text-align: center; font-size: 22px; letter-spacing: 5px; font-family: monospace; color: #333;">|||||||||||</div>
+              <div class="barcode-text">* ${orderCode} *</div>
             </div>
             
             <div class="footer">
@@ -1284,7 +1287,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
               </div>
               <div class="info-row">
                 <span>Ngày:</span>
-                <span>${this.formatLocalDateTime(this.today)}</span>
+                <span>${this.formatLocalDate(this.today)}</span>
               </div>
               <div class="info-row">
                 <span>Nhân viên:</span>
@@ -1471,12 +1474,12 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     // Gọi API thanh toán
     this.ticketService.confirmTicketAndServicePayment(this.orderId, currentUser.id)
       .subscribe(
-        response => {
+        paymentResponse => {
           // Đảm bảo tắt loading trước khi hiển thị thông báo thành công
           this.isLoading = false;
           
-          if (response.responseCode === 200) {
-            console.log('Payment confirmed successfully');
+          if (paymentResponse.responseCode === 200) {
+            console.log('Payment processed successfully');
             this.paymentStatus = 'success';
             this.showQRCode = false;
             
@@ -1509,8 +1512,8 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
               this.router.navigate(['/trangchu/ticket/now']);
             }, 2000);
           } else {
-            console.error('Payment confirmation failed with code:', response.responseCode);
-            const friendlyMessage = this.getFriendlyErrorMessage(response.message);
+            console.error('Payment confirmation failed with code:', paymentResponse.responseCode);
+            const friendlyMessage = this.getFriendlyErrorMessage(paymentResponse.message);
             alert(`Thanh toán không thành công: ${friendlyMessage}`);
           }
         },
@@ -1741,96 +1744,194 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     notification.classList.remove('show');
     setTimeout(() => {
       if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
+        document.body.removeChild(notification);
       }
     }, 300);
   }
-  
 
-
-  // Xử lý lỗi hình ảnh
-  handleImageError(event: any): void {
-    event.target.src = 'assets/Image/cinexLogo.png';
-  }
-
-  // Hiển thị text loading
-  getLoadingText(): string {
-    return 'Đang xử lý...';
-  }
-
-  // In hóa đơn/vé dưới dạng PDF
+  // In hóa đơn/vé dước dạng PDF
   printReceipt(): void {
     this.isLoading = true;
     
-    // Lấy thông tin chi tiết từ API trước khi tạo PDF
-    if (this.showtimeId) {
-      // Lấy thông tin chi tiết về suất chiếu
-      this.http.get<any>(`https://localhost:7263/api/Counter/GetShowtimeDetails/${this.showtimeId}`).subscribe(
+    // Kiểm tra xem có mã đơn hàng chưa
+    if (this.orderId) {
+      // Sử dụng API mới để lấy thông tin đầy đủ về đơn hàng và vé
+      this.http.get<any>(`https://localhost:7263/api/Counter/Order/GetDetails/${this.orderId}`).subscribe(
         (response) => {
           if (response && response.responseCode === 200) {
-            console.log('Lấy dữ liệu showtime chi tiết:', response.data);
-            this.showtimeDetail = {
-              ...this.showtimeDetail,
-              ...response.data,
-              movieTitle: response.data.movie?.title || response.data.movieTitle,
-              roomName: response.data.room?.name || response.data.roomName,
-              cinemaName: response.data.cinema?.name || response.data.cinemaName,
-              startTime: response.data.startTime || this.showtimeDetail?.startTime
-            };
+            console.log('Lấy thông tin chi tiết đơn hàng thành công:', response);
+            
+            // Chuẩn bị dữ liệu từ API mới
+            this.prepareDataFromApi(response);
+            
+            // Tạo PDF với dữ liệu đã chuẩn bị
+            this.createPDFWithData();
+          } else {
+            console.error('Lỗi khi lấy thông tin đơn hàng:', response?.message || 'Phản hồi không hợp lệ');
+            // Thử phương thức dự phòng
+            this.fallbackGetShowtimeDetails();
           }
-          this.createPDFWithData();
         },
         (error) => {
-          console.error('Lỗi khi lấy dữ liệu chi tiết:', error);
-          this.createPDFWithData();
+          console.error('Lỗi khi gọi API lấy thông tin đơn hàng:', error);
+          // Thử phương thức dự phòng
+          this.fallbackGetShowtimeDetails();
         }
       );
-    } else if (this.orderId) {
-      // Nếu không có showtimeId nhưng có orderId, lấy thông tin đơn hàng
-      this.ticketService.getOrderInfo(this.orderId).subscribe(
-        (response) => {
-          if (response && response.responseCode === 200) {
-            console.log('Lấy thông tin đơn hàng thành công:', response);
-            const showTimeId = response.tickets && response.tickets.length > 0 ? 
-              (response.tickets[0].showTimeId || response.tickets[0].ShowTimeId) : null;
-              
-            if (showTimeId) {
-              this.showtimeId = showTimeId;
-              this.http.get<any>(`https://localhost:7263/api/Counter/GetShowtimeDetails/${showTimeId}`).subscribe(
-                (showtime) => {
-                  if (showtime && showtime.responseCode === 200) {
+    } else if (this.showtimeId) {
+      // Nếu không có orderId nhưng có showtimeId, thử sử dụng phương thức cũ
+      this.fallbackGetShowtimeDetails();
+    } else {
+      // Nếu không có cả showtimeId và orderId, tạo PDF với dữ liệu hiện có
+      this.createPDFWithData();
+    }
+  }
+
+  // Phương thức dự phòng sử dụng API cũ để lấy thông tin
+  private fallbackGetShowtimeDetails(): void {
+    // Lấy thông tin chi tiết về suất chiếu
+    this.http.get<any>(`https://localhost:7263/api/Counter/GetShowtimeDetails/${this.showtimeId}`).subscribe(
+      (response) => {
+        if (response && response.responseCode === 200) {
+          console.log('Lấy dữ liệu showtime chi tiết từ API cũ:', response.data);
+          this.showtimeDetail = {
+            ...this.showtimeDetail,
+            ...response.data,
+          };
+          
+          // Nếu có orderId, tiếp tục lấy thông tin order
+          if (this.orderId) {
+            this.http.get<any>(`https://localhost:7263/api/Counter/GetOrderDetails/${this.orderId}`).subscribe(
+              (orderResponse) => {
+                if (orderResponse && orderResponse.responseCode === 200) {
+                  console.log('Lấy dữ liệu đơn hàng chi tiết từ API cũ:', orderResponse.data);
+                  this.orderDetail = orderResponse.data;
+                  
+                  // Cập nhật thông tin suất chiếu nếu có
+                  if (orderResponse.data && orderResponse.data.showtime) {
+                    const showtime = orderResponse.data.showtime;
                     this.showtimeDetail = {
                       ...this.showtimeDetail,
-                      ...showtime.data,
-                      movieTitle: showtime.data.movie?.title || showtime.data.movieTitle,
+                      movie: showtime.data.movie || {},
+                      movieTitle: showtime.data.movie?.title,
                       roomName: showtime.data.room?.name || showtime.data.roomName,
                       cinemaName: showtime.data.cinema?.name || showtime.data.cinemaName,
                       startTime: showtime.data.startTime || this.showtimeDetail?.startTime
                     };
                   }
                   this.createPDFWithData();
-                },
-                (error) => {
-                  console.error('Lỗi khi lấy dữ liệu suất chiếu:', error);
-                  this.createPDFWithData();
                 }
-              );
-            } else {
-              this.createPDFWithData();
-            }
+              },
+              (error) => {
+                console.error('Lỗi khi lấy dữ liệu suất chiếu từ API cũ:', error);
+                this.createPDFWithData();
+              }
+            );
           } else {
             this.createPDFWithData();
           }
-        },
-        (error) => {
-          console.error('Lỗi khi lấy thông tin đơn hàng:', error);
+        } else {
           this.createPDFWithData();
         }
-      );
-    } else {
-      // Nếu không có cả showtimeId và orderId, tạo PDF với dữ liệu hiện có
-      this.createPDFWithData();
+      },
+      (error) => {
+        console.error('Lỗi khi lấy thông tin đơn hàng từ API cũ:', error);
+        this.createPDFWithData();
+      }
+    );
+  }
+
+  // Chuẩn bị dữ liệu từ API mới
+  private prepareDataFromApi(apiResponse: any): void {
+    // Kiểm tra dữ liệu đầu vào
+    if (!apiResponse) {
+      console.error('Dữ liệu API không hợp lệ');
+      return;
     }
+
+    // Lưu trữ đầy đủ phản hồi API để tham khảo
+    this.apiResponseData = apiResponse;
+
+    // Lấy thông tin đơn hàng
+    const orderInfo = apiResponse.orderInfo || {};
+    // Lấy thông tin phim và suất chiếu
+    const movieShowtime = apiResponse.movieShowtimeInfo || {};
+    // Lấy danh sách ghế
+    const seats = apiResponse.seatDetails || [];
+    // Lấy danh sách dịch vụ
+    const services = apiResponse.serviceDetails || [];
+
+    // Cập nhật thông tin showtimeDetail
+    this.showtimeDetail = {
+      ...this.showtimeDetail, // Giữ lại thông tin hiện có
+      movie: {
+        title: movieShowtime.movieName,
+        description: movieShowtime.movieDescription,
+        duration: movieShowtime.duration,
+        thumbnail: movieShowtime.thumbnail,
+        banner: movieShowtime.banner
+      },
+      movieTitle: movieShowtime.movieName,
+      startTime: movieShowtime.showTimeInfo?.startTime,
+      endTime: movieShowtime.showTimeInfo?.endTime,
+      room: {
+        name: movieShowtime.roomInfo?.roomName,
+        type: movieShowtime.roomInfo?.roomType
+      },
+      roomName: movieShowtime.roomInfo?.roomName,
+      cinema: {
+        name: movieShowtime.cinemaInfo?.cinemaName,
+        address: movieShowtime.cinemaInfo?.address
+      },
+      cinemaName: movieShowtime.cinemaInfo?.cinemaName,
+      ageRating: movieShowtime.ageRatingCode
+    };
+
+    // Cập nhật thông tin đơn hàng
+    this.orderDetail = {
+      ...this.orderDetail, // Giữ lại thông tin hiện có
+      orderId: orderInfo.orderId,
+      orderCode: orderInfo.orderCode,
+      totalPrice: orderInfo.totalPrice,
+      createdDate: orderInfo.createdDate,
+      status: orderInfo.status,
+      email: orderInfo.email,
+      discountPrice: orderInfo.discountPrice
+    };
+
+    // Cập nhật danh sách ghế từ API
+    if (seats && seats.length > 0) {
+      this.seatsToPrint = seats.map((seat: any) => ({
+        id: seat.seatInfo.seatId,
+        SeatName: seat.seatInfo.seatName,
+        RowName: seat.seatInfo.rowNumber,
+        SeatTypeName: seat.seatInfo.seatType,
+        SeatPrice: seat.seatInfo.actualPrice,
+        ticketCode: seat.ticketCode,
+        status: seat.seatInfo.status
+      }));
+    }
+
+    // Cập nhật danh sách dịch vụ từ API
+    if (services && services.length > 0) {
+      this.selectedServices = services.map((service: any) => ({
+        id: service.serviceId,
+        serviceName: service.serviceName,
+        description: service.description,
+        price: service.unitPrice,
+        count: service.quantity,
+        quantity: service.quantity,
+        serviceTypeID: service.serviceType,
+        totalPrice: service.totalPrice
+      }));
+    }
+
+    console.log('Dữ liệu đã chuẩn bị từ API mới:', {
+      showtimeDetail: this.showtimeDetail,
+      orderDetail: this.orderDetail,
+      seatsToPrint: this.seatsToPrint,
+      selectedServices: this.selectedServices
+    });
   }
 
   // Phương thức tạo PDF với dữ liệu đã có
@@ -1971,5 +2072,16 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   // Xử lý khi có lỗi tạo PDF
   onPdfError(): void {
     this.showNotificationDirect('Lỗi khi tạo PDF. Vui lòng thử lại.', 'error', 'Lỗi xuất PDF');
+  }
+
+  // Xử lý lỗi khi ảnh không tải được
+  handleImageError(event: Event): void {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.src = 'assets/Image/cinexLogo.png';
+  }
+
+  // Lấy văn bản hiển thị trong quá trình loading
+  getLoadingText(): string {
+    return 'Đang xử lý dữ liệu, vui lòng đợi...';
   }
 }

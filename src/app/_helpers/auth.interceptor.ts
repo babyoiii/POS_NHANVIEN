@@ -32,9 +32,15 @@ export class AuthInterceptor implements HttpInterceptor {
       catchError((error: HttpErrorResponse) => {
         // Xử lý lỗi 401 Unauthorized - token hết hạn hoặc không hợp lệ
         if (error.status === 401) {
-          this.authService.logout().subscribe(() => {
-            this.router.navigate(['/login']);
-          });
+          // Kiểm tra nếu request không liên quan đến quét mã QR 
+          // (các request đến endpoint QRScanner sẽ được xử lý riêng trong component)
+          if (!request.url.includes('/api/Counter/QRScanner')) {
+            this.authService.logout().subscribe(() => {
+              this.router.navigate(['/login']);
+            });
+          } else {
+            console.log('Bỏ qua chuyển hướng đăng nhập cho request quét mã QR:', request.url);
+          }
         }
         return throwError(() => error);
       })

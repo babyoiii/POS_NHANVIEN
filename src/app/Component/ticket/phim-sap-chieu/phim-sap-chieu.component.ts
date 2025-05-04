@@ -210,6 +210,22 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
     return `${day}/${month}/${year}`;
   }
 
+  // Format thời gian chiếu phim (giống với component phim đang chiếu) 
+  formatShowtime(showtime: string): string {
+    return this.movieService.formatShowtime(showtime);
+  }
+  
+  // Format thời gian chiếu phim với cả ngày tháng
+  formatShowtimeWithDate(showtime: string): string {
+    const date = new Date(showtime);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}/${month} - ${hours}:${minutes}`;
+  }
+
   // Điều hướng đến trang sơ đồ ghế khi click vào nút đặt vé trước
   navigateToSeatMap(movie: Movie): void {
     if (!movie.showtimes || movie.showtimes.length === 0) {
@@ -223,5 +239,13 @@ export class PhimSapChieuComponent implements OnInit, OnDestroy {
     // Lưu showTimeId vào localStorage để đảm bảo có thể truy cập khi cần
     localStorage.setItem('currentShowTimeId', showtime.showtimeId);
     this.router.navigate(['/trangchu/seat-map', showtime.showtimeId]);
+  }
+
+  // Điều hướng đến trang sơ đồ ghế bằng ID suất chiếu
+  navigateToSeatMapById(showtimeId: string): void {
+    console.log(`Navigating to seat map for showtime ID: ${showtimeId}`);
+    // Lưu showTimeId vào localStorage để đảm bảo có thể truy cập khi cần
+    localStorage.setItem('currentShowTimeId', showtimeId);
+    this.router.navigate(['/trangchu/seat-map', showtimeId]);
   }
 }

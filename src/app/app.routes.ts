@@ -6,12 +6,11 @@ import { PhimDangChieuComponent } from './Component/ticket/phim-dang-chieu/phim-
 import { PhimSapChieuComponent } from './Component/ticket/phim-sap-chieu/phim-sap-chieu.component';
 import { SettingComponent } from './Component/setting/setting.component';
 import { BongNuocComponent } from './Component/bong-nuoc/bong-nuoc.component';
-import { QRcodeComponent } from './Component/qrcode/qrcode.component';
 import { AuthGuard } from './guards/auth.guard';
 import { SeatMapComponent } from './Component/ticket/seat-map/seat-map.component';
 import { FoodSelectionComponent } from './Component/ticket/food-selection/food-selection.component';
 import { RefundTicketComponent } from './Component/refund-ticket/refund-ticket.component';
-
+import { QRcodeComponent } from './Component/qrcode/qrcode.component';
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: '', redirectTo: '/login', pathMatch: 'full' },

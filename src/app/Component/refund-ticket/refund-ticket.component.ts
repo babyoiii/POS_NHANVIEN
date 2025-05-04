@@ -135,6 +135,64 @@ export class RefundTicketComponent implements OnInit {
    * In biên lai hoàn vé
    */
   printReceipt(): void {
-    window.print();
+    // Lưu nội dung hiện tại của trang
+    const originalContent = document.body.innerHTML;
+    
+    // Lấy chỉ phần biên lai
+    const receiptElement = document.querySelector('.receipt-card');
+    
+    if (receiptElement) {
+      // Thiết lập CSS cần thiết cho việc in
+      const printStyles = `
+        <style>
+          @page {
+            size: 80mm auto;
+            margin: 5mm;
+          }
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+          }
+          .card-header {
+            background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+          }
+          .receipt-header {
+            text-align: center;
+            margin-bottom: 15px;
+          }
+          .divider {
+            height: 1px;
+            background: #eee;
+            margin: 10px 0;
+          }
+          .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+          }
+          .receipt-footer {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9em;
+          }
+        </style>
+      `;
+      
+      // Thay thế nội dung trang bằng phần biên lai
+      document.body.innerHTML = printStyles + receiptElement.outerHTML;
+      
+      // In trang
+      window.print();
+      
+      // Khôi phục nội dung gốc
+      document.body.innerHTML = originalContent;
+    } else {
+      console.error('Không tìm thấy phần tử biên lai để in');
+      window.print(); // Fallback nếu không tìm thấy biên lai
+    }
   }
 }

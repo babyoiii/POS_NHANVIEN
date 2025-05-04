@@ -88,6 +88,7 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
   confirmSuccess: boolean = false;
   confirmMessage: string = '';
   countdownTime: number = 5;
+  showPrintOptions: boolean = false;
   
   // Danh sách các camera có sẵn
   availableCameras: CameraDevice[] = [];
@@ -274,7 +275,25 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
           if (error.status === 404) {
             this.error = `Không tìm thấy vé với mã "${orderCode}". Vé này có thể đã được sử dụng hoặc đã bị hủy.`;
           } else if (error.status === 401 || error.status === 403) {
-            this.error = 'Bạn không có quyền truy cập thông tin vé này. Vui lòng liên hệ quản lý.';
+            this.error = 'Phiên đăng nhập đã hết hạn. Đang tự động thử lại...';
+            
+            // Khi lỗi xác thực 401, thử lại ngay lập tức sau 2 giây
+            setTimeout(() => {
+              // Reset scanner và scanner sẽ được khởi tạo lại trong phương thức
+              this.resetScanner();
+              
+              // Hiển thị thông báo mới
+              this.error = 'Scanner đã được khởi động lại, bạn có thể tiếp tục quét.';
+              
+              // Sau đó cũng tự động ẩn thông báo sau vài giây
+              setTimeout(() => {
+                if (this.error === 'Scanner đã được khởi động lại, bạn có thể tiếp tục quét.') {
+                  this.error = '';
+                }
+              }, 3000);
+              
+              return; // Không cần dùng countdown
+            }, 2000);
           } else if (error.status === 0) {
             this.error = 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.';
           } else if (error.status === 400) {
@@ -285,8 +304,17 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
           
           console.error('Chi tiết lỗi API:', error);
           
-          // Bắt đầu đếm ngược để tự động reset scanner
-          this.startCountdown();
+          // Bắt đầu đếm ngược để tự động reset scanner (chỉ khi không phải lỗi 401)
+          if (error.status !== 401 && error.status !== 403) {
+            this.startCountdown();
+          }
+          
+          // Đảm bảo scanner vẫn hoạt động nếu bị dừng
+          if (this.isScanning === false && this.html5QrCode && !this.html5QrCode.isScanning) {
+            setTimeout(() => {
+              this.startScanner();
+            }, 1000);
+          }
         }
       });
   }
@@ -296,34 +324,238 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.confirmSuccess = false;
     this.confirmMessage = '';
     
+    // Dừng scanner ngay lập tức để đảm bảo không có quét mới trong quá trình xác nhận
+    if (this.html5QrCode && this.html5QrCode.isScanning) {
+      this.stopScanner();
+    }
+    
     this.http.post<any>(`${this.API_URL}/ConfirmTicket/${orderCode}`, {})
       .subscribe({
         next: (response) => {
+          // Cập nhật trạng thái xác nhận
           this.confirmSuccess = response.success;
           this.confirmMessage = response.message;
           this.isLoading = false;
+          
+          // Nếu xác nhận thành công
+          if (response.success && this.ticketData) {
+            console.log('Xác nhận vé thành công, chuẩn bị in vé...');
+            
+            // Tạo bản sao của dữ liệu vé để in (tránh mất dữ liệu nếu reset quá nhanh)
+            const ticketDataCopy = JSON.parse(JSON.stringify(this.ticketData));
+            
+            // In vé ngay lập tức
+            try {
+              // Thực hiện in vé với bản sao dữ liệu
+              this.printTicketsWithData(ticketDataCopy);
+              console.log('In vé thành công');
+            } catch (err) {
+              console.error('Lỗi khi in vé:', err);
+            }
+            
+            // Reset máy quét và dữ liệu ngay sau khi in
+            this.ngZone.run(() => {
+              console.log('Reset camera và dữ liệu...');
+              this.resetScanner();
+            });
+          }
         },
         error: (error) => {
           this.error = `Lỗi khi xác nhận vé: ${error.message}`;
           this.isLoading = false;
+          
+          // Khởi động lại quét sau lỗi
+          this.startScanner();
         }
       });
+  }
+  
+  // Phương thức mới để in vé với dữ liệu được cung cấp từ bên ngoài
+  printTicketsWithData(ticketData: TicketResponse): void {
+    if (!ticketData || !ticketData.tickets || ticketData.tickets.length === 0) {
+      console.log('Không có vé để in');
+      return;
+    }
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a6',
+      putOnlyUsedFonts: true,
+      floatPrecision: 16
+    });
+    
+    // Thêm font hỗ trợ tiếng Việt
+    doc.addFont('https://cdn.jsdelivr.net/npm/dejavu-sans@1.0.0/fonts/DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    doc.setFont('DejaVuSans');
+
+    // Phương pháp thay thế để xử lý hiển thị tiếng Việt
+    const originalTextFunction = doc.text.bind(doc);
+    doc.text = function(text: string, x: number, y: number, options?: any) {
+      // Bảo đảm text luôn là string
+      const safeText = text.toString().normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')  // Loại bỏ dấu
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+      return originalTextFunction(safeText, x, y, options);
+    };
+
+    // Duyệt qua từng vé và thêm vào trang riêng biệt
+    ticketData.tickets.forEach((ticket, index) => {
+      if (index > 0) {
+        doc.addPage('a6', 'portrait');
+      }
+
+      // Logo và header
+      if (ticket.movieThumbnail) {
+        const img = new Image();
+        img.src = ticket.movieThumbnail.startsWith('http') ? 
+                  ticket.movieThumbnail : 
+                  `https://localhost:7263/${ticket.movieThumbnail}`;
+        
+        try {
+          doc.addImage(img, 'JPEG', 10, 10, 30, 40);
+        } catch (error) {
+          console.error('Lỗi khi thêm ảnh phim:', error);
+        }
+      }
+
+      // Tiêu đề vé
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('VE XEM PHIM', 75, 15, { align: 'center' });
+
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(52, 152, 219);
+      doc.text(ticket.movieName, 75, 23, { align: 'center' });
+
+      // Thông tin chi tiết vé
+      const lineHeight = 8;
+      let currentY = 55;
+
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+
+      doc.text(`Ma ve: ${ticket.ticketCode}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Rap: ${ticket.cinemaName}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Phong: ${ticket.roomName}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Ghe: ${ticket.seatName}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Thoi gian: ${ticket.formattedStartTime}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Thoi luong: ${ticket.formattedDuration}`, 15, currentY);
+      currentY += lineHeight * 2;
+
+      // Thông tin chung - đặt trước QR code để tránh bị đè
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      
+      // Tăng khoảng cách giữa dòng cuối cùng và phần thông tin phía dưới
+      currentY += 8;
+      
+      // Từ đồi sang 2 cột
+      // Cột 1: QR code
+      // QR Code (mô phỏng bằng hình vuông) - nhỏ hơn và đặt bên trái
+      const qrSize = 25;
+      const qrX = 15;
+      
+      // Cột 2: Thông tin
+      // Đặt thông tin bên phải QR Code
+      const infoX = qrX + qrSize + 10; // 10mm cách QR
+      const textWidth = 95 - infoX; // Chiều rộng còn lại cho text
+      
+      doc.text('Vui long den truoc gio chieu', infoX, currentY + 5, { align: 'left', maxWidth: textWidth });
+      doc.text('15-30 phut de on dinh cho ngoi', infoX, currentY + 10, { align: 'left', maxWidth: textWidth });
+      doc.text('Ve da mua khong the doi hoac hoan tien', infoX, currentY + 15, { align: 'left', maxWidth: textWidth });
+      doc.text(`Ma don hang: ${ticketData.orderInfo.orderCode || ''}`, infoX, currentY + 20, { align: 'left', maxWidth: textWidth });
+    });
+    
+    // Tạo tên file
+    const filename = `ve_${ticketData.orderInfo.orderCode}.pdf`;
+    
+    // Lưu PDF
+    try {
+      doc.save(filename);
+    } catch (err) {
+      console.error('Lỗi khi lưu PDF:', err);
+    }
   }
 
   resetScanner(): void {
     // Xóa timers
     this.clearTimers();
     
+    // Tạo biến để theo dõi trạng thái scanner
+    let wasScanning = false;
+    
+    // Dừng scanner hiện tại nếu đang quét
+    if (this.html5QrCode) {
+      wasScanning = this.html5QrCode.isScanning;
+      if (wasScanning) {
+        try {
+          this.stopScanner();
+          console.log('Scanner dừng thành công');
+        } catch (err) {
+          console.error('Lỗi khi dừng scanner:', err);
+          // Tiếp tục tiến trình ngay cả khi có lỗi
+        }
+      }
+      
+      // Giải phóng bộ nhớ để khởi tạo lại hoàn toàn
+      try {
+        this.html5QrCode = null;
+      } catch (err) {
+        console.error('Lỗi khi xóa html5QrCode:', err);
+      }
+    }
+    
     // Reset tất cả dữ liệu
     this.resetAllData();
+    
+    // Xóa kết quả quét trước đó
+    this.scanResult = '';
     
     // Đặt tiêu đề ngẫu nhiên mỗi khi reset scanner
     this.setRandomTitle();
     
+    // Đặt trạng thái đang quét là true để cho phép khởi tạo mới
+    this.isScanning = true;
+    
+    // Công khai log reset để tiện theo dõi
+    console.log('Scanner và dữ liệu đã được reset hoàn toàn');
+    
     if (isPlatformBrowser(this.platformId)) {
-      setTimeout(() => {
-        this.startScanner();
-      }, 500);
+      // Khởi động lại scanner với thời gian chờ ngắn để tránh xung đột
+      const timeout = wasScanning ? 800 : 300; // Chờ lâu hơn nếu scanner vừa bị dừng
+      
+      this.ngZone.run(() => {
+        setTimeout(() => {
+          try {
+            // Tạo mới instance của scanner
+            if (!this.html5QrCode) {
+              console.log('Khởi tạo lại scanner...');
+              this.initQrScanner();
+            } else if (!this.html5QrCode.isScanning) {
+              console.log('Khởi động lại quét...');
+              this.startScanner();
+            }
+          } catch (err) {
+            console.error('Lỗi khi khởi tạo lại scanner:', err);
+            // Nếu có lỗi, thử lại sau 2 giây
+            setTimeout(() => this.initQrScanner(), 2000);
+          }
+        }, timeout);
+      });
     }
   }
 
@@ -349,317 +581,280 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   printTickets(): void {
     if (!this.ticketData) return;
-
-    // Lưu lại nội dung gốc
-    const originalContents = document.body.innerHTML;
-
-    // Tạo các trang in riêng biệt
-    let printContent = '';
-
-    // 1. In từng vé riêng biệt trên mỗi trang
-    this.ticketData.tickets.forEach(ticket => {
-      printContent += `
-        <div class="print-page">
-          <div class="order-header">
-            <h3>Thông tin đơn hàng</h3>
-            <p class="order-code">Mã đơn hàng: ${this.ticketData?.orderInfo.orderCode}</p>
-            <p><strong>Khách hàng:</strong> ${this.ticketData?.orderInfo.customerName}</p>
-            <p><strong>Email:</strong> ${this.ticketData?.orderInfo.email}</p>
-            <p><strong>Ngày đặt:</strong> ${this.ticketData?.orderInfo.formattedOrderDate}</p>
-          </div>
-          
-          <div class="ticket-single">
-            <h3>VÉ XEM PHIM</h3>
-            <div class="ticket-movie">
-              <img src="${ticket.movieThumbnail}" alt="${ticket.movieName}" class="movie-thumbnail">
-              <div class="movie-info">
-                <h4>${ticket.movieName}</h4>
-                <p class="duration">${ticket.formattedDuration}</p>
-              </div>
-            </div>
-            
-            <div class="ticket-details">
-              <p><strong>Thời gian:</strong> ${ticket.formattedStartTime}</p>
-              <p><strong>Rạp:</strong> ${ticket.cinemaName}</p>
-              <p><strong>Phòng:</strong> ${ticket.roomName}</p>
-              <p>
-                <strong>Ghế:</strong> 
-                <span class="seat-label">${ticket.seatName}</span>
-              </p>
-              <p class="ticket-code"><strong>Mã vé:</strong> ${ticket.ticketCode}</p>
-            </div>
-          </div>
-        </div>
-      `;
-    });
-
-    // 2. In tất cả dịch vụ trên một trang riêng nếu có dịch vụ
-    if (this.ticketData.services && this.ticketData.services.length > 0) {
-      printContent += `
-        <div class="print-page services-page">
-          <div class="order-header">
-            <h3>Thông tin đơn hàng</h3>
-            <p class="order-code">Mã đơn hàng: ${this.ticketData?.orderInfo.orderCode}</p>
-            <p><strong>Khách hàng:</strong> ${this.ticketData?.orderInfo.customerName}</p>
-            <p><strong>Email:</strong> ${this.ticketData?.orderInfo.email}</p>
-            <p><strong>Ngày đặt:</strong> ${this.ticketData?.orderInfo.formattedOrderDate}</p>
-            <p><strong>Tổng tiền:</strong> ${this.ticketData?.orderInfo.formattedTotalPrice}</p>
-          </div>
-          
-          <h3>Dịch vụ đi kèm</h3>
-          <div class="services-print">
-            ${this.ticketData.services.map(service => `
-              <div class="service-item">
-                <div class="service-image">
-                  <img src="${service.imageUrl}" alt="${service.serviceName}" class="service-thumbnail">
-                </div>
-                <div class="service-details">
-                  <h4>${service.serviceName}</h4>
-                  <p class="service-type">${service.serviceType}</p>
-                  <p><strong>Số lượng:</strong> ${service.quantity}</p>
-                  <p><strong>Đơn giá:</strong> ${service.formattedUnitPrice}</p>
-                  <p><strong>Thành tiền:</strong> ${service.formattedTotalPrice}</p>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    // Thiết lập CSS cho trang in
-    const printStyles = `
-      <style>
-        @media print {
-          body, html {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-          }
-          .print-page {
-            page-break-after: always;
-            padding: 20px;
-          }
-          .order-header {
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-          }
-          .order-code {
-            font-weight: bold;
-            color: #3498db;
-          }
-          .movie-thumbnail {
-            width: 60px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 15px;
-          }
-          .ticket-movie {
-            display: flex;
-            padding: 15px;
-            background-color: #f0f0f0;
-            margin-bottom: 15px;
-          }
-          .ticket-details {
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-          }
-          .seat-label {
-            display: inline-block;
-            background-color: #3498db;
-            color: white;
-            font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 4px;
-            margin-left: 5px;
-          }
-          .services-print {
-            display: flex;
-            flex-direction: column;
-          }
-          .service-item {
-            display: flex;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-          }
-          .service-thumbnail {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 15px;
-          }
-          .ticket-code, h3 {
-            color: #3498db;
-          }
-        }
-      </style>
-    `;
-
-    // Cập nhật nội dung trang để in
-    document.body.innerHTML = printStyles + printContent;
     
-    // In
-    window.print();
-    
-    // Khôi phục nội dung trang
-    document.body.innerHTML = originalContents;
-    
-    // Khởi động lại scanner
-    setTimeout(() => {
-      this.initQrScanner();
-    }, 1000);
-  }
-
-  // Thêm các phương thức tạo PDF mới 
-  
-  // In tất cả vé và dịch vụ - hiển thị menu chọn
-  printOptions(): void {
-    if (!this.ticketData) return;
-    
+    // Hiển thị tùy chọn in thay vì in trực tiếp
     this.showPrintOptions = true;
   }
-  
-  // In vé riêng lẻ
-  printTicketAsPdf(ticket: Ticket): void {
-    if (!this.ticketData) return;
-    
-    // Tạo mới tài liệu PDF với khổ giấy A6 ngang
-    const doc = new jsPDF({
-      orientation: 'landscape',
-      unit: 'mm',
-      format: 'a6'
-    });
-    
-    // Thiết lập font chữ
-    doc.setFont("helvetica");
-    
-    // Tạo tiêu đề trang
-    doc.setFontSize(16);
-    doc.setTextColor(44, 62, 80);
-    doc.text("VÉ XEM PHIM", 105, 10, { align: 'center' });
-    
-    // Thêm thông tin rạp
-    doc.setFontSize(12);
-    doc.setTextColor(52, 152, 219);
-    doc.text("CINEMA STAR", 105, 18, { align: 'center' });
-    
-    // Phân chia trang thành 2 cột
-    
-    // CỘT TRÁI - Thông tin phim và suất chiếu
-    // Thêm ảnh thumbnail (nếu có URL hợp lệ)
-    /* 
-    Trong ứng dụng thực tế, bạn cần tải ảnh và chuyển đổi nó thành base64
-    Ở đây tôi giả định URL không hợp lệ nên chỉ vẽ khung ảnh
-    */
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(10, 25, 30, 40);
-    
-    // Thông tin phim
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "bold");
-    doc.text(ticket.movieName, 45, 30);
-    
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Thời lượng: ${ticket.formattedDuration}`, 45, 38);
-    
-    // Thông tin suất chiếu
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    
-    const yStart = 48;
-    const lineHeight = 6;
-    
-    doc.text(`Ngày chiếu: ${ticket.formattedStartTime.split(' ')[0]}`, 45, yStart);
-    doc.text(`Giờ chiếu: ${ticket.formattedStartTime.split(' ')[1]}`, 45, yStart + lineHeight);
-    doc.text(`Rạp: ${ticket.cinemaName}`, 45, yStart + lineHeight * 2);
-    doc.text(`Phòng: ${ticket.roomName}`, 45, yStart + lineHeight * 3);
-    
-    // CỘT PHẢI - Thông tin vé và khách hàng
-    const rightColX = 105;
-    
-    // Thông tin ghế với định dạng nổi bật
-    doc.setFillColor(52, 152, 219);
-    doc.setDrawColor(41, 128, 185);
-    doc.roundedRect(rightColX, 25, 20, 15, 2, 2, 'FD');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.text(ticket.seatName, rightColX + 10, 33, { align: 'center' });
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.text("GHẾ SỐ", rightColX + 10, 38, { align: 'center' });
-    
-    // Thông tin khách hàng
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    
-    doc.text(`Khách hàng: ${this.ticketData?.orderInfo.customerName}`, rightColX, yStart);
-    doc.text(`Email: ${this.ticketData?.orderInfo.email}`, rightColX, yStart + lineHeight);
-    doc.text(`Mã đơn hàng: ${this.ticketData?.orderInfo.orderCode}`, rightColX, yStart + lineHeight * 2);
-    doc.text(`Mã vé: ${ticket.ticketCode}`, rightColX, yStart + lineHeight * 3);
-    
-    // Thêm lưu ý
-    doc.setFontSize(9);
-    doc.setTextColor(231, 76, 60);
-    doc.text("* Vui lòng có mặt trước giờ chiếu 15 phút", 105, 75, { align: 'center' });
-    
-    // Thêm chân trang
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text("Vé hợp lệ khi có dấu mộc của rạp hoặc được quét QR thành công", 105, 82, { align: 'center' });
-    
-    // Tạo tên file dựa trên mã vé
-    const filename = `ve_${ticket.ticketCode}.pdf`;
-    
-    // Lưu hoặc mở PDF
-    doc.save(filename);
-  }
-  
-  // In hóa đơn dịch vụ
-  printServicesAsPdf(): void {
-    if (!this.ticketData || !this.ticketData.services || this.ticketData.services.length === 0) return;
-    
-    // Tạo mới tài liệu PDF với khổ giấy A5
+
+  printAllTickets(): void {
+    if (!this.ticketData || !this.ticketData.tickets || this.ticketData.tickets.length === 0) {
+      console.log('Không có vé để in');
+      return;
+    }
+
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a5'
+      format: 'a6',
+      putOnlyUsedFonts: true,
+      floatPrecision: 16 // Tăng độ chính xác khi xử lý font
     });
     
-    // Thiết lập font chữ
-    doc.setFont("helvetica");
+    // Tạo font hỗ trợ tiếng Việt (sử dụng Helvetica hoặc Arial)
+    doc.setFont('helvetica', 'normal');
     
-    // Tạo tiêu đề hóa đơn
+    // Thêm font hỗ trợ tiếng Việt
+    doc.addFont('https://cdn.jsdelivr.net/npm/dejavu-sans@1.0.0/fonts/DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    doc.setFont('DejaVuSans');
+
+    // Phương pháp thay thế để xử lý hiển thị tiếng Việt
+    const originalTextFunction = doc.text.bind(doc);
+    doc.text = function(text: string, x: number, y: number, options?: any) {
+      // Bảo đảm text luôn là string
+      const safeText = text.toString().normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')  // Loại bỏ dấu
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+      return originalTextFunction(safeText, x, y, options);
+    };
+
+    // Duyệt qua từng vé và thêm vào trang riêng biệt
+    this.ticketData.tickets.forEach((ticket, index) => {
+      if (index > 0) {
+        doc.addPage('a6', 'portrait');
+      }
+
+      // Logo và header
+      if (ticket.movieThumbnail) {
+        const img = new Image();
+        img.src = ticket.movieThumbnail.startsWith('http') ? 
+                  ticket.movieThumbnail : 
+                  `https://localhost:7263/${ticket.movieThumbnail}`;
+        
+        try {
+          doc.addImage(img, 'JPEG', 10, 10, 30, 40);
+        } catch (error) {
+          console.error('Lỗi khi thêm ảnh phim:', error);
+        }
+      }
+
+      // Tiêu đề vé
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('VÉ XEM PHIM', 75, 15, { align: 'center' });
+
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(52, 152, 219);
+      doc.text(ticket.movieName, 75, 23, { align: 'center' });
+
+      // Thông tin vé
+      const startY = ticket.movieThumbnail ? 55 : 30;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+
+      // Vẽ khung cho thông tin vé
+      doc.setDrawColor(220, 220, 220);
+      doc.setFillColor(250, 250, 250);
+      doc.roundedRect(10, startY, 130, 60, 3, 3, 'FD');
+
+      const lineHeight = 6;
+      let currentY = startY + 8;
+
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+
+      // Thông tin chi tiết vé
+      doc.text(`Mã vé: ${ticket.ticketCode}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Rạp: ${ticket.cinemaName}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Phòng: ${ticket.roomName}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Ghế: ${ticket.seatName}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Thời gian: ${ticket.formattedStartTime}`, 15, currentY);
+      currentY += lineHeight;
+      
+      doc.text(`Thời lượng: ${ticket.formattedDuration}`, 15, currentY);
+      currentY += lineHeight * 2;
+
+      // QR Code (mô phỏng bằng hình vuông)
+      doc.setFillColor(0, 0, 0);
+      doc.roundedRect(60, currentY, 30, 30, 2, 2, 'F');
+      
+      currentY += 35;
+
+      // Thông tin chung
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Vui lòng đến trước giờ chiếu 15-30 phút để ổn định chỗ ngồi', 75, currentY, { align: 'center' });
+      currentY += lineHeight - 2;
+      doc.text('Vé đã mua không thể đổi hoặc hoàn tiền', 75, currentY, { align: 'center' });
+      currentY += lineHeight - 2;
+      doc.text(`Mã đơn hàng: ${this.ticketData?.orderInfo?.orderCode || ''}`, 75, currentY, { align: 'center' });
+    });
+
+    // Tạo tên file
+    const filename = `ve_${this.ticketData.orderInfo.orderCode}.pdf`;
+    
+    // Lưu PDF
+    doc.save(filename);
+  }
+
+  printTicketAsPdf(ticket: Ticket): void {
+    if (!this.isPlatformBrowser() || !this.ticketData) return;
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a6',
+      putOnlyUsedFonts: true,
+      floatPrecision: 16 // Tăng độ chính xác khi xử lý font
+    });
+    
+    // Thêm font hỗ trợ tiếng Việt
+    doc.addFont('https://cdn.jsdelivr.net/npm/dejavu-sans@1.0.0/fonts/DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    doc.setFont('DejaVuSans');
+
+    // Phương pháp thay thế để xử lý hiển thị tiếng Việt
+    const originalTextFunction = doc.text.bind(doc);
+    doc.text = function(text: string, x: number, y: number, options?: any) {
+      // Bảo đảm text luôn là string
+      const safeText = text.toString().normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')  // Loại bỏ dấu
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+      return originalTextFunction(safeText, x, y, options);
+    };
+
+    // Logo và header
+    if (ticket.movieThumbnail) {
+      const img = new Image();
+      img.src = ticket.movieThumbnail.startsWith('http') ? 
+                ticket.movieThumbnail : 
+                `https://localhost:7263/${ticket.movieThumbnail}`;
+      
+      try {
+        doc.addImage(img, 'JPEG', 10, 10, 30, 40);
+      } catch (error) {
+        console.error('Lỗi khi thêm ảnh phim:', error);
+      }
+    }
+
+    // Tiêu đề vé
     doc.setFontSize(16);
-    doc.setTextColor(44, 62, 80);
-    doc.text("HÓA ĐƠN DỊCH VỤ", 74, 15, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('VÉ XEM PHIM', 75, 15, { align: 'center' });
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(52, 152, 219);
+    doc.text(ticket.movieName, 75, 23, { align: 'center' });
+
+    // Thông tin vé
+    const startY = ticket.movieThumbnail ? 55 : 30;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+
+    // Vẽ khung cho thông tin vé
+    doc.setDrawColor(220, 220, 220);
+    doc.setFillColor(250, 250, 250);
+    doc.roundedRect(10, startY, 130, 60, 3, 3, 'FD');
+
+    const lineHeight = 6;
+    let currentY = startY + 8;
+
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+
+    // Thông tin chi tiết vé
+    doc.text(`Mã vé: ${ticket.ticketCode}`, 15, currentY);
+    currentY += lineHeight;
+    
+    doc.text(`Rạp: ${ticket.cinemaName}`, 15, currentY);
+    currentY += lineHeight;
+    
+    doc.text(`Phòng: ${ticket.roomName}`, 15, currentY);
+    currentY += lineHeight;
+    
+    doc.text(`Ghế: ${ticket.seatName}`, 15, currentY);
+    currentY += lineHeight;
+    
+    doc.text(`Thời gian: ${ticket.formattedStartTime}`, 15, currentY);
+    currentY += lineHeight;
+    
+    doc.text(`Thời lượng: ${ticket.formattedDuration}`, 15, currentY);
+    currentY += lineHeight * 2;
+
+    // QR Code (mô phỏng bằng hình vuông)
+    doc.setFillColor(0, 0, 0);
+    doc.roundedRect(60, currentY, 30, 30, 2, 2, 'F');
+    
+    currentY += 35;
+
+    // Thông tin chung
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Vui lòng đến trước giờ chiếu 15-30 phút để ổn định chỗ ngồi', 75, currentY, { align: 'center' });
+    currentY += lineHeight - 2;
+    doc.text('Vé đã mua không thể đổi hoặc hoàn tiền', 75, currentY, { align: 'center' });
+    currentY += lineHeight - 2;
+    doc.text(`Mã đơn hàng: ${this.ticketData?.orderInfo?.orderCode || ''}`, 75, currentY, { align: 'center' });
+
+    // Tạo tên file với mã vé
+    const filename = `ve_${ticket.ticketCode}.pdf`;
+    
+    // Lưu file PDF
+    doc.save(filename);
+  }
+
+  printServicesAsPdf(): void {
+    if (!this.isPlatformBrowser() || !this.ticketData || !this.ticketData.services || this.ticketData.services.length === 0) {
+      console.log('Không có dịch vụ để in');
+      return;
+    }
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    // Tiêu đề
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('HÓA ĐƠN DỊCH VỤ', 105, 15, { align: 'center' });
     
     // Thêm thông tin rạp
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setTextColor(52, 152, 219);
-    doc.text("CINEMA STAR", 74, 22, { align: 'center' });
+    doc.text("CINEMA STAR", 105, 22, { align: 'center' });
     
     // Thông tin khách hàng và đơn hàng
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    const yStart = 30;
-    const lineHeight = 6;
+    const yStart = 35;
+    const lineHeight = 7;
     
-    doc.text(`Khách hàng: ${this.ticketData.orderInfo.customerName}`, 15, yStart);
-    doc.text(`Email: ${this.ticketData.orderInfo.email}`, 15, yStart + lineHeight);
-    doc.text(`Ngày đặt: ${this.ticketData.orderInfo.formattedOrderDate}`, 15, yStart + lineHeight * 2);
-    doc.text(`Mã đơn hàng: ${this.ticketData.orderInfo.orderCode}`, 15, yStart + lineHeight * 3);
+    // Vẽ khung thông tin đơn hàng
+    doc.setDrawColor(220, 220, 220);
+    doc.setFillColor(250, 250, 250);
+    doc.roundedRect(15, yStart - 5, 180, lineHeight * 5, 3, 3, 'FD');
+    
+    doc.text(`Khách hàng: ${this.ticketData.orderInfo.customerName || 'Khách lẻ'}`, 20, yStart);
+    doc.text(`Email: ${this.ticketData.orderInfo.email || 'Không có'}`, 20, yStart + lineHeight);
+    doc.text(`Ngày đặt: ${this.ticketData.orderInfo.formattedOrderDate}`, 20, yStart + lineHeight * 2);
+    doc.text(`Mã đơn hàng: ${this.ticketData.orderInfo.orderCode}`, 20, yStart + lineHeight * 3);
     
     // Tạo bảng dịch vụ
     const tableData = this.ticketData.services.map(service => [
@@ -675,45 +870,48 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
       startY: yStart + lineHeight * 5,
       head: [['Tên dịch vụ', 'Loại', 'SL', 'Đơn giá', 'Thành tiền']],
       body: tableData,
-      theme: 'striped',
+      theme: 'grid',
       headStyles: {
         fillColor: [52, 152, 219],
         textColor: 255,
-        fontSize: 10
+        fontSize: 12,
+        halign: 'center'
       },
       bodyStyles: {
-        fontSize: 9
+        fontSize: 10
       },
       columnStyles: {
-        0: { cellWidth: 50 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 10, halign: 'center' },
-        3: { cellWidth: 25, halign: 'right' },
-        4: { cellWidth: 25, halign: 'right' }
+        0: { cellWidth: 60 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 15, halign: 'center' },
+        3: { cellWidth: 30, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' }
       }
     });
     
     // Thêm tổng tiền
     const finalY = (doc as any).lastAutoTable.finalY + 10;
-    doc.setFontSize(11);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text(`Tổng tiền: ${this.ticketData.orderInfo.formattedTotalPrice}`, 133, finalY, { align: 'right' });
+    doc.text(`Tổng tiền dịch vụ: ${this.ticketData.orderInfo.formattedTotalPrice}`, 180, finalY, { align: 'right' });
     
     // Thêm chân trang
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
-    doc.text("Cảm ơn quý khách đã sử dụng dịch vụ!", 74, 140, { align: 'center' });
+    doc.text("Cảm ơn quý khách đã sử dụng dịch vụ!", 105, 280, { align: 'center' });
+    doc.text("Chúc quý khách xem phim vui vẻ", 105, 285, { align: 'center' });
     
     // Tạo tên file
-    const filename = `hoadon_${this.ticketData.orderInfo.orderCode}.pdf`;
+    const filename = `dv_${this.ticketData.orderInfo.orderCode}.pdf`;
     
     // Lưu hoặc mở PDF
     doc.save(filename);
   }
-  
-  // Thêm biến để hiển thị menu in
-  showPrintOptions: boolean = false;
+
+  printOptions(): void {
+    this.showPrintOptions = true;
+  }
 
   // Phương thức bắt đầu đếm ngược
   startCountdown(): void {
@@ -768,12 +966,31 @@ export class QRcodeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Tách phương thức reset dữ liệu thành một hàm riêng để tái sử dụng
   resetAllData(): void {
-    this.ticketData = null;
+    // Reset dữ liệu quét
     this.scanResult = '';
+    
+    // Reset dữ liệu vé và trạng thái
+    this.ticketData = null;
     this.error = '';
     this.confirmSuccess = false;
     this.confirmMessage = '';
+    
+    // Reset các tham số hệ thống
+    this.countdownTime = 5;
     this.isScanning = true;
     this.showPrintOptions = false;
+    
+    // Đảm bảo không còn dữ liệu cũ trong cache
+    if (this.http && (this.http as any).pendingRequests) {
+      // Hủy các request đang chờ (nếu có)
+      (this.http as any).pendingRequests.forEach((request: any) => {
+        if (request && request.unsubscribe) {
+          request.unsubscribe();
+        }
+      });
+    }
+    
+    // Ghi log để theo dõi
+    console.log('Tất cả dữ liệu và cache API đã được reset');
   }
 }
