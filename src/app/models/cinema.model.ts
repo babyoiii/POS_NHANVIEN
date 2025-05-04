@@ -25,6 +25,7 @@ export interface Province {
   }
   
   export interface LoginRequest {
+    cinemaId: string;
     userName: string;
     passWord: string;
   }

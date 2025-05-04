@@ -1,85 +1,85 @@
 <div class="abc">
-<div class="floating-icons">
-  <!-- Floating icons will be added by TypeScript -->
-</div>
-<div class="login-container">
-  <div class="logo-container">
-    <img src="../../../assets/Image/cinexLogo.png" alt="CineX Logo">
-    <div class="location-text" (click)="showCinemaSelector()">
-      {{ selectedCinema ? selectedCinema.name : 'Chọn Rạp CineX' }}
-      <span *ngIf="!selectedCinema" class="cinema-required">* Bắt buộc</span>
-    </div>
+  <div class="floating-icons">
+    <!-- Floating icons will be added by TypeScript -->
   </div>
-
-  <h2 *ngIf="loginVisible">Chào mừng đến CineX</h2>
-
-  <div *ngIf="!selectedCinema" class="cinema-alert">
-    Vui lòng chọn rạp để tiếp tục đăng nhập!
-    <button (click)="showCinemaSelector()" class="select-cinema-btn">Chọn rạp</button>
-  </div>
-
-  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" *ngIf="loginVisible">
-    <div class="input-group">
-      <input type="text" id="userName" formControlName="userName" required placeholder=" ">
-      <label for="userName">Tài khoản</label>
+  <div class="login-container">
+    <div class="logo-container">
+      <img src="../../../assets/Image/cinexLogo.png" alt="CineX Logo">
+      <div class="location-text" (click)="showCinemaSelector()">
+        {{ selectedCinema ? selectedCinema.name : 'Chọn Rạp CineX' }}
+        <span *ngIf="!selectedCinema" class="cinema-required">* Bắt buộc</span>
+      </div>
     </div>
-    <div class="input-group">
-      <input type="password" id="passWord" formControlName="passWord" required placeholder=" ">
-      <label for="passWord">Mật khẩu</label>
+  
+    <h2 *ngIf="loginVisible">Chào mừng đến CineX</h2>
+  
+    <div *ngIf="!selectedCinema" class="cinema-alert">
+      Vui lòng chọn rạp để tiếp tục đăng nhập!
+      <button (click)="showCinemaSelector()" class="select-cinema-btn">Chọn rạp</button>
     </div>
-    <div class="error-message" *ngIf="errorMessage">
-      {{ errorMessage }}
-    </div>
-    <div class="error-message" *ngIf="showCinemaError">
-      Vui lòng chọn rạp trước khi đăng nhập!
-    </div>
-    <div class="forgot-password">
-      <a href="#" target="_blank">Quên mật khẩu?</a>
-    </div>
-    <button type="submit" class="glassmorphism-btn" [disabled]="!loginForm.valid || isLoading">
-      <span *ngIf="!isLoading">Đăng Nhập</span>
-      <span *ngIf="isLoading" class="loading-spinner"></span>
-    </button>
-  </form>
-
-  <!-- Phần chọn rạp -->
-  <div class="cinema-selection" [class.active]="showCinemaSelection">
-    <div class="selection-header">
-      <h3>{{ showProvinceSelection ? 'Chọn Tỉnh/Thành phố' : 'Chọn Rạp - ' + (selectedProvince?.name || '') }}</h3>
-      <span class="close-btn" (click)="closeCinemaSelection()">&times;</span>
-    </div>
-    <div class="selection-content">
-      <!-- Phần chọn tỉnh thành -->
-      <div *ngIf="showProvinceSelection">
-        <div class="province-list">
-          <div class="province-item" *ngFor="let province of provinces" (click)="showCinemas(province)">
-            {{ province.name }}
+  
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" *ngIf="loginVisible">
+      <div class="input-group">
+        <input type="text" id="userName" formControlName="userName" required placeholder=" ">
+        <label for="userName">Tài khoản</label>
+      </div>
+      <div class="input-group">
+        <input type="password" id="passWord" formControlName="passWord" required placeholder=" ">
+        <label for="passWord">Mật khẩu</label>
+      </div>
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+      <div class="error-message" *ngIf="showCinemaError">
+        Vui lòng chọn rạp trước khi đăng nhập!
+      </div>
+      <div class="forgot-password">
+        <a href="#" target="_blank">Quên mật khẩu?</a>
+      </div>
+      <button type="submit" class="glassmorphism-btn" [disabled]="!loginForm.valid || isLoading">
+        <span *ngIf="!isLoading">Đăng Nhập</span>
+        <span *ngIf="isLoading" class="loading-spinner"></span>
+      </button>
+    </form>
+  
+    <!-- Phần chọn rạp -->
+    <div class="cinema-selection" [class.active]="showCinemaSelection">
+      <div class="selection-header">
+        <h3>{{ showProvinceSelection ? 'Chọn Tỉnh/Thành phố' : 'Chọn Rạp - ' + (selectedProvince?.name || '') }}</h3>
+        <span class="close-btn" (click)="closeCinemaSelection()">&times;</span>
+      </div>
+      <div class="selection-content">
+        <!-- Phần chọn tỉnh thành -->
+        <div *ngIf="showProvinceSelection">
+          <div class="province-list">
+            <div class="province-item" *ngFor="let province of provinces" (click)="showCinemas(province)">
+              {{ province.name }}
+            </div>
+          </div>
+        </div>
+  
+        <!-- Phần chọn rạp -->
+        <div *ngIf="showCinemaListSelection">
+          <button class="back-btn" (click)="backToProvinces()">
+            Quay lại
+          </button>
+          <h4 class="selection-title">Các rạp tại {{ selectedProvince?.name }}</h4>
+          
+          <!-- Nếu không có rạp, hiển thị thông báo -->
+          <div *ngIf="cinemas.length === 0" class="no-cinemas-message">
+            Không tìm thấy rạp nào tại {{ selectedProvince?.name }}.
+            <button class="back-btn" (click)="backToProvinces()">Chọn tỉnh/thành phố khác</button>
+          </div>
+          
+          <div class="cinema-list" *ngIf="cinemas.length > 0">
+            <div class="cinema-item" *ngFor="let cinema of cinemas" (click)="selectCinema(cinema)">
+              {{ cinema.name }}
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- Phần chọn rạp -->
-      <div *ngIf="showCinemaListSelection">
-        <button class="back-btn" (click)="backToProvinces()">
-          Quay lại
-        </button>
-        <h4 class="selection-title">Các rạp tại {{ selectedProvince?.name }}</h4>
-        
-        <!-- Nếu không có rạp, hiển thị thông báo -->
-        <div *ngIf="cinemas.length === 0" class="no-cinemas-message">
-          Không tìm thấy rạp nào tại {{ selectedProvince?.name }}.
-          <button class="back-btn" (click)="backToProvinces()">Chọn tỉnh/thành phố khác</button>
-        </div>
-        
-        <div class="cinema-list" *ngIf="cinemas.length > 0">
-          <div class="cinema-item" *ngFor="let cinema of cinemas" (click)="selectCinema(cinema)">
-            {{ cinema.name }}
-          </div>
-        </div>
-      </div>
     </div>
   </div>
-</div>
-
-<div class="slogan">CineX-Cinema</div>
-</div>
+  
+  <div class="slogan">CineX-Cinema</div>
+  </div>
