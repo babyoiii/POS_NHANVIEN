@@ -408,8 +408,8 @@ export class BongNuocComponent implements OnInit, OnDestroy {
         quantity: 1,
         count: 1
       };
-      
-      this.cartItems.push(serviceToAdd);
+serviceToAdd      
+      this.cartItems.push();
       this.saveCartToLocalStorage();
       
       // Hiển thị thông báo
@@ -420,6 +420,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
 
   private loadCartFromLocalStorage(): void {
     const savedCart = localStorage.getItem('cartItems');
+    console.log('savedCart',savedCart) 
     if (savedCart) {
       try {
         this.cartItems = JSON.parse(savedCart);
@@ -1414,7 +1415,7 @@ export class BongNuocComponent implements OnInit, OnDestroy {
   }
 
   // Tính tiền thừa
-  calculateChange(): void {
+   calculateChange(): void {
     this.changeAmount = this.cashReceived - this.getTotalAmount();
   }
 

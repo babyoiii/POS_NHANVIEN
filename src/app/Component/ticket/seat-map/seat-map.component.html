@@ -11,7 +11,7 @@
     </div>
 
     <div class="scroll-hint">
-        <i class="fa fa-arrows-alt"></i> Giữ và kéo để xem toàn bộ sơ đồ ghế
+        <i class="fa fa-chevron-down"></i> Cuộn xuống để xem thêm các hàng ghế <i class="fa fa-chevron-down"></i>
     </div>
 
     <!-- Di chuyển legend lên trên sau màn hình -->
@@ -53,7 +53,22 @@
         <p>Đang tải sơ đồ ghế...</p>
     </div>
 
-    <div class="seating-plan" *ngIf="seats && seats.length > 0">
+    <!-- Nút điều khiển cuộn -->    
+    <div class="scroll-controls">
+        <button class="scroll-btn scroll-up" (click)="scrollSeatingPlan('up')">
+            <i class="fa fa-chevron-up"></i>
+        </button>
+        <button class="scroll-btn scroll-down" (click)="scrollSeatingPlan('down')">
+            <i class="fa fa-chevron-down"></i>
+        </button>
+    </div>
+
+    <div class="seating-plan" *ngIf="seats && seats.length > 0" #seatingPlan>
+        <!-- Debug info để kiểm tra dữ liệu -->
+        <div class="debug-info" style="font-size: 12px; color: #666; margin-bottom: 10px; text-align: left; width: 100%;">
+            <div>Số hàng: {{seatingRows.length}}</div>
+            <div>Tổng số ghế: {{seats.length}}</div>
+        </div>
         <!-- Hiển thị số cột -->
         <div class="column-indicators">
             <div class="column-spacer"></div>

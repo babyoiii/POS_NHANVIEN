@@ -135,16 +135,97 @@
   align-items: center;
   margin: 20px 0;
   overflow-x: auto;
-  overflow-y: auto;
-  max-height: 55vh;
+  overflow-y: scroll; /* Đổi auto thành scroll để luôn hiện thanh cuộn */
+  max-height: 60vh; /* Giảm chiều cao xuống khoảng 60vh để buộc phải cuộn và nhìn rõ tht có thể cuộn */
   padding: 25px;
   background-color: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05), 0 6px 20px rgba(0, 0, 0, 0.1); /* Thêm shadow để nổi bật hơn */
   -webkit-overflow-scrolling: touch;
-  min-height: 300px;
+  min-height: 450px;
   position: relative;
   border: 1px solid #e0e0e0;
+  /* Hiện thanh cuộn rõ ràng hơn */
+  scrollbar-width: auto;
+  scrollbar-color: #007bff #f1f1f1;
+  margin-bottom: 30px;
+}
+
+/* Add scrollbar styling for WebKit browsers (Chrome, Safari, Edge) */
+.seating-plan::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.seating-plan::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+  box-shadow: inset 0 0 5px #ddd;
+}
+
+.seating-plan::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 4px;
+  border: 2px solid #f1f1f1;
+}
+
+.seating-plan::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
+}
+
+/* Thêm nút cuộn lên/xuống */
+.scroll-controls {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+}
+
+.scroll-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 123, 255, 0.8);
+  color: white;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 16px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+}
+
+.scroll-btn:hover {
+  background-color: rgba(0, 123, 255, 1);
+  transform: scale(1.1);
+}
+
+/* Làm nổi bật thông báo cuộn */
+.scroll-hint {
+  background-color: rgba(0, 123, 255, 0.1);
+  padding: 8px 15px;
+  border-radius: 30px;
+  margin: 10px 0;
+  animation: pulse 2s infinite;
+  border: 1px solid rgba(0, 123, 255, 0.3);
+}
+
+@keyframes pulse {
+  0% {
+    background-color: rgba(0, 123, 255, 0.1);
+  }
+  50% {
+    background-color: rgba(0, 123, 255, 0.2);
+  }
+  100% {
+    background-color: rgba(0, 123, 255, 0.1);
+  }
 }
 
 .column-indicators {
@@ -354,19 +435,20 @@
 
 /* Thông tin tóm tắt */
 .seat-summary {
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: relative; /* Thay đổi từ sticky thành relative */
   background-color: #fff;
   padding: 12px 15px;
   box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  z-index: 10; /* Giảm z-index để không đè lên phần cuộn */
   display: flex;
   flex-direction: column;
-  margin-top: 15px;
-  border-top: 1px solid #eee;
-  border-radius: 8px 8px 0 0;
+  margin-top: 40px; /* Tăng khoảng cách với phần trên */
+  border: 1px solid #eee;
+  border-radius: 8px;
+  width: 98%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 20px;
 }
 
 .summary-content {
@@ -462,8 +544,11 @@
   }
   
   .seat-summary {
-    padding: 10px;
+    padding: 10px 5px;
     flex-direction: column;
+    position: static;
+    margin-top: 60px;
+    width: 95%;
   }
   
   .action-buttons {
@@ -487,7 +572,7 @@
   .seating-plan {
     padding: 10px;
     margin-bottom: 15px;
-    max-height: 55vh;
+    max-height: 70vh;
   }
   
   .summary-content {

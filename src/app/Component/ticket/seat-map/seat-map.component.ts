@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { WebsocketService, SeatStatus } from '../../../services/websocket.service';
@@ -26,6 +26,7 @@ interface SeatingRow {
   standalone: true
 })
 export class SeatMapComponent implements OnInit, OnDestroy {
+  @ViewChild('seatingPlan') seatingPlanRef!: ElementRef;
   showtimeId: string = '';
   seats: SeatInfo[] = [];
   seatingRows: SeatingRow[] = [];
@@ -134,12 +135,18 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     const connectAndRetryIfNeeded = () => {
       console.log(`Thử kết nối WebSocket lần ${retryCount + 1}/${maxRetries + 1}`);
       
-      // Kết nối tới WebSocket
-      this.seatService.connect(this.showtimeId, this.userId);
+      // Kết nối tới WebSocket - sử dụng trực tiếp connectWebSocket để đảm bảo có đủ các tham số
+      this.seatService.connectWebSocket(this.showtimeId, this.userId);
+      
+      // Gọi getList ngay lập tức sau khi kết nối để yêu cầu dữ liệu ghế
+      setTimeout(() => {
+        console.log('Gọi getList để lấy dữ liệu ghế...');
+        this.seatService.getList(this.showtimeId);
+      }, 500);
       
       // Thiết lập timeout để kiểm tra nếu không nhận được dữ liệu ghế
       const timeoutId = setTimeout(() => {
-        // Nếu chưa có ghế và vẫn còn cơ hội thử lại
+        // Kiểm tra xem đã nhận được dữ liệu ghế chưa
         if (this.seats.length === 0 && retryCount < maxRetries) {
           console.warn(`Không nhận được dữ liệu ghế sau 5 giây, thử lại...`);
           retryCount++;
@@ -156,6 +163,9 @@ export class SeatMapComponent implements OnInit, OnDestroy {
       this.connectionTimeouts.push(timeoutId);
     };
     
+    // Trước khi bắt đầu kết nối mới, đảm bảo ngắt kết nối cũ
+    this.seatService.disconnect();
+    
     // Bắt đầu kết nối
     connectAndRetryIfNeeded();
     
@@ -167,6 +177,15 @@ export class SeatMapComponent implements OnInit, OnDestroy {
       
       if (seats && seats.length > 0) {
         console.log(`Nhận ${seats.length} ghế từ WebSocket`);
+        console.log('Sample data:', seats[0], seats[seats.length-1]);
+        
+        // Kiểm tra xem dữ liệu có hợp lệ không
+        if (seats.some(seat => !seat.RowNumber || !seat.ColNumber)) {
+          console.error('Dữ liệu ghế không hợp lệ, có ghế thiếu thông tin hàng hoặc cột');
+          this.validationMessage = "Lỗi dữ liệu ghế. Vui lòng tải lại trang.";
+          return;
+        }
+        
         this.seats = seats;
         this.lastSuccessfulSeatLoad = new Date();
         
@@ -174,6 +193,13 @@ export class SeatMapComponent implements OnInit, OnDestroy {
         this.validationMessage = "";
         
         this.organizeSeats();
+        
+        // Kiểm tra kết quả sau khi organize seats
+        if (this.seatingRows.length === 0 && this.seats.length > 0) {
+          console.error('Có lỗi trong việc tỵ chức hàng ghế');
+          // Thử một cách tiếp cận khác nếu cách hiện tại không hoạt động
+          this.fallbackOrganizeSeats();
+        }
         
         // Cập nhật danh sách ghế đã chọn dựa trên dữ liệu từ server
         this.selectedSeats = seats.filter(seat => seat.Status === this.SEAT_STATUS.SELECTED);
@@ -186,7 +212,7 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     // Đăng ký lắng nghe cập nhật trạng thái ghế theo sự kiện riêng biệt
     const seatsUpdateSub = this.seatService.seatsUpdated$.subscribe((seats: SeatInfo[]) => {
       if (seats && seats.length > 0) {
-        console.log('Seats status updated via WebSocket');
+        console.log('Seats status updated via WebSocket, count:', seats.length);
         this.seats = seats;
         this.organizeSeats();
       }
@@ -202,33 +228,108 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     this.subscriptions.add(seatsUpdateSub);
     this.subscriptions.add(connectionErrorSub);
   }
+  
+  // Phương thức dự phòng để tổ chức ghế nếu cách chính không hoạt động
+  fallbackOrganizeSeats(): void {
+    console.log('Sử dụng phương thức dự phòng để tổ chức ghế');
+    if (!this.seats || this.seats.length === 0) return;
+    
+    try {
+      // Tìm các hàng duy nhất dựa trên tên ghế (A, B, C, ...)
+      const rowNames = Array.from(new Set(this.seats.map(seat => seat.SeatName.charAt(0))));
+      console.log('Rows detected from seat names:', rowNames);
+      
+      // Sắp xếp các hàng theo thứ tự bảng chữ cái
+      rowNames.sort();
+      
+      // Thiết lập maxCols dựa trên số lớn nhất trong các số ở sau chữ cái trong tên ghế
+      this.maxCols = Math.max(...this.seats.map(seat => {
+        const colStr = seat.SeatName.substring(1);
+        return parseInt(colStr, 10) || 0;
+      }));
+      
+      // Tạo các hàng ghế mới
+      this.seatingRows = [];
+      
+      rowNames.forEach((rowName, index) => {
+        // Tìm các ghế trong hàng này
+        const seatsInRow = this.seats.filter(seat => seat.SeatName.charAt(0) === rowName);
+        
+        if (seatsInRow.length > 0) {
+          // Tạo hàng mới
+          const newRow: SeatingRow = {
+            rowName: rowName,
+            rowNumber: index + 1, // Số thứ tự hàng bắt đầu từ 1
+            seats: seatsInRow
+          };
+          
+          // Sắp xếp ghế trong hàng theo số cột
+          newRow.seats.sort((a, b) => {
+            const colA = parseInt(a.SeatName.substring(1), 10) || 0;
+            const colB = parseInt(b.SeatName.substring(1), 10) || 0;
+            return colA - colB;
+          });
+          
+          // Thiết lập số cột cho mỗi ghế nếu chưa có
+          newRow.seats.forEach((seat, idx) => {
+            if (!seat.ColNumber) {
+              seat.ColNumber = parseInt(seat.SeatName.substring(1), 10) || (idx + 1);
+            }
+            if (!seat.RowNumber) {
+              seat.RowNumber = index + 1;
+            }
+          });
+          
+          this.seatingRows.push(newRow);
+        }
+      });
+      
+      console.log('Fallback organized rows:', this.seatingRows.length);
+    } catch (error) {
+      console.error('Lỗi khi tổ chức ghế với phương thức dự phòng:', error);
+    }
+  }
 
   organizeSeats(): void {
     if (!this.seats || this.seats.length === 0) return;
     
+    console.log('Organizing seats, total seats:', this.seats.length);
+    console.log('Sample seat data:', this.seats[0]);
+    
     // Tìm số cột lớn nhất
     this.maxCols = Math.max(...this.seats.map(seat => seat.ColNumber));
+    console.log('Max columns found:', this.maxCols);
     
     // Tạo Map lưu trữ hàng ghế
     const rowMap = new Map<number, SeatingRow>();
     
     // Lặp qua từng ghế để tổ chức vào hàng
     this.seats.forEach(seat => {
-      if (!rowMap.has(seat.RowNumber)) {
+      // Đảm bảo RowNumber là số
+      const rowNumber = typeof seat.RowNumber === 'number' ? seat.RowNumber : parseInt(seat.RowNumber as any, 10);
+      
+      if (isNaN(rowNumber)) {
+        console.error('Invalid row number for seat:', seat);
+        return;
+      }
+      
+      if (!rowMap.has(rowNumber)) {
         // Tạo hàng mới nếu chưa tồn tại
-        rowMap.set(seat.RowNumber, {
-          rowName: this.getRowName(seat.RowNumber),
-          rowNumber: seat.RowNumber,
+        rowMap.set(rowNumber, {
+          rowName: this.getRowName(rowNumber),
+          rowNumber: rowNumber,
           seats: []
         });
       }
       
       // Thêm ghế vào hàng tương ứng
-      const row = rowMap.get(seat.RowNumber);
+      const row = rowMap.get(rowNumber);
       if (row) {
         row.seats.push(seat);
       }
     });
+    
+    console.log('Rows created:', rowMap.size);
     
     // Sắp xếp hàng ghế theo thứ tự tăng dần của rowNumber
     this.seatingRows = Array.from(rowMap.values())
@@ -238,6 +339,8 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     this.seatingRows.forEach(row => {
       row.seats.sort((a, b) => a.ColNumber - b.ColNumber);
     });
+    
+    console.log('Finished organizing, rows:', this.seatingRows.length);
   }
 
   getRowName(rowNumber: number): string {
@@ -261,9 +364,10 @@ export class SeatMapComponent implements OnInit, OnDestroy {
     let classes = 'seat';
     
     // Áp dụng class dựa trên loại ghế
-    if (seat.SeatTypeName.toLowerCase().includes('vip')) {
+    // Thêm kiểm tra null hoặc undefined cho SeatTypeName
+    if (seat.SeatTypeName && seat.SeatTypeName.toLowerCase().includes('vip')) {
       classes += ' vip-seat';
-    } else if (seat.SeatTypeName.toLowerCase().includes('đôi') || seat.PairId) {
+    } else if ((seat.SeatTypeName && seat.SeatTypeName.toLowerCase().includes('đôi')) || seat.PairId) {
       classes += ' couple-seat';
     }
     
@@ -656,6 +760,20 @@ export class SeatMapComponent implements OnInit, OnDestroy {
    */
   closeValidationMessage(): void {
     this.validationMessage = '';
+  }
+
+  // Phương thức xử lý cuộn sơ đồ ghế
+  scrollSeatingPlan(direction: 'up' | 'down') {
+    if (!this.seatingPlanRef) return;
+    
+    const element = this.seatingPlanRef.nativeElement;
+    const scrollAmount = 200; // Số pixel cuộn mỗi lần nhấn nút
+    
+    if (direction === 'up') {
+      element.scrollTop -= scrollAmount;
+    } else {
+      element.scrollTop += scrollAmount;
+    }
   }
 
   // Kiểm tra xem ghế có nên hiển thị hay không (đối với ghế đôi)

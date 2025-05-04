@@ -28,6 +28,17 @@ export class ServiceApiService {
       email,
       isAnonymous: true
     };
+    
+    // Lưu một bản sao của dữ liệu dịch vụ vào localStorage để truy xuất khi cần thiết
+    try {
+      localStorage.setItem('current_service_data', serviceListJson);
+      localStorage.setItem('current_service_email', email || '');
+      localStorage.setItem('service_timestamp', Date.now().toString());
+      console.log('Đã lưu dữ liệu dịch vụ vào localStorage');
+    } catch (e) {
+      console.error('Lỗi khi lưu dữ liệu dịch vụ vào localStorage:', e);
+    }
+    
     return this.http.post(`${this.apiUrl}/api/Counter/Service/ManageOrder?action=1`, request);
   }
 
