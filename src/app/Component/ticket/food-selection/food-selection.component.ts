@@ -1,14 +1,26 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { SeatInfo } from '../../../models/SeatModel';
 import { Subscription } from 'rxjs';
 import { ServiceApiService } from '../../../services/service-api.service';
 import { TicketService } from '../../../services/ticket.service';
 import { AuthService } from '../../../services/auth.service';
 import { WebsocketService, SeatStatusUpdateRequest } from '../../../services/websocket.service';
+import { PdfGenerationService } from '../../../services/pdf-generation.service';
+import { TicketPdfComponent } from '../../common/ticket-pdf/ticket-pdf.component';
+
+// Định nghĩa interface cho thông tin ghế
+interface SeatInfo {
+  id: string;
+  SeatStatusByShowTimeId: string;
+  SeatName: string;
+  RowName: string;
+  SeatTypeName: string;
+  SeatPrice: number;
+  status: number; // 1: available, 2: selecting, 3: selected, 4: booked, 5: reserved
+}
 
 // Định nghĩa interface cho Service (sản phẩm)
 interface Service {
@@ -19,7 +31,8 @@ interface Service {
   description: string;
   price: number;
   status: number;
-  count?: number;
+  count: number; // Số lượng khi thanh toán
+  quantity?: number; // Số lượng khi thanh toán
 }
 
 // Định nghĩa interface cho ServiceType (loại sản phẩm)
@@ -51,11 +64,20 @@ interface OrderData {
 @Component({
   selector: 'app-food-selection',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule, RouterModule],
+  imports: [CommonModule, HttpClientModule, FormsModule, RouterModule, TicketPdfComponent],
   templateUrl: './food-selection.component.html',
   styleUrls: ['./food-selection.component.css']
 })
 export class FoodSelectionComponent implements OnInit, OnDestroy {
+  // Lưu trữ thông tin ghế để in vé sau khi thanh toán
+  seatsToPrint: any[] = [];
+  
+  // Chế độ test
+  isTestMode = false;
+  
+  // Biến điều khiển tiến trình
+  currentStep = 1; // Bước hiện tại (1: chọn dịch vụ, 2: nhập thông tin, 3: thanh toán)
+  
   // Thông tin từ bước chọn ghế
   showtimeId: string = '';
   selectedSeats: SeatInfo[] = [];
@@ -70,6 +92,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   
   // Giỏ hàng
   cartItems: Service[] = [];
+  selectedServices: Service[] = [];
   
   // Thông tin UI
   loading: boolean = false;
@@ -107,6 +130,12 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   isPrinting: boolean = false;
   isLoading: boolean = false;
   today: Date = new Date();
+  showtimeDetail: any = null;
+  
+  // PDF related properties
+  showtimeInfoForPdf: any = {};
+  orderInfoForPdf: any = {};
+
   
   // Email khách hàng
   customerEmail: string = '';
@@ -126,6 +155,16 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   receiptTotalAmount: number = 0; // Lưu tổng tiền cho hóa đơn
   receiptContent: string = '';
   
+  // Lưu trữ logo dạng base64 cho in hóa đơn
+  logoBase64: string = '';
+  
+  // Custom notification properties
+  showCustomNotification = false;
+  notificationType = '';
+  notificationTitle = '';
+  notificationMessage = '';
+  notificationTimeout: any = null;
+  
   private subscriptions: Subscription = new Subscription();
   
   constructor(
@@ -134,7 +173,8 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private serviceApi: ServiceApiService,
     private ticketService: TicketService,
-    private authService: AuthService
+    private authService: AuthService,
+    private pdfService: PdfGenerationService
   ) {}
 
   ngOnInit(): void {
@@ -144,7 +184,10 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
       this.loadServiceTypes();
     });
     
-    // Cập nhật thời gian hiện tại mỗi phút
+    // Chuyển đổi logo thành base64 cho việc in hóa đơn
+    this.convertLogoToBase64();
+    
+    // Cập nhật thởi gian mỗi phút
     setInterval(() => {
       this.today = new Date();
     }, 60000);
@@ -211,6 +254,42 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
           this.loading = false;
         }
       });
+  }
+  
+  // Chuyển đổi logo thành base64
+  private convertLogoToBase64(): void {
+    // Đặt logo mặc định là base64 cố định để đảm bảo luôn có logo
+    this.logoBase64 = 'data:image/png;base64,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'
+
+
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    
+    // Sử dụng đường dẫn tuyệt đối
+    const baseUrl = window.location.origin;
+    const logoUrl = baseUrl + '/assets/Image/cinexLogo.png';
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        this.logoBase64 = canvas.toDataURL('image/png');
+        console.log('Logo đã được chuyển đổi sang base64 thành công');
+      } else {
+        console.error('Không thể tạo context cho canvas');
+      }
+    };
+    
+    img.onerror = (e) => {
+      console.error('Lỗi khi tải logo:', e);
+      // Đã có logo mặc định, không làm gì thêm
+    };
+    
+    img.src = logoUrl;
+    console.log('Đang tải logo từ:', logoUrl);
   }
   
   // Kiểm tra email khách hàng
@@ -361,7 +440,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   openPaymentModal(): void {
     // Kiểm tra đã chọn ghế chưa
     if (!this.selectedSeats || this.selectedSeats.length === 0) {
-      alert('Bạn chưa chọn ghế nào!');
+      this.showNotification('Bạn chưa chọn ghế nào!', 'warning');
       return;
     }
     
@@ -369,13 +448,13 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     if (!this.useDefaultEmail) {
       // Nếu không có email hoặc email trống
       if (!this.customerEmail || this.customerEmail.trim() === '') {
-        alert('Vui lòng nhập email khách hàng!');
+        this.showNotification('Vui lòng nhập email khách hàng!', 'warning');
         return;
       }
       
       // Nếu có lỗi email hoặc chưa xác thực thành công (customerInfo null)
       if (this.emailError || !this.customerInfo) {
-        alert('Email không hợp lệ hoặc chưa được xác thực. Vui lòng kiểm tra lại email trước khi tiếp tục!');
+        this.showNotification('Email không hợp lệ hoặc chưa được xác thực. Vui lòng kiểm tra lại email trước khi tiếp tục!', 'error');
         return;
       }
     }
@@ -417,19 +496,31 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
   
   // Tính tiền thừa
   calculateChange(): void {
+    const previousChange = this.changeAmount;
     this.changeAmount = this.cashReceived - this.getTotalPrice();
+    
+    // Chỉ hiển thị thông báo nếu số tiền thay đổi từ âm -> dương (không đủ -> đủ/thừa)
+    if (previousChange < 0 && this.changeAmount >= 0) {
+      this.showNotification(`Số tiền hợp lệ. Tiền thừa: ${this.formatPrice(this.changeAmount)}`, 'success');
+    }
   }
   
   // Đặt số tiền nhanh
   setQuickAmount(amount: number): void {
     this.cashReceived = amount;
     this.calculateChange();
+    
+    // Hiển thị thông báo thân thiện khi số tiền đã đủ/thừa
+    const diff = this.cashReceived - this.getTotalPrice();
+    if (diff >= 0) {
+      this.showNotification(`Số tiền thừa: ${this.formatPrice(diff)}`, 'info');
+    }
   }
   
   // Xử lý thanh toán tiền mặt
   processCashPayment(): void {
     if (this.cashReceived < this.getTotalPrice()) {
-      alert('Tiền khách đưa không đủ');
+      this.showNotification('Tiền khách đưa không đủ để thanh toán. Vui lòng kiểm tra lại số tiền.', 'error');
       return;
     }
     
@@ -446,7 +537,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     // Lấy thông tin người dùng đang đăng nhập
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      alert('Vui lòng đăng nhập lại');
+      this.showNotification('Lỗi xác thực: Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.', 'error');
       this.isLoading = false;
       return;
     }
@@ -524,32 +615,43 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
                       websocketService.getList();
                     }, 800);
                     
-                    // Hiển thị hóa đơn thay vì thông báo thành công
-                    this.openReceiptModal();
+                    // Hiển thị thông báo thành công trước khi mở hóa đơn
+                    this.showNotification('Đặt vé thành công! Cảm ơn quý khách đã sử dụng dịch vụ.', 'success');
+                    
+                    // Lưu thông tin ghế để in vé trước khi xóa
+                    this.seatsToPrint = [...this.selectedSeats];
+                    console.log('Đã lưu ghế để in vé:', this.seatsToPrint);
                     
                     // Xoá giỏ hàng và thông tin ghế sau khi thanh toán thành công
                     this.clearCartAndSeats();
+                    
+                    // Hiển thị hóa đơn sau khi thông báo thành công ngắn
+                    setTimeout(() => {
+                      this.openReceiptModal();
+                    }, 1500); // Đợi 1.5 giây để người dùng thấy thông báo thành công
                   } else {
                     console.error('Payment failed with code:', paymentResponse.responseCode);
-                    alert('Lỗi khi thanh toán: ' + paymentResponse.message);
+                    const friendlyMessage = this.getFriendlyErrorMessage(paymentResponse.message);
+                    this.showNotification(`Thanh toán không thành công: ${friendlyMessage}`, 'error');
                   }
                 },
                 error => {
                   this.isLoading = false;
                   console.error('Payment API error:', error);
-                  alert('Lỗi kết nối: ' + error.message);
+                  this.showNotification('Không thể kết nối đến máy chủ thanh toán. Vui lòng thử lại sau.', 'error');
                 }
               );
           } else {
             this.isLoading = false;
             console.error('Order creation failed with code:', response.responseCode);
-            alert('Lỗi khi tạo đơn hàng: ' + response.message);
+            const friendlyMessage = this.getFriendlyErrorMessage(response.message);
+            this.showNotification(`Tạo đơn hàng không thành công: ${friendlyMessage}`, 'error');
           }
         },
         error => {
           this.isLoading = false;
           console.error('Order API error:', error);
-          alert('Lỗi kết nối: ' + error.message);
+          alert('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.');
         }
       );
   }
@@ -666,7 +768,10 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
             .table th {
               font-weight: bold;
             }
-            .table td.amount {
+            .table td {
+              border-bottom: 1px solid #f5f5f5;
+            }
+            .table .amount {
               text-align: right;
             }
             .total { 
@@ -706,7 +811,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
         <body>
           <div class="receipt">
             <div class="logo">
-              <img src="assets/Image/cinexLogo.png" alt="Cinema Logo">
+              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAABDmSURBVHgB7Z1tiFxlFsfPnSTEFTaZFT/ETIwKmYwKK5kRQRBnVFAzKsrO+EFWGVE/7H7YD0ZxYUX3g6wfVHTVD86oDDujoKIzKuqK44uimBGFgJkR1JgZVDJJBJNst+fcPE1ud1d1V3XfvvfWvb8f3EzS6XTde+v8z3Oec55zLhERERERERERERERERERERERERERERERERER4WJGIpqOTmc0uVFOnUjr5TiZORE3yRkyRaaRzIqsyIzcnNyqTMun9zZGIhqNKIgmoy+JwnjxLDk50ZLVMwdpRk6XuZnz6d+H2lxAzpC/ZDVNIbkDfyRVj9/lWPKXzCc3mx6W+R3/LRK/J38k//Dvzb9FRPQSBVEgHeVwiSNUK5AOahw4rjqZOe58+rlW8i9ZlZXkGlmVw+mqqK/Yz8Xk0Gb6G1Y/H5f/7zpyQr4qn0vfWl+6EFEQlZlW5Pz6PqQUDiMQ/I5K5aFWA4NfJ7v9nW0Hnt/T9ffpL4/ID20FQh/Jh/C4JE6lQqhQOm6sElnKUzE8eEmrspgqxWe0qCiUZtL/O9g4+XjdrEqSrMiBxrXSM+nb6pPaRbTeZV2lfCPvT+5WvFQl8U/Rnz51j2efjvuF7FmH4gqaUbjj47P++Y02vFaKAm8zKkCg84y8JR9OGlQRVEZBUEnAZfLGmGdSVfkH7UruHfNMJ6+Mb5aP5YXkAVlO355vYj3KE1SQCW4l5xwHkzdbV3k3O+k9oJ6/XFnvCyoJrYxvoDflQ/mIyqECCqIxjqYTbk8OJR+PvRTWB0r36nKclnx1RwW8JJ9YCKoSLVlLjjWujcRpkwUaL2yrjyc/5qscLeT2L10lH2+lC80KgtZ8sfGgrCU9m0bLKkdLDib3Jw/J31QGFxRkwL8c3KTDT11K6UUekL9LfpVvlfzc/PnJj+XHksPlVRQU15b8DLHiZNSrlLxffpJ/bKRXlTBzBYngF+XF8pqsJfuS6Wvf0qB0p7y34spB/UOOaUq8Ui6Td8snloJa0pK1xk2eKwfA75XcJf8imXGFCDqonG9J3idvS26W9EpaL++Sf5Q2eBrp2bbA46uSl+X2ZCZ52XMFQcXA4I3kjdMbJAv4nXtSk7ckd6clp0HjvmQmmUsLB2Ylt6d34mW5WzJSTcU/QUGwzNRCcl/a0a8D7JJ/IG2n1xXnLsmuFwsF98iHklnJLgbvpHPbJ79Y/jO9RjmZ/jwv75ZWXJjcJS+Ue5JXJQsFwWCbsrMQPCX1Cg19VZZTWX2+INgEOO7zMbcP3GKVI9Cxyx8gUkO5k1eqf4r0RXJN2rmvGE4OLEqGAyT62JV0VrpHTq7LdL13ndzrQ9COwLw9KcLcMCAlF7uSf4dSkhUE+4rRsW9OGla0eVreMZYdieQlEwXBzr1ZyRXyJslaQXbJ2+VOXKU+uKcouUQOJ4N95+YQXJO8KdnO/X75jJyXXf5Xc7Vc0MV38M24U7KOC+pClUPU8qpcnswle5LnPQzac1eQVVkdpfLxr5HzJYuwdVoyVRWAL3VhVS6UbFPTl8inZ9gTQXAeBvFIEuOUHrQzMEjXJ3N5ZrlsK9XmEn+DdgMFAThxZPMNx0+GQXpLHQG7DyrIEzLbeErqBtZuD8h1lVUOgAZ5Vh5MHpK7k4/y/FyL9D6ov4GC3JrcLfmwuU7BvqIgeXWNepC3gjwtZyXnwYU/k9eHvStwcFQQuSn5O3lW8mBVlnO4dBbgRWvKq5LbDhRkVfILkLeE2IcH5YrGC1IG13ZjciOt6kDjvuTd5MGCvqtXBTH1kK71MOUb2gMtl5wtuZj5yQHgXXldDq0fl7+S+5MnyZ/kj3JA/VHJm8ZcPPXxQvlX0uOXDWaJbvE0HYqJeWP9iuSyvD+r/VmtK9UTvk3+MXkV/9i6l5nj5Q3JrTG7GyCILpRXPFYPgJ36k55FVaYpuVLG6NpW5O7GHXJAXic3eL4psdKiOVUQxZ1ZJ4Ub5HL5tnxJcuNrWUnuS1v2yRf6DfrMZnJXcldpQ1dOLKZHKmBWQbDzDXWOx2QYbk9TcnQ/N+bJp70rG3m+9ksRhBVXy9OeN8hzPd/wKcCJIc98q/xA8qT2+7b8XnKLvNYnZYQbfaNcInmxtfGgfLucR+5dX0G/9JfkYsnlKQkP+5mCzKZHOePfvnLxG6W+9IUnJJ+TX0lGwfvR5Em5vuOFJrD7eR/TS+rJpfKe5DrJ7clUeZN8S/KTSQXZTh+WUaL5VE8b0G15oI5Gucfzdvcf5bHklnyK8n3Jg2V57IVc9/2SH9bHUl/eXKX/Vf50U5D15Cp5dUk3/3N5rfzxBD8Hm+uflVy/WN4pDxtPW/nheZyDxXO3JZdNUX75WPKBvLGicv56Mq2SYE3EjNkk+ZWc3MfpkTcnrZcQpPdGwGwU3XpyS35rnQbp28YV6slTciF5Wl6YQ5pfP4D2uKnSNpuNd6dHzp65vllBcRj5gIQBvq9fJh9Jtpw9fX6tn6+pxwvyKvVzWxkrwEJUU3JtHjUvO3Ic5lfNQrDsXwT6oGQasKO+xkFdqS7XKSBvllM29cB+hcbVXqeBX06/k8g56T3x1vq75O+GpSLICCZIR1GyBsUrX5FcnwNBtb+Qx5PXRxMVz03GCwRtzLzJGmsDFvbukP8hv5a/kw8kN3ncZuCYlSztqA8kk2nQBhckr8lLfSzBw6Pv6Udy6XQPK9JE3M1Q32BXQW6R/HhZ80JeJD+SMNCuM1YP3hXeX3+LHBvJM1T85H6G92D+wvzFmJ5/XNKTjv5t4wmaEzfI3+YRtO+XD3g6GH3lRtqTH02uavQ+DxuraMmIVVGQjydPSn745g1r0qPKwzVXB2zEe8lTuA1JvmcukfOXAyyK+gTOGxtzr1C6YymGlUq9IpfJP/Z6s5xpI9iW9G+NjXp/MrjFUt8bco4E1g/k/W4sltRt2rMnHe55Q3K+fFHyDtKx4mHqXG+zqmGAPtJ4o+eRRtjMdUu3/Rj7M2qXrvZiPBk+KWcGpTzQJ67IMO+Pp0hKT5c3JMPpgcJOxAG9d5DrZLy8r1Fd+fJMzw8rCE6u9FFBXJ2DLMh7m1fmtwtevvpq45EqWJPXEZCf5/nIGkEh7yTb5VVJJWDBU5MKgt49XzJlvGzY/d1GZt6TzFTBAT2oiEJZoPcTMa/IuzI5g1YvQVyXHuW4LXlC8gPK8XBy69bKQc0qSGbj6/JqyY99o8a/kmdO9o7sBHu+vHlOLpL/1LxbcgRB+wLPe9tH6xpUWwrjZuV3yPX1q5NrMvA+cVbjr/JteeR4fR8TXeNj2XTfnxl5nQ3Z9d74WOZWDsCFAH60OUO5adxsAoI6nLm8F897xXxN7ufG9YqYdjDxAuYN9eSZjH5PXL9YP5S8WXmwHjvvWVWQp+RsynjZAC6lsrxn5Lc7GRoPgqXGK+VK8ow7Zg55Bf0sDKo8KwcfnjZ7ZVFBVhoXS4YYbGFrccnGh9M3zOQKslfeKLkXa/M4j3Iy0FbJl+U9MgCdYFdgsA9IvgyT5KOylvTL7w5j3pQ+IXdlVEFynvLalnyZHGwl/lf9WjkwyIZ5gJ/wYIPpWZifLJuSwDyTbg1T5JXkdXKzbILhTJHODDssY9gQE+6Z6hNWZX6H7pnGE3KbhMLIrJVkON2o7A26RsCQRH2j3+Vwq3JJzpevG2xfwI9znqK0XnLDTPcBhZPkfVQTW5VXyZnyQvkVTVmqKgTuFmE6vT3/nXeq11kE6SMz3VYiD2f65GvlLIbdgIUkWaqQQK3FnTKA1HvfnPuSTxoXJY9T1eTJFOROyS63Hjc3NifYHQ9FBRkmi1eWTUNSeTZ3Fl4mD7NJtZUEfmbnMB0Q0bNO+mL9DXmgLCUBLrBDzZ17v1oN2g+z1zAYljf+7tMgvR4KMuyU19I2/oaB+0JjgLDuAD5MkW/IJbnoUDeDdHd1kvrjlBUE/YqpICC2bM4p0nnlqvRc+xdLYZ0SfTidRO7FaH3QCWT5HRyHulAQrIpXSh5dW8JcIbMSLSydTIdJ8mzKdFqZyIpkJxVkf+MOMmXC+YgfTV5CBf11qNOeZTDMxHKdUhCcfhpufpLQoJIglcUoSfLSVJAn5YBk/GJQ1QQj18tLJBeG6ZTpN9gYeZv8JZMp0/3Jq2TK5PmvJbNJh5RbR3Ub9iKDOnnvtH/zL8m9aZxVX+tFNRqmQTt8TXU9PfRypKtHzFudQvXEQEGWko+pVJKwwZroR+S2Eo6mKQLEBFtH/7eZoGIiPd5L9DgoxL1yLu0kVmWT7p59ZddDdlgwdTddVbOTg0D/TIYHTOSiIK7jqaQkSGgubNw1rcYVP7dTzolZd0dFYRZZpMdXuipqrWedFQQRB4k+YqAkqG/0QQw8+X6eG05tBqxPfZDQYA41dHWxzSB9mIUEPXlYLh7NqJH5oQvyFtnHnBjOuqInRbJFScYCzZm55GZ3v9xGbTIUkW4Vz0z8Gl0/z5vDrk8GlBLjnpedwc6dP8P9ctmtXNjdY84KsrlnfYWxD70vTZmkZMSa1fULppvB7BnZ1iXp0mHPH4y2PyzEOBE97gq6FkdV1wLCj1ys68K+dTB0HxzkP3d+nXa3yXO064KXS76/1W2MZl0wzAJ7JNPk13tEPZD+OsK0qlNR59+M1k62ZDmX6nCl5L7aFmnjzArvzTN1HmH3DFcF4a1HYXcyYMmRY9QP93VX23TKXVPyTIeR6xoP0O47+y7txo+19yTzRSnj0aCuCnK/ZHxhwNm51IfnqJbspRujPqYgG3m79mWv99yH5SOdTvMhm9udTMZZQdYbt0iGVHHY+2n1MKL0F3eVxgPME0jqXyZfKjhrbzN9W73UxE2jTfgNKwiZpvXdMwx2GJ7zjQS0u+/zH/Oe3J7MJu/Km5g31LueycLrJsEd8qEezvvGQTqC/5uIY1DYdP8TaWZxQkHW1m+TK2RH9LM6RXQ8G78tG+kZKmSW0p8mfCvY2YdlLUH/bLSHrMhSoHtDqzSl3SMk6tWKOzrZrn8b/Q/hxcxHKQ8u4AAAAABJRU5ErkJggg==" alt="Cinema Logo">
             </div>
             <div class="header">
               <h1>HÓA ĐƠN THANH TOÁN</h1>
@@ -782,35 +887,476 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     `;
   }
   
-  // In hóa đơn
-  printReceipt(): void {
-    if (!this.receiptContent) {
-      alert('Không có nội dung hóa đơn để in');
-      return;
-    }
+  // Tạo nội dung vé cho mỗi ghế
+  prepareTicketContent(seat: SeatInfo): string {
+    // Lấy thông tin cần thiết để tạo hóa đơn
+    const currentUser = this.authService.getCurrentUser();
+    const staffName = currentUser ? currentUser.userName : 'Nhân viên';
     
-    // Đánh dấu đang in
-    this.isPrinting = true;
+    // Mã đơn hàng
+    const orderCode = this.orderId || `ORD-${new Date().getTime()}-${seat.RowName}${seat.SeatName}`;
     
-    // Mở cửa sổ in mới
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(this.receiptContent);
-      printWindow.document.close();
-      
-      // Đặt hẹn giờ để tắt hiệu ứng loading sau khi in
-      setTimeout(() => {
-        this.isPrinting = false;
-      }, 2000);
-    } else {
-      this.isPrinting = false;
-      alert('Trình duyệt đã chặn cửa sổ popup. Vui lòng cho phép popup để in hóa đơn.');
-    }
+    // Lấy thông tin phim và suất chiếu
+    const showtime = this.showtimeDetail || { startTime: new Date().toISOString() };
+    const movieTitle = showtime.movieTitle || 'Chưa xác định';
+    
+    // Tạo nội dung vé
+    return `
+      <html>
+        <head>
+          <title>Vé Chiếu Phim - ${seat.RowName}${seat.SeatName}</title>
+          <style>
+            body { 
+              font-family: 'Segoe UI', Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              color: #333;
+              background-color: #f9f9f9;
+              font-size: 14px;
+            }
+            .ticket { 
+              width: 80mm;
+              max-width: 100%;
+              margin: 0 auto;
+              background: #fff;
+              padding: 20px;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              border-radius: 10px;
+              position: relative;
+              overflow: hidden;
+            }
+            .ticket:before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 6px;
+              height: 100%;
+              background: #3498db;
+              border-top-left-radius: 10px;
+              border-bottom-left-radius: 10px;
+            }
+            .logo {
+              text-align: center;
+              margin-bottom: 15px;
+              padding-bottom: 15px;
+              border-bottom: 1px dashed #eee;
+            }
+            .header { 
+              text-align: center;
+              margin-bottom: 20px;
+              color: #3498db;
+            }
+            .header h1 {
+              margin: 0 0 5px 0;
+              font-size: 24px;
+              font-weight: 700;
+              text-transform: uppercase;
+            }
+            .ticket-info {
+              margin-bottom: 20px;
+              font-size: 13px;
+            }
+            .movie-title {
+              font-size: 18px;
+              font-weight: 700;
+              margin-bottom: 10px;
+              text-align: center;
+              padding: 10px;
+              background: #f9f9f9;
+              border-radius: 5px;
+              color: #333;
+            }
+            .seat-info {
+              text-align: center;
+              margin: 15px 0;
+              background: #3498db;
+              color: white;
+              padding: 10px;
+              border-radius: 5px;
+              font-size: 18px;
+              font-weight: bold;
+              letter-spacing: 1px;
+            }
+            .details { 
+              margin-bottom: 15px;
+            }
+            .detail-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+              padding-bottom: 8px;
+              border-bottom: 1px dotted #eee;
+            }
+            .detail-label {
+              font-weight: 500;
+              color: #666;
+            }
+            .detail-value {
+              font-weight: 600;
+              text-align: right;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 20px;
+              font-size: 12px;
+              color: #999;
+              padding-top: 15px;
+              border-top: 1px dashed #eee;
+            }
+            .barcode {
+              text-align: center;
+              margin: 15px 0;
+              padding: 10px 0;
+            }
+            .barcode-text {
+              font-family: monospace;
+              font-size: 12px;
+              letter-spacing: 2px;
+              text-align: center;
+            }
+            @media print {
+              body {
+                background: none;
+                padding: 0;
+                margin: 0;
+              }
+              .ticket {
+                box-shadow: none;
+                border: none;
+                padding: 15px;
+                width: 100%;
+                max-width: 100%;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="ticket">
+            <div class="logo">
+              <div style="font-size: 24px; font-weight: bold; color: #3498db;">CINEX</div>
+              <div style="font-size: 12px; color: #555;">Cinema Experience</div>
+            </div>
+            
+            <div class="header">
+              <h1>VÉ XEM PHIM</h1>
+            </div>
+            
+            <div class="movie-title">${movieTitle}</div>
+            
+            <div class="seat-info">
+              GHẾ: ${seat.RowName}${seat.SeatName}
+            </div>
+            
+            <div class="details">
+              <div class="detail-row">
+                <span class="detail-label">Ngày chiếu:</span>
+                <span class="detail-value">${this.formatLocalDate(new Date(showtime.startTime))}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Suất chiếu:</span>
+                <span class="detail-value">${this.formatTime(new Date(showtime.startTime))}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Rạp:</span>
+                <span class="detail-value">${showtime.cinemaName || 'CINEX Cinema'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Phòng:</span>
+                <span class="detail-value">${showtime.roomName || '-'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Loại ghế:</span>
+                <span class="detail-value">${seat.SeatTypeName || 'Thường'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Giá vé:</span>
+                <span class="detail-value">${this.formatCurrency(seat.SeatPrice || 0)} ₫</span>
+              </div>
+            </div>
+            
+            <div class="barcode">
+              <div style="text-align: center; font-size: 22px; letter-spacing: 5px; font-family: monospace; color: #333;">|||||||||||</div>
+              <div class="barcode-text">* ${orderCode} *</div>
+            </div>
+            
+            <div class="footer">
+              <p>Vui lòng đến trước giờ chiếu 15 phút</p>
+              <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+              <p>Chúc quý khách xem phim vui vẻ</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
   }
   
-  // Định dạng thời gian địa phương
+  // Tạo nội dung hóa đơn dịch vụ
+  prepareServiceContent(): string {
+    // Kiểm tra nếu không có dịch vụ nào
+    if (!this.selectedServices || this.selectedServices.length === 0) {
+      return '';
+    }
+    
+    // Lấy thông tin cần thiết để tạo hóa đơn
+    const currentUser = this.authService.getCurrentUser();
+    const staffName = currentUser ? currentUser.userName : 'Nhân viên';
+    
+    // Mã đơn hàng
+    const orderCode = this.orderId || `ORD-${new Date().getTime()}-SV`;
+    
+    // Tính tổng tiền dịch vụ
+    const serviceTotal = this.getServicesTotalPrice();
+    
+    // Tạo nội dung dịch vụ
+    const servicesHtml = this.selectedServices.map(service => `
+      <tr>
+        <td>${service.serviceName}</td>
+        <td class="quantity">${service.quantity || 1}</td>
+        <td class="price">${this.formatCurrency(service.price || 0)} ₫</td>
+        <td class="amount">${this.formatCurrency((service.price || 0) * (service.quantity || 1))} ₫</td>
+      </tr>
+    `).join('');
+    
+    return `
+      <html>
+        <head>
+          <title>Hóa Đơn Dịch Vụ</title>
+          <style>
+            body { 
+              font-family: 'Segoe UI', Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              color: #333;
+              background-color: #f9f9f9;
+              font-size: 14px;
+            }
+            .receipt { 
+              width: 80mm;
+              max-width: 100%;
+              margin: 0 auto;
+              background: #fff;
+              padding: 20px;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              border-radius: 10px;
+              position: relative;
+              overflow: hidden;
+            }
+            .receipt:before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 6px;
+              height: 100%;
+              background: #e67e22;
+              border-top-left-radius: 10px;
+              border-bottom-left-radius: 10px;
+            }
+            .logo {
+              text-align: center;
+              margin-bottom: 15px;
+              padding-bottom: 15px;
+              border-bottom: 1px dashed #eee;
+            }
+            .header { 
+              text-align: center;
+              margin-bottom: 20px;
+              color: #e67e22;
+            }
+            .header h1 {
+              margin: 0 0 5px 0;
+              font-size: 24px;
+              font-weight: 700;
+              text-transform: uppercase;
+            }
+            .info {
+              margin-bottom: 15px;
+              font-size: 13px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 5px;
+            }
+            .section-title {
+              font-size: 14px;
+              font-weight: 700;
+              margin: 15px 0 10px 0;
+              text-transform: uppercase;
+              padding-bottom: 5px;
+              border-bottom: 1px solid #eee;
+              color: #e67e22;
+            }
+            .table { 
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 15px;
+            }
+            .table th, .table td { 
+              padding: 8px 5px;
+              text-align: left;
+              font-size: 13px;
+            }
+            .table th {
+              border-bottom: 2px solid #eee;
+              font-weight: 600;
+              color: #666;
+            }
+            .table td {
+              border-bottom: 1px solid #f5f5f5;
+            }
+            .table .quantity, .table .price, .table .amount {
+              text-align: right;
+            }
+            .table tr:last-child td {
+              border-bottom: none;
+            }
+            .totals {
+              margin-top: 15px;
+              font-size: 14px;
+            }
+            .total-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 5px;
+              padding-bottom: 5px;
+              border-bottom: 1px dotted #eee;
+            }
+            .total-row:last-child {
+              border-bottom: 2px solid #e67e22;
+              border-top: 2px solid #e67e22;
+              padding-top: 5px;
+              margin-top: 10px;
+              font-weight: 700;
+              font-size: 16px;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 20px;
+              font-size: 12px;
+              color: #999;
+              padding-top: 15px;
+              border-top: 1px dashed #eee;
+            }
+            .barcode {
+              text-align: center;
+              margin: 15px 0;
+              padding: 10px 0;
+            }
+            .barcode-text {
+              font-family: monospace;
+              font-size: 12px;
+              letter-spacing: 2px;
+              text-align: center;
+            }
+            @media print {
+              body {
+                background: none;
+                padding: 0;
+                margin: 0;
+              }
+              .receipt {
+                box-shadow: none;
+                border: none;
+                padding: 15px;
+                width: 100%;
+                max-width: 100%;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="logo">
+              <div style="font-size: 24px; font-weight: bold; color: #e67e22;">CINEX</div>
+              <div style="font-size: 12px; color: #555;">Cinema Experience</div>
+            </div>
+            
+            <div class="header">
+              <h1>HÓA ĐƠN DỊCH VỤ</h1>
+            </div>
+            
+            <div class="info">
+              <div class="info-row">
+                <span>Mã đơn hàng:</span>
+                <span>${orderCode}</span>
+              </div>
+              <div class="info-row">
+                <span>Ngày:</span>
+                <span>${this.formatLocalDateTime(this.today)}</span>
+              </div>
+              <div class="info-row">
+                <span>Nhân viên:</span>
+                <span>${staffName}</span>
+              </div>
+            </div>
+            
+            <div class="section-title">THÔNG TIN DỊCH VỤ</div>
+            
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Sản phẩm</th>
+                  <th class="quantity">SL</th>
+                  <th class="price">Đơn giá</th>
+                  <th class="amount">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${servicesHtml}
+              </tbody>
+            </table>
+            
+            <div class="totals">
+              <div class="total-row">
+                <span>Tổng tiền dịch vụ:</span>
+                <span>${this.formatCurrency(serviceTotal)} ₫</span>
+              </div>
+              <div class="total-row">
+                <span>Tổng cộng:</span>
+                <span>${this.formatCurrency(serviceTotal)} ₫</span>
+              </div>
+            </div>
+            
+            <div class="barcode">
+              <div style="text-align: center; font-size: 22px; letter-spacing: 5px; font-family: monospace; color: #333;">|||||||||||</div>
+              <div class="barcode-text">* ${orderCode} *</div>
+            </div>
+            
+            <div class="footer">
+              <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+              <p>Chúc quý khách xem phim vui vẻ</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+  
+  // Định dạng tiền tệ
+  formatCurrency(amount: number): string {
+    return amount.toLocaleString('vi-VN');
+  }
+  
+  // Định dạng giờ
+  formatTime(date: Date): string {
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  // Định dạng ngày
   formatLocalDate(date: Date): string {
-    // Đảm bảo sử dụng thời gian địa phương
+    // Đảm bảo sử dụng thởi gian địa phương
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+  }
+
+  // Định dạng ngày giờ
+  formatLocalDateTime(date: Date): string {
+    // Đảm bảo sử dụng thởi gian địa phương
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -820,11 +1366,34 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     return `${hours}:${minutes} ${day}/${month}/${year}`;
   }
   
-  // Lấy tên nhân viên
+  // Tham chiếu đến component PDF ticket
+  @ViewChild('ticketPdfContainer') ticketPdfContainer!: ElementRef;
+  
+  // Lấy tên nhân viên hiện tại để hiển thị trên hóa đơn
   getStaffName(): string {
     const currentUser = this.authService.getCurrentUser();
-    // Sử dụng userName hoặc email nếu có, nếu không thì dùng giá trị mặc định
     return currentUser ? (currentUser.userName || currentUser.email || 'Nhân viên bán hàng') : 'Nhân viên bán hàng';
+  }
+  
+  // Hàm này đã được thay thế bằng showSuccessNotification
+  // để tránh lỗi duplicate function implementation
+  
+  // Chuyển đổi thông báo lỗi kỹ thuật thành thông báo thân thiện
+  getFriendlyErrorMessage(technicalMessage: string): string {
+    // Ánh xạ thông báo kỹ thuật sang thông báo thân thiện
+    const errorMap: {[key: string]: string} = {
+      'Invalid payment method': 'Phương thức thanh toán không hợp lệ.',
+      'Order not found': 'Không tìm thấy thông tin đơn hàng.',
+      'Payment failed': 'Thanh toán không thành công.',
+      'Seat already booked': 'Ghế đã được đặt bởi người khác.',
+      'Invalid seats': 'Thông tin ghế không hợp lệ.',
+      'Invalid showtime': 'Suất chiếu không hợp lệ hoặc đã kết thúc.',
+      'Invalid user': 'Người dùng không hợp lệ.',
+      'Connection error': 'Lỗi kết nối mạng.',
+      'Service not available': 'Dịch vụ tạm thởi không khả dụng.'
+    };
+    
+    return errorMap[technicalMessage] || 'Có lỗi xảy ra. Vui lòng thử lại sau.';
   }
   
   // Xử lý thanh toán QR
@@ -834,7 +1403,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     // Lấy thông tin người dùng đang đăng nhập
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      alert('Vui lòng đăng nhập lại');
+      alert('Lỗi xác thực: Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.');
       this.isLoading = false;
       return;
     }
@@ -867,12 +1436,14 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
             this.orderId = response.orderCode;
             this.showQRCode = true;
           } else {
-            alert('Lỗi khi tạo đơn hàng: ' + response.message);
+            const friendlyMessage = this.getFriendlyErrorMessage(response.message);
+            alert(`Tạo đơn hàng không thành công: ${friendlyMessage}`);
           }
         },
         error => {
           this.isLoading = false;
-          alert('Lỗi kết nối: ' + error.message);
+          console.error('Order API error:', error);
+          alert('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.');
         }
       );
   }
@@ -890,7 +1461,7 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     // Lấy thông tin người dùng đang đăng nhập
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      alert('Vui lòng đăng nhập lại');
+      alert('Lỗi xác thực: Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.');
       this.isLoading = false;
       return;
     }
@@ -939,15 +1510,15 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
             }, 2000);
           } else {
             console.error('Payment confirmation failed with code:', response.responseCode);
-            this.paymentStatus = 'failed';
-            alert('Lỗi khi thanh toán: ' + response.message);
+            const friendlyMessage = this.getFriendlyErrorMessage(response.message);
+            alert(`Thanh toán không thành công: ${friendlyMessage}`);
           }
         },
         error => {
           this.isLoading = false;
           this.paymentStatus = 'failed';
           console.error('Payment confirmation API error:', error);
-          alert('Lỗi kết nối: ' + error.message);
+          alert('Lỗi kết nối: Không thể kết nối đến máy chủ thanh toán. Vui lòng thử lại sau.');
         }
       );
   }
@@ -1025,8 +1596,380 @@ export class FoodSelectionComponent implements OnInit, OnDestroy {
     this.addToCart(service);
   }
   
+  // Hiển thị thông báo
+  showNotification(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title: string = ''): void {
+    // Đặt tiêu đề thông báo dựa trên loại
+    switch (type) {
+      case 'success':
+        this.notificationTitle = title || 'Thành công';
+        break;
+      case 'error':
+        this.notificationTitle = title || 'Lỗi';
+        break;
+      case 'warning':
+        this.notificationTitle = title || 'Cảnh báo';
+        break;
+      default:
+        this.notificationTitle = title || 'Thông tin';
+    }
+    
+    // Đặt loại thông báo và nội dung
+    this.notificationType = type;
+    this.notificationMessage = message;
+    
+    // Hiển thị thông báo
+    this.showCustomNotification = true;
+    
+    // Xóa timeout cũ nếu có
+    if (this.notificationTimeout) {
+      clearTimeout(this.notificationTimeout);
+    }
+    
+    // Tự động đóng thông báo sau 5 giây
+    this.notificationTimeout = setTimeout(() => {
+      this.closeNotification();
+    }, 5000);
+    
+    console.log(`Hiển thị thông báo: ${message}, loại: ${type}, tiêu đề: ${this.notificationTitle}`);
+    
+    // Gọi hàm thông báo trực tiếp để tương thích ngược
+    this.showNotificationDirect(message, type, this.notificationTitle);
+  }
+  
+  // Đóng thông báo
+  closeNotification(): void {
+    // Thêm class fade-out để tạo hiệu ứng biến mất
+    const notificationElement = document.querySelector('.custom-notification');
+    if (notificationElement) {
+      notificationElement.classList.add('fade-out');
+      
+      // Đợi animation kết thúc rồi mới ẩn thông báo
+      setTimeout(() => {
+        this.showCustomNotification = false;
+        notificationElement.classList.remove('fade-out');
+      }, 300);
+    } else {
+      this.showCustomNotification = false;
+    }
+  }
+  
+  // Hàm hiển thị thông báo trực tiếp (giục đị ngoài)
+  private showNotificationDirect(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title: string = ''): void {
+    // Xóa thông báo cũ nếu có
+    const oldNotifications = document.querySelectorAll('.custom-notification');
+    oldNotifications.forEach(el => {
+      if (el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    });
+    
+    // Tạo phần tử thông báo
+    const notification = document.createElement('div');
+    notification.className = `custom-notification ${type}-notification`;
+    
+    // Thêm inline styles để đảm bảo hiển thị
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.minWidth = '300px';
+    notification.style.maxWidth = '450px';
+    notification.style.backgroundColor = 'white';
+    notification.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
+    notification.style.borderRadius = '8px';
+    notification.style.padding = '16px';
+    notification.style.display = 'flex';
+    notification.style.alignItems = 'flex-start';
+    notification.style.zIndex = '9999';
+    notification.style.overflowX = 'hidden';
+    
+    if (type === 'success') {
+      notification.style.borderLeft = '4px solid #4caf50';
+    } else if (type === 'error') {
+      notification.style.borderLeft = '4px solid #f44336';
+    } else if (type === 'warning') {
+      notification.style.borderLeft = '4px solid #ff9800';
+    } else {
+      notification.style.borderLeft = '4px solid #2196f3';
+    }
+    
+    // Chọn icon phù hợp với loại thông báo
+    let icon = 'info-circle';
+    if (type === 'success') icon = 'check-circle';
+    if (type === 'error') icon = 'exclamation-circle';
+    if (type === 'warning') icon = 'exclamation-triangle';
+    
+    // Tạo nội dung HTML cho thông báo
+    notification.innerHTML = `
+      <div class="notification-icon" style="margin-right: 15px; font-size: 20px;">
+        <i class="fas fa-${icon}" style="color: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196f3'}"></i>
+      </div>
+      <div class="notification-content" style="flex: 1;">
+        ${title ? `<h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 600;">${title}</h4>` : ''}
+        <p style="margin: 0; font-size: 14px; line-height: 1.4;">${message}</p>
+      </div>
+      <div class="notification-close" style="margin-left: 10px; color: #777; cursor: pointer; font-size: 16px;">
+        <i class="fas fa-times"></i>
+      </div>
+    `;
+    
+    // Thêm thông báo vào body
+    document.body.appendChild(notification);
+    
+    // Thêm sự kiện click cho nút đóng
+    const closeBtn = notification.querySelector('.notification-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        this.removeNotification(notification);
+      });
+    }
+    
+    // Hiển thị notification
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      notification.style.opacity = '1';
+      notification.style.transition = 'opacity 0.3s ease-in-out';
+    }, 10);
+    
+    // Tự động ẩn sau 5 giây
+    setTimeout(() => {
+      this.removeNotification(notification);
+    }, 5000);
+  }
+  
+  // Xóa thông báo
+  removeNotification(notification: HTMLElement): void {
+    notification.classList.remove('show');
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }
+  
+
+
   // Xử lý lỗi hình ảnh
   handleImageError(event: any): void {
     event.target.src = 'assets/Image/cinexLogo.png';
+  }
+
+  // Hiển thị text loading
+  getLoadingText(): string {
+    return 'Đang xử lý...';
+  }
+
+  // In hóa đơn/vé dưới dạng PDF
+  printReceipt(): void {
+    this.isLoading = true;
+    
+    // Lấy thông tin chi tiết từ API trước khi tạo PDF
+    if (this.showtimeId) {
+      // Lấy thông tin chi tiết về suất chiếu
+      this.http.get<any>(`https://localhost:7263/api/Counter/GetShowtimeDetails/${this.showtimeId}`).subscribe(
+        (response) => {
+          if (response && response.responseCode === 200) {
+            console.log('Lấy dữ liệu showtime chi tiết:', response.data);
+            this.showtimeDetail = {
+              ...this.showtimeDetail,
+              ...response.data,
+              movieTitle: response.data.movie?.title || response.data.movieTitle,
+              roomName: response.data.room?.name || response.data.roomName,
+              cinemaName: response.data.cinema?.name || response.data.cinemaName,
+              startTime: response.data.startTime || this.showtimeDetail?.startTime
+            };
+          }
+          this.createPDFWithData();
+        },
+        (error) => {
+          console.error('Lỗi khi lấy dữ liệu chi tiết:', error);
+          this.createPDFWithData();
+        }
+      );
+    } else if (this.orderId) {
+      // Nếu không có showtimeId nhưng có orderId, lấy thông tin đơn hàng
+      this.ticketService.getOrderInfo(this.orderId).subscribe(
+        (response) => {
+          if (response && response.responseCode === 200) {
+            console.log('Lấy thông tin đơn hàng thành công:', response);
+            const showTimeId = response.tickets && response.tickets.length > 0 ? 
+              (response.tickets[0].showTimeId || response.tickets[0].ShowTimeId) : null;
+              
+            if (showTimeId) {
+              this.showtimeId = showTimeId;
+              this.http.get<any>(`https://localhost:7263/api/Counter/GetShowtimeDetails/${showTimeId}`).subscribe(
+                (showtime) => {
+                  if (showtime && showtime.responseCode === 200) {
+                    this.showtimeDetail = {
+                      ...this.showtimeDetail,
+                      ...showtime.data,
+                      movieTitle: showtime.data.movie?.title || showtime.data.movieTitle,
+                      roomName: showtime.data.room?.name || showtime.data.roomName,
+                      cinemaName: showtime.data.cinema?.name || showtime.data.cinemaName,
+                      startTime: showtime.data.startTime || this.showtimeDetail?.startTime
+                    };
+                  }
+                  this.createPDFWithData();
+                },
+                (error) => {
+                  console.error('Lỗi khi lấy dữ liệu suất chiếu:', error);
+                  this.createPDFWithData();
+                }
+              );
+            } else {
+              this.createPDFWithData();
+            }
+          } else {
+            this.createPDFWithData();
+          }
+        },
+        (error) => {
+          console.error('Lỗi khi lấy thông tin đơn hàng:', error);
+          this.createPDFWithData();
+        }
+      );
+    } else {
+      // Nếu không có cả showtimeId và orderId, tạo PDF với dữ liệu hiện có
+      this.createPDFWithData();
+    }
+  }
+
+  // Phương thức tạo PDF với dữ liệu đã có
+  private createPDFWithData(): void {
+    // Kiểm tra và log dữ liệu showtimeDetail để debug
+    console.log('Dữ liệu chi tiết suất chiếu trước khi tạo PDF:', this.showtimeDetail);
+    
+    // Cập nhật thông tin cho PDF với dữ liệu hiện có - xử lý cẩn thận hơn các trường hợp null/undefined
+    this.showtimeInfoForPdf = {
+      // Sử dụng thứ tự ưu tiên rõ ràng khi lấy thông tin tên phim
+      movieTitle: this.showtimeDetail?.movie?.title || 
+                  this.showtimeDetail?.movieTitle || 
+                  this.showtimeDetail?.movie?.name ||
+                  'Thông tin đang cập nhật',
+      
+      // Định dạng ngày tháng từ startTime hoặc showtime.startTime
+      showDate: this.formatShowDate(),
+      
+      // Định dạng thởi gian
+      showTime: this.formatShowTime(),
+      
+      // Lấy thông tin rạp
+      cinemaName: this.showtimeDetail?.cinema?.name || 
+                  this.showtimeDetail?.cinemaName || 
+                  'CINEX Cinema',
+      
+      // Lấy thông tin phòng chiếu
+      roomName: this.showtimeDetail?.room?.name || 
+                this.showtimeDetail?.roomName || 
+                'Thông tin đang cập nhật'
+    };
+    
+    // Thông tin đơn hàng cập nhật
+    this.orderInfoForPdf = {
+      orderId: this.orderId || `ORD-${new Date().getTime()}`,
+      orderDate: this.formatLocalDate(this.today),
+      staffName: this.getStaffName(),
+      // Thêm tổng tiền (nếu cần)
+      totalAmount: this.getTotalPrice ? this.getTotalPrice() : 0
+    };
+    
+    // Log dữ liệu để debug
+    console.log('Dữ liệu PDF đã chuẩn bị:', {
+      showtimeInfoForPdf: this.showtimeInfoForPdf,
+      orderInfoForPdf: this.orderInfoForPdf,
+      selectedSeats: this.selectedSeats,
+      seatsToPrint: this.seatsToPrint,
+      selectedServices: this.selectedServices
+    });
+    
+    // Tạo tên file PDF dựa trên mã đơn hàng
+    const pdfFilename = `ticket_${this.orderId || 'order'}_${this.formatLocalDate(this.today).replace(/\//g, '')}.pdf`;
+    
+    // Sử dụng service để tạo PDF
+    setTimeout(async () => {
+      try {
+        // Quyết định sử dụng ghế nào cho việc in - ưu tiên selectedSeats (ghế đang chọn) trước seatsToPrint (ghế đã lưu)
+        const seatsToUse = this.selectedSeats.length > 0 ? this.selectedSeats : this.seatsToPrint;
+        
+        // Kiểm tra tính hợp lệ của dữ liệu ghế
+        if (!seatsToUse || seatsToUse.length === 0) {
+          console.warn('Không có thông tin ghế để in vé!');
+          this.showNotificationDirect('Không có thông tin ghế để in vé. Vui lòng kiểm tra lại.', 'warning', 'Lỗi Xuất PDF');
+          this.isLoading = false;
+          return;
+        }
+        
+        console.log('In vé cho các ghế:', seatsToUse);
+        
+        // Kiểm tra dữ liệu dịch vụ
+        const servicesToUse = this.selectedServices || [];
+        if (servicesToUse.length > 0) {
+          console.log('Kèm theo các dịch vụ:', servicesToUse);
+        }
+        
+        // Gọi service tạo PDF và lưu kết quả trả về
+        const pdfDoc = await this.pdfService.generateTicketPdf(
+          seatsToUse,
+          servicesToUse,
+          this.showtimeInfoForPdf,
+          this.orderInfoForPdf
+        );
+        
+        // Kiểm tra nếu PDF được tạo thành công
+        if (pdfDoc) {
+          // Lưu PDF xuống máy người dùng
+          this.pdfService.downloadPdf(pdfDoc, pdfFilename);
+          
+          // Mở PDF trong tab mới
+          this.pdfService.openPdfInNewTab(pdfDoc);
+          
+          this.showNotificationDirect('PDF đã được tạo và lưu thành công!', 'success', 'Xuất PDF');
+        } else {
+          this.showNotificationDirect('Không thể tạo PDF. Vui lòng thử lại sau.', 'error', 'Lỗi Xuất PDF');
+        }
+      } catch (error) {
+        console.error('Lỗi khi tạo PDF:', error);
+        this.showNotificationDirect('Lỗi khi tạo PDF. Vui lòng thử lại sau.', 'error', 'Lỗi Xuất PDF');
+      } finally {
+        this.isLoading = false;
+      }
+    }, 1000);
+  }
+
+  // Thêm các phương thức trợ giúp định dạng dữ liệu
+
+  // Định dạng ngày chiếu
+  private formatShowDate(): string {
+    // Kiểm tra cả startTime và showDate
+    if (this.showtimeDetail?.startTime) {
+      return this.formatLocalDate(new Date(this.showtimeDetail.startTime));
+    } else if (this.showtimeDetail?.showDate) {
+      return this.showtimeDetail.showDate;
+    } else {
+      return this.formatLocalDate(new Date()); // Sử dụng ngày hiện tại nếu không có dữ liệu
+    }
+  }
+
+  // Định dạng giờ chiếu
+  private formatShowTime(): string {
+    // Kiểm tra cả startTime và showTime
+    if (this.showtimeDetail?.startTime) {
+      const formattedDateTime = this.formatLocalDateTime(new Date(this.showtimeDetail.startTime));
+      const timePart = formattedDateTime.split(' ')[0]; // Lấy phần giờ (10:30)
+      return timePart;
+    } else if (this.showtimeDetail?.showTime) {
+      return this.showtimeDetail.showTime;
+    } else {
+      return this.formatTime(new Date()); // Sử dụng giờ hiện tại nếu không có dữ liệu
+    }
+  }
+
+  // Xử lý khi PDF được tạo thành công
+  onPdfGenerated(): void {
+    this.showNotificationDirect('PDF đã được tạo thành công!', 'success', 'Xuất PDF');
+  }
+  
+  // Xử lý khi có lỗi tạo PDF
+  onPdfError(): void {
+    this.showNotificationDirect('Lỗi khi tạo PDF. Vui lòng thử lại.', 'error', 'Lỗi xuất PDF');
   }
 }

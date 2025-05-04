@@ -108,8 +108,14 @@
     </div>
 
     <!-- Hiển thị thông báo lỗi validation -->
-    <div class="validation-error" *ngIf="validationMessage">
-        {{ validationMessage }}
+    <div class="validation-error-container" *ngIf="validationMessage">
+        <div class="validation-error">
+            <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+            <span class="message">{{ validationMessage }}</span>
+            <button class="close-button" (click)="closeValidationMessage()">
+                <i class="fa fa-times" aria-hidden="true"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Thông tin ghế và nút điều hướng -->
@@ -130,7 +136,7 @@
         </div>
 
         <div class="action-buttons">
-            <button class="btn-continue" [disabled]="selectedSeats.length === 0" (click)="continueToFoodSelection()">
+            <button class="btn-continue" (click)="continueToFoodSelection()">
                 Tiếp tục <i class="fa fa-arrow-right"></i>
             </button>
         </div>

@@ -1,3 +1,22 @@
+<!-- Custom Notification -->
+<div *ngIf="showCustomNotification" class="custom-notification" [ngClass]="notificationType">
+    <div class="notification-icon">
+        <i class="fas" [ngClass]="{
+            'fa-check-circle': notificationType === 'success',
+            'fa-exclamation-circle': notificationType === 'error',
+            'fa-exclamation-triangle': notificationType === 'warning',
+            'fa-info-circle': notificationType === 'info'
+        }"></i>
+    </div>
+    <div class="notification-content">
+        <h3 class="notification-title">{{notificationTitle}}</h3>
+        <p class="notification-message">{{notificationMessage}}</p>
+    </div>
+    <div class="notification-close" (click)="closeNotification()">
+        <i class="fas fa-times"></i>
+    </div>
+</div>
+
 <div class="food-selection-container">
     <!-- Thanh tiêu đề và thông tin -->
     <div class="header-section">
@@ -290,13 +309,22 @@
             </button>
         </div>
     </div>
-
     <!-- Loading Overlay -->
     <div class="loading-overlay" *ngIf="isLoading">
-        <div class="loader">
-            <div class="spinner"></div>
-            <p>Đang xử lý thanh toán...</p>
-        </div>
+        <div class="loader"></div>
+        <p class="loading-text">{{getLoadingText()}}</p>
+    </div>
+
+    <!-- PDF Component (vị trí tuyệt đối để html2canvas có thể nhìn thấy) -->
+    <div class="pdf-container" style="position: absolute; left: -10000px; top: 0; width: 210mm; height: auto; opacity: 1; overflow: visible;" #ticketPdfContainer>
+        <app-ticket-pdf
+            [seats]="seatsToPrint.length > 0 ? seatsToPrint : selectedSeats"
+            [orderItems]="cartItems"
+            [showtimeInfo]="showtimeInfoForPdf"
+            [orderInfo]="orderInfoForPdf"
+            (pdfGenerated)="onPdfGenerated()"
+            (pdfError)="onPdfError()"
+        ></app-ticket-pdf>
     </div>
 
     <!-- Modal nhập tiền khách thanh toán -->

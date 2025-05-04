@@ -1,0 +1,309 @@
+/* Container chính */
+.ticket-pdf-container {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Style cho các template PDF */
+.pdf-templates {
+  background-color: white;
+  box-sizing: border-box;
+}
+
+/* Template vé */
+.ticket-template {
+  width: 210mm;
+  height: 297mm; /* Khổ A4 */
+  padding: 10mm;
+  margin-bottom: 10mm;
+  border: 1px solid #ddd;
+  background-color: white;
+  page-break-after: always;
+  box-sizing: border-box;
+}
+
+.ticket-inner {
+  height: 100%;
+  border: 1px solid #333;
+  padding: 15mm;
+  background-color: white;
+  box-sizing: border-box;
+}
+
+/* Template hóa đơn */
+.receipt-template {
+  width: 210mm;
+  height: 297mm; /* Khổ A4 */
+  padding: 10mm;
+  background-color: white;
+  border: 1px solid #ddd;
+  page-break-after: always;
+  box-sizing: border-box;
+}
+
+.receipt-inner {
+  height: 100%;
+  border: 1px solid #333;
+  padding: 15mm;
+  background-color: white;
+  box-sizing: border-box;
+}
+
+/* Mã vạch đơn giản */
+.barcode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.barcode-text {
+  margin-top: 10px;
+  font-family: monospace;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+/* Styles cho màn hình loading */
+.pdf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 15px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Thông báo lỗi */
+.pdf-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 5px;
+  margin: 15px 0;
+  display: flex;
+  align-items: center;
+}
+
+.pdf-error i {
+  margin-right: 10px;
+  font-size: 20px;
+}
+
+/* Controls */
+.preview-controls {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.generate-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.3s;
+}
+
+.generate-btn:hover {
+  background-color: #2980b9;
+}
+
+.generate-btn i {
+  margin-right: 8px;
+}
+
+/* Templates cho PDF - được ẩn trong DOM */
+.pdf-templates {
+  display: none;
+}
+
+/* Khu vực này sẽ không hiển thị trên giao diện nhưng cần CSS để tạo PDF */
+/* Styles cho vé */
+.ticket-template, .receipt-template {
+  width: 210mm; /* Kích thước A4 */
+  height: 297mm;
+  padding: 15mm;
+  background-color: white;
+  box-sizing: border-box;
+  position: relative;
+  page-break-after: always;
+}
+
+.ticket-inner, .receipt-inner {
+  height: 100%;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header cho vé và hóa đơn */
+.ticket-header, .receipt-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.cinema-logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #3498db;
+  margin-bottom: 5px;
+}
+
+.ticket-title, .receipt-title {
+  font-size: 22px;
+  color: #333;
+  margin: 10px 0;
+}
+
+/* Thông tin phim và ghế */
+.movie-info {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.movie-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.seat-info {
+  font-size: 18px;
+  font-weight: bold;
+  color: #e74c3c;
+}
+
+/* Chi tiết vé */
+.ticket-details {
+  flex-grow: 1;
+  margin: 15px 0;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed #eee;
+}
+
+.detail-label {
+  font-weight: bold;
+}
+
+/* Mã vạch */
+.barcode {
+  text-align: center;
+  margin: 20px 0;
+  padding: 10px 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+.barcode-text {
+  font-family: monospace;
+  font-size: 16px;
+  letter-spacing: 5px;
+}
+
+/* Footer */
+.ticket-footer, .receipt-footer {
+  text-align: center;
+  margin-top: auto;
+  padding-top: 15px;
+  font-size: 12px;
+  color: #777;
+}
+
+.ticket-footer p, .receipt-footer p {
+  margin: 5px 0;
+}
+
+/* Bảng thông tin sản phẩm */
+.order-items {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.order-items th, .order-items td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.order-items th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+/* Tổng tiền */
+.order-total {
+  display: flex;
+  justify-content: flex-end;
+  margin: 20px 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.total-label {
+  margin-right: 10px;
+}
+
+/* Thông tin đơn hàng */
+.order-info {
+  margin-bottom: 20px;
+}
+
+.info-row {
+  margin-bottom: 5px;
+}
+
+.info-label {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+/* Styles cho in ấn */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .pdf-templates, .pdf-templates * {
+    visibility: visible;
+  }
+  
+  .pdf-templates {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

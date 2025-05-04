@@ -20,6 +20,100 @@
   --input-text-color: #000000;
 }
 
+/* CSS cho thông báo tùy chỉnh */
+.custom-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 350px;
+    max-width: 90%;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: flex-start;
+    padding: 15px;
+    z-index: 9999;
+    animation: slideInRight 0.5s ease-out;
+    overflow: hidden;
+}
+
+.custom-notification.success {
+    border-left: 4px solid var(--success-color);
+}
+
+.custom-notification.error {
+    border-left: 4px solid var(--error-color);
+}
+
+.custom-notification.warning {
+    border-left: 4px solid var(--warning-color);
+}
+
+.custom-notification.info {
+    border-left: 4px solid var(--secondary-color);
+}
+
+.notification-icon {
+    margin-right: 15px;
+    font-size: 20px;
+}
+
+.success .notification-icon {
+    color: var(--success-color);
+}
+
+.error .notification-icon {
+    color: var(--error-color);
+}
+
+.warning .notification-icon {
+    color: var(--warning-color);
+}
+
+.info .notification-icon {
+    color: var(--secondary-color);
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    margin: 0 0 5px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.notification-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.notification-close {
+    cursor: pointer;
+    color: #757575;
+    font-size: 16px;
+    margin-left: 10px;
+}
+
+.custom-notification.fade-out {
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 /* Base Styles */
 * {
   box-sizing: border-box;
@@ -1435,4 +1529,104 @@ body {
   border-bottom: none;
   padding-top: 10px;
   margin-top: 5px;
+}
+
+/* CSS cho thông báo hiển thị */
+.custom-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  min-width: 300px;
+  max-width: 450px;
+  background-color: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  z-index: 9999;
+  transform: translateX(120%);
+  transition: transform 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.custom-notification.show {
+  transform: translateX(0);
+}
+
+.notification-icon {
+  margin-right: 15px;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-content h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.notification-content p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.notification-close {
+  margin-left: 10px;
+  color: #777;
+  cursor: pointer;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.notification-close:hover {
+  color: #333;
+}
+
+/* Màu sắc cho các loại thông báo */
+.success-notification {
+  border-left: 4px solid var(--success-color);
+}
+
+.success-notification .notification-icon {
+  color: var(--success-color);
+}
+
+.error-notification {
+  border-left: 4px solid var(--error-color);
+}
+
+.error-notification .notification-icon {
+  color: var(--error-color);
+}
+
+.warning-notification {
+  border-left: 4px solid var(--warning-color);
+}
+
+.warning-notification .notification-icon {
+  color: var(--warning-color);
+}
+
+.info-notification {
+  border-left: 4px solid var(--secondary-color);
+}
+
+.info-notification .notification-icon {
+  color: var(--secondary-color);
+}
+
+/* Hiệu ứng animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.custom-notification {
+  animation: fadeIn 0.3s ease-in-out;
 }

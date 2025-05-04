@@ -1,0 +1,142 @@
+<!-- Wrapper cho component -->
+<div class="ticket-pdf-container">
+  <!-- Thông báo đang tạo PDF -->
+  <div *ngIf="isGenerating" class="pdf-loading">
+    <div class="spinner"></div>
+    <p>Đang tạo file PDF...</p>
+  </div>
+  
+  <!-- Hiển thị lỗi nếu có -->
+  <div *ngIf="error" class="pdf-error">
+    <i class="fas fa-exclamation-circle"></i>
+    <p>{{ error }}</p>
+  </div>
+  
+  <!-- Khu vực xem trước - chỉ hiển thị trên giao diện, không hiển thị trên PDF -->
+  <div class="preview-controls" *ngIf="!isGenerating && !error">
+    <button class="generate-btn" (click)="generatePdf()">
+      <i class="fas fa-file-pdf"></i> Tạo PDF
+    </button>
+  </div>
+  
+  <!-- Khu vực mẫu vé - ẩn khỏi giao diện nhưng html2canvas vẫn có thể nhìn thấy -->
+  <div class="pdf-templates" style="position: absolute; left: -9999px; top: 0; opacity: 1; width: 210mm; height: auto;">
+    
+    <!-- Template cho mỗi vé -->
+    <div *ngFor="let seat of seats" class="ticket-template" [id]="'ticket-' + seat.id">
+      <div class="ticket-inner">
+        <!-- Logo và tiêu đề -->
+        <div class="ticket-header">
+          <div class="cinema-logo">CINEX</div>
+          <h1 class="ticket-title">VÉ XEM PHIM</h1>
+        </div>
+        
+        <!-- Thông tin phim và ghế -->
+        <div class="movie-info">
+          <h2 class="movie-title">{{ showtimeInfo?.movieTitle || 'Chưa xác định' }}</h2>
+          <div class="seat-info">GHẾ: {{ seat.RowName || '' }}{{ seat.SeatName || '' }}</div>
+        </div>
+        
+        <!-- Chi tiết vé -->
+        <div class="ticket-details">
+          <div class="detail-row">
+            <span class="detail-label">Ngày chiếu:</span>
+            <span class="detail-value">{{ showtimeInfo?.showDate || 'Chưa xác định' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Suất chiếu:</span>
+            <span class="detail-value">{{ showtimeInfo?.showTime || 'Chưa xác định' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Rạp:</span>
+            <span class="detail-value">{{ showtimeInfo?.cinemaName || 'CINEX Cinema' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Phòng:</span>
+            <span class="detail-value">{{ showtimeInfo?.roomName || 'Chưa xác định' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Loại ghế:</span>
+            <span class="detail-value">{{ seat.SeatTypeName || 'Ghế thường' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Giá vé:</span>
+            <span class="detail-value">{{ prepareTicketData(seat).formattedPrice }}</span>
+          </div>
+        </div>
+        
+        <!-- Mã vạch -->
+        <div class="barcode">
+          <!-- Mã vạch giả lập -->
+          <div class="barcode-text">*T&K{{ orderInfo?.orderId || '12345678' }}&F1*</div>
+        </div>
+        
+        <!-- Footer của vé -->
+        <div class="ticket-footer">
+          <p>Vui lòng đến trước giờ chiếu 15 phút</p>
+          <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+          <p>Chúc quý khách xem phim vui vẻ</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Template cho hóa đơn dịch vụ -->
+    <div *ngIf="orderItems && orderItems.length > 0" class="receipt-template" id="order-receipt">
+      <div class="receipt-inner">
+        <!-- Logo và tiêu đề -->
+        <div class="receipt-header">
+          <div class="cinema-logo">CINEX</div>
+          <h1 class="receipt-title">HÓA ĐƠN DỊCH VỤ</h1>
+        </div>
+        
+        <!-- Thông tin đơn hàng -->
+        <div class="order-info">
+          <div class="info-row">
+            <span class="info-label">Mã đơn hàng:</span>
+            <span class="info-value">{{ orderInfo?.orderId || 'Chưa xác định' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Ngày:</span>
+            <span class="info-value">{{ orderInfo?.orderDate || 'Chưa xác định' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Nhân viên:</span>
+            <span class="info-value">{{ orderInfo?.staffName || 'Nhân viên bán hàng' }}</span>
+          </div>
+        </div>
+        
+        <!-- Bảng danh sách sản phẩm -->
+        <table class="order-items">
+          <thead>
+            <tr>
+              <th>Mặt hàng</th>
+              <th>SL</th>
+              <th>Đơn giá</th>
+              <th>Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of orderItems">
+              <td>{{ item.serviceName || item.name || 'Sản phẩm' }}</td>
+              <td>{{ item.quantity || item.count || 1 }}</td>
+              <td>{{ (item.price || 0).toLocaleString() }}đ</td>
+              <td>{{ ((item.price || 0) * (item.quantity || item.count || 1)).toLocaleString() }}đ</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <!-- Tổng tiền -->
+        <div class="order-total">
+          <span class="total-label">Tổng cộng:</span>
+          <span class="total-value">{{ calculateTotal().toLocaleString() }}đ</span>
+        </div>
+        
+        <!-- Footer hóa đơn -->
+        <div class="receipt-footer">
+          <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+          <p>Chúc quý khách có trải nghiệm xem phim tuyệt vời</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

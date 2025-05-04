@@ -69,6 +69,7 @@ export class WebsocketService {
   }
 
   public connectWebSocket(showtimeId: string, userId: string): void {
+    // Đảm bảo đóng kết nối hiện tại nếu có
     this.closeWebSocketIfExists();
     
     // Chuyển ID thành chữ hoa để đảm bảo định dạng giống như URL mẫu
@@ -78,53 +79,65 @@ export class WebsocketService {
     // Sử dụng URL cố định cho WebSocket với đúng cấu trúc
     const wsUrl = `${this.WS_BASE_URL}?roomId=${roomIdUpper}&userId=${userIdUpper}`;
 
+    console.log(`Đang kết nối WebSocket đến: ${wsUrl}`);
     
     try {
       this.webSocket = new WebSocket(wsUrl);
       this.connectionAttempts = 0;
 
       this.webSocket.onopen = () => {
+        console.log('WebSocket kết nối thành công!'); 
         this.isConnected = true;
-        this.connectionAttempts = 0; 
-
-        this.getList(showtimeId);
+        this.connectionAttempts = 0;
         
         // Thiết lập ping định kỳ để giữ kết nối
         this.setupPingInterval();
+        
+        // Lấy danh sách ghế ngay khi kết nối thành công
+        // Thêm timeout ngắn để đảm bảo WebSocket đã sẵn sàng để gửi tin nhắn
+        setTimeout(() => {
+          this.getList(showtimeId);
+        }, 500);
       };
 
       this.webSocket.onmessage = (event) => {
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
-
+          console.log('Nhận tin nhắn WebSocket:', data);
           
-          if (data.Seats) {
+          if (data.Seats && Array.isArray(data.Seats) && data.Seats.length > 0) {
+            console.log(`Nhận ${data.Seats.length} ghế từ server`);
             this.seats = data.Seats;
-            this.seatsUpdatedSubject.next(data.Seats);
-            this.messageSubject.next(data.Seats);
-          } else if (data.SeatStatusUpdateRequests) {
+            this.seatsUpdatedSubject.next([...data.Seats]);
+            this.messageSubject.next([...data.Seats]);
+          } else if (data.SeatStatusUpdateRequests && data.SeatStatusUpdateRequests.length > 0) {
+            console.log('Cập nhật trạng thái ghế:', data.SeatStatusUpdateRequests);
             // Cập nhật trạng thái ghế ngay lập tức
             this.updateSeatStatus(data.SeatStatusUpdateRequests);
             // Sau đó lấy lại danh sách đầy đủ
-            this.getList(showtimeId);
+            setTimeout(() => {
+              this.getList(showtimeId);
+            }, 300);
           } else {
             this.handleMessage(event.data);
           }
         } catch (error) {
-
-          // Refresh data on error
-          this.getList(showtimeId);
+          console.error('Lỗi xử lý tin nhắn WebSocket:', error);
+          // Refresh data on error sau 1 giây để tránh request dồn dập
+          setTimeout(() => {
+            this.getList(showtimeId);
+          }, 1000);
         }
       };
 
       this.webSocket.onerror = (error) => {
-
+        console.error('Lỗi WebSocket:', error);
         this.isConnected = false;
         this.attemptReconnect(showtimeId, userId);
       };
 
       this.webSocket.onclose = (event) => {
-
+        console.log(`WebSocket đóng với mã: ${event.code}, lý do: ${event.reason}`);
         this.isConnected = false;
         this.attemptReconnect(showtimeId, userId);
       };
@@ -132,17 +145,23 @@ export class WebsocketService {
       // Thêm timeout để kiểm tra nếu kết nối không thành công trong 5 giây
       setTimeout(() => {
         if (this.webSocket && this.webSocket.readyState !== WebSocket.OPEN) {
-
+          console.warn('Kết nối WebSocket không thành công sau 5 giây, thử lại...');
           if (this.webSocket.readyState === WebSocket.CONNECTING) {
             this.webSocket.close();
             this.webSocket = null;
             this.attemptReconnect(showtimeId, userId);
           }
+        } else if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+          // Đảm bảo lấy dữ liệu ghế nếu kết nối thành công nhưng chᬊ có dữ liệu
+          if (this.seats.length === 0) {
+            console.log('Kết nối thành công nhưng chᬊ có dữ liệu ghế, thử lấy lại...');
+            this.getList(showtimeId);
+          }
         }
       }, 5000);
       
     } catch (error) {
-
+      console.error('Lỗi khởi tạo WebSocket:', error);
       this.attemptReconnect(showtimeId, userId);
     }
   }

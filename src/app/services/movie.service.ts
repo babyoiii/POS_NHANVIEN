@@ -78,25 +78,47 @@ export class MovieService {
   }
 
   // Phương thức này lọc phim theo ngày (cho component phim đang chiếu)
+  // Loại bỏ các suất chiếu đã quá thời gian hiện tại 15 phút
   getShowtimesByDate(movies: Movie[], date: Date): Movie[] {
     const selectedDate = new Date(date);
     selectedDate.setHours(0, 0, 0, 0);
     
+    // Lấy thời gian hiện tại
+    const now = new Date();
+    
+    // Tính thời gian cắt giới hạn (thời gian hiện tại - 15 phút)
+    const cutoffTime = new Date();
+    cutoffTime.setMinutes(cutoffTime.getMinutes() - 15);
+    
+    console.log(`Cutoff time for showtimes: ${cutoffTime.toLocaleString()}`);
+    
     return movies.map(movie => {
-      // Lọc showtimes chỉ trong ngày đã chọn
+      // Lọc showtimes chỉ trong ngày đã chọn và chưa quá 15 phút so với thời gian hiện tại
       const filteredShowtimes = movie.showtimes.filter(showtime => {
         const showtimeDate = new Date(showtime.startTime);
-        return showtimeDate.getDate() === selectedDate.getDate() &&
-               showtimeDate.getMonth() === selectedDate.getMonth() &&
-               showtimeDate.getFullYear() === selectedDate.getFullYear();
+        
+        // Kiểm tra ngày
+        const isSameDay = showtimeDate.getDate() === selectedDate.getDate() &&
+                        showtimeDate.getMonth() === selectedDate.getMonth() &&
+                        showtimeDate.getFullYear() === selectedDate.getFullYear();
+        
+        // Kiểm tra thời gian (chỉ hiển thị suất chiếu chưa quá 15 phút)
+        const isNotPast = showtimeDate > cutoffTime;
+        
+        return isSameDay && isNotPast;
       });
       
-      // Trả về phim với showtimes đã lọc
+      // Sắp xếp showtimes theo thời gian tăng dần
+      const sortedShowtimes = filteredShowtimes.sort((a, b) => {
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      });
+      
+      // Trả về phim với showtimes đã lọc và sắp xếp
       return {
         ...movie,
-        showtimes: filteredShowtimes
+        showtimes: sortedShowtimes
       };
-    }).filter(movie => movie.showtimes.length > 0); // Chỉ giữ phim có lịch chiếu trong ngày đã chọn
+    }).filter(movie => movie.showtimes.length > 0); // Chỉ giữ phim có lịch chiếu hợp lệ
   }
 
   // Phương thức này lọc phim theo thể loại (cho component phim sắp chiếu)
